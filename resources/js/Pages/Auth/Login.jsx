@@ -4,7 +4,7 @@ import TextInput from "@/Components/TextInput";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { useState } from "react";
-
+import { useValidation } from "@/utils/validaciones";
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -19,13 +19,61 @@ export default function Login({ status, canResetPassword }) {
         setShowPassword(!showPassword);
     };
 
+    // validaciones basicas en la vista, en conjunto con @/utils/validaciones
+    const { validateField } = useValidation();
+    const [clientErrors, setClientErrors] = useState({});
+
+    const isFormValid = data.email.trim() !== "" && data.password.trim() !== "";
+
+    const hasAuthError = errors.email || errors.password;
+
+    const handleEmailChange = (e) => {
+        const value = e.target.value;
+        setData("email", value);
+        
+        if (clientErrors.email && value.trim() !== "") {
+            setClientErrors((prev) => ({
+                ...prev,
+                email: null,
+            }));
+        }
+    };
+
+    const handlePasswordChange = (e) => {
+        const value = e.target.value;
+        setData("password", value);
+        
+        if (clientErrors.password && value.trim() !== "") {
+            setClientErrors((prev) => ({
+                ...prev,
+                password: null,
+            }));
+        }
+    };
+
     const submit = (e) => {
         e.preventDefault();
+
+        // se validan todos los campos antes de enviar
+        const emailError = validateField("email", data.email);
+        const passwordError = validateField("password", data.password);
+        
+        if (emailError || passwordError) {
+            setClientErrors({ 
+                email: emailError, 
+                password: passwordError 
+            });
+            return;
+        }
+
+        setClientErrors({});
 
         post(route("login"), {
             onFinish: () => reset("password"),
         });
     };
+
+    
 
     return (
         <GuestLayout>
@@ -42,7 +90,7 @@ export default function Login({ status, canResetPassword }) {
                     ¡Bienvenido de nuevo!
                 </h2>
 
-                <form onSubmit={submit}>
+                <form onSubmit={submit} noValidate>
                     <div className="relative">
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <img
@@ -56,14 +104,12 @@ export default function Login({ status, canResetPassword }) {
                             type="email"
                             name="email"
                             value={data.email}
-                            className="mt-1 block w-full"
-                            placeholder="Ingresá tu usuario"
+                            className="mt-1 block w-full pl-5 pr-10"
+                            placeholder="Ingresá tu correo electrónico"
                             autoComplete="username"
                             isFocused={true}
-                            onChange={(e) => setData("email", e.target.value)}
+                            onChange={handleEmailChange}
                         />
-
-                        <InputError message={errors.email} className="mt-2" />
                     </div>
 
                     <div className="mt-10 relative">
@@ -88,36 +134,14 @@ export default function Login({ status, canResetPassword }) {
                             type={showPassword ? "text" : "password"}
                             name="password"
                             value={data.password}
-                            className="mt-1 block w-full pl-10"
+                            className="mt-1 block w-full pl-5 pr-10"
                             autoComplete="current-password"
                             placeholder="Ingresá tu contraseña"
-                            onChange={(e) =>
-                                setData("password", e.target.value)
-                            }
-                        />
-
-                        <InputError
-                            message={errors.password}
-                            className="mt-2"
+                            onChange={handlePasswordChange}
                         />
                     </div>
 
-                    {/* <div className="mt-4 block">
-                            <label className="flex items-center">
-                                <Checkbox
-                                    name="remember"
-                                    checked={data.remember}
-                                    onChange={(e) =>
-                                        setData("remember", e.target.checked)
-                                    }
-                                />
-                                <span className="ms-2 text-sm text-gray-800">
-                                    Recuerdame
-                                </span>
-                            </label>
-                        </div> */}
-
-                    <div className="mt-4 flex items-center justify-center">
+                    <div className="mt-4 flex items-center justify-center gap-8">
                         {canResetPassword && (
                             <Link
                                 href={route("password.request")}
@@ -126,9 +150,38 @@ export default function Login({ status, canResetPassword }) {
                                 ¿Olvidaste tu contraseña?
                             </Link>
                         )}
+                        <Link
+                            href={route("register")}
+                            className="rounded-md text-sm font-bold text-gray-700 hover:text-black focus:outline-none"
+                        >
+                            ¿No tenes cuenta?
+                        </Link>
                     </div>
-                    <div className="flex items-center justify-center">
-                        <PrimaryButton className="mt-8" disabled={processing}>
+                    
+                    {/* mostrar errores */}
+                    {(clientErrors.email || clientErrors.password) && (
+                        <div className="mt-6 flex justify-center">
+                            <InputError
+                                message={clientErrors.email || clientErrors.password}
+                                className="text-center font-semibold"
+                            />
+                        </div>
+                    )}
+
+                    {hasAuthError && !clientErrors.email && !clientErrors.password && (
+                        <div className="mt-6 flex justify-center">
+                            <InputError
+                                message={"Credenciales incorrectas"}
+                                className="text-center font-semibold"
+                            />
+                        </div>
+                    )}
+
+                    <div className="flex flex-col items-center justify-center mt-8 gap-4">
+                        <PrimaryButton
+                            className=""
+                            disabled={processing || !isFormValid}
+                        >
                             Iniciar sesión
                         </PrimaryButton>
                     </div>
