@@ -21,7 +21,7 @@ export default function GuestLayout({ children }) {
                     className="w-full h-full rounded-[45%]"
                     style={{
                         background:
-                            "radial-gradient(circle at center, rgba(245,223,166,0.9) 0%, 58%, rgba(42,58,71,0.1) 80%, transparent 90%)",
+                            "radial-gradient(circle at center, rgba(245,223,166,0.9) 0%, 68%, rgba(42,58,71,0.1) 80%, transparent 90%)",
                         filter: "blur(80px)",
                         opacity: 0.9,
                     }}

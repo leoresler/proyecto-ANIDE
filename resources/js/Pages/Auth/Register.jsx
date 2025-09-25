@@ -145,7 +145,7 @@ export default function Register() {
                         name="password_confirmation"
                         value={data.password_confirmation}
                         className="mt-1 block w-full"
-                        placeholder="Ingresá tu contraseña"
+                        placeholder="Confirmar contraseña"
                         autoComplete="new-password"
                         onChange={handlePasswordConfirmationChange}
                     />
