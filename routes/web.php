@@ -24,4 +24,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::put('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo.update');
+});
+
+Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
+
+Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])
+    ->name('profile.photo.destroy');
+
+
 require __DIR__.'/auth.php';

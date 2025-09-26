@@ -3,8 +3,9 @@ import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import ActualizarFotoPerfil from './Partials/ActualizarFotoPerfil';
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ mustVerifyEmail, status, auth }) {
     return (
         <AuthenticatedLayout
             header={
@@ -21,6 +22,10 @@ export default function Edit({ mustVerifyEmail, status }) {
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
+                            className="max-w-xl"
+                        />
+                        <ActualizarFotoPerfil
+                            currentPhoto={auth.user.profile_photo_url}
                             className="max-w-xl"
                         />
                     </div>

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,6 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'profile_photo_path', // <-- agregado para poder guardar fotos
     ];
 
     /**
@@ -34,6 +34,12 @@ class User extends Authenticatable
     ];
 
     /**
+    * Los accessors que deben incluirse al serializar el modelo.
+    */
+    protected $appends = ['profile_photo_url'];
+
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -44,5 +50,19 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Retorna la URL de la foto de perfil.
+     * Si no tiene foto, retorna la foto por defecto.
+     */
+    public function getProfilePhotoUrlAttribute()
+    {
+        if ($this->profile_photo_path) {
+            return asset('storage/' . $this->profile_photo_path);
+        }
+
+        // Ruta de la foto por defecto
+        return asset('storage/profile-photos/default.png');
     }
 }
