@@ -33,5 +33,8 @@ Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('
 Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])
     ->name('profile.photo.destroy');
 
+Route::post('/profile/interests', [ProfileController::class, 'updateInterests'])->name('profile.interests.update');
+  
+
 
 require __DIR__.'/auth.php';

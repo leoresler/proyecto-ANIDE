@@ -101,8 +101,23 @@ class ProfileController extends Controller
     $user->profile_photo_path = null;
     $user->save();
 
-    return back()->with('success', 'Foto de perfil eliminada.');
+    return Inertia::location(route('profile.edit'));
     }
+
+    public function updateInterests(Request $request)
+    {
+        $request->validate([
+            'interests' => 'array',
+            'interests.*' => 'string|max:255',
+        ]);
+
+        $user = $request->user();
+        $user->interests = $request->interests ?? [];
+        $user->save();
+
+        return redirect()->route('profile.edit')->with('success', 'Intereses actualizados.');
+    }
+
 
 
 }
