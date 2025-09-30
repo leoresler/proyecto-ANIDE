@@ -1,12 +1,15 @@
 <?php
 
 namespace App\Models;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PerfInstitucion extends Model
 {
-    
+    use HasFactory;
+
+    // Indicar explícitamente el nombre de la tabla
+    protected $table = 'perf_institucion';
     protected $fillable = [
         'user_id',
         'tipo_institucion',
