@@ -20,7 +20,6 @@ return new class extends Migration
             $table->string('url_sitio_web')->nullable();
             $table->unsignedBigInteger('cantidad_seguidores')->default(0);
             $table->text('descripcion')->nullable();
-            $table->string('foto_perfil')->nullable();
             $table->decimal('latitud', 10, 7)->nullable();
             $table->decimal('longitud', 10, 7)->nullable();
             $table->boolean('verificado')->default(false);

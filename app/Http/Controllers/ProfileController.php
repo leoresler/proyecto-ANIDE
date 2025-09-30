@@ -129,51 +129,54 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
 
-        $validComunes = [
+        $rulesComunes = [
             'nombre' => 'required|string|max:255',
             'telefono' => 'required|string|max:20',
             'ciudad' => 'required|string|max:100',
             'provincia' => 'required|string|max:100',
+            'profile_photo_path' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'interests' => 'nullable|array',
+            'interests.*' => 'string|max:255',
         ];
 
         if ($user->tipo_usuario === 'persona') {
-            $validEspecificas = [
+            $rulesEspecificas = [
                 'apellido' => 'required|string|max:255',
                 'fecha_nac' => 'nullable|date|before:today',
                 'biografia' => 'nullable|string|max:1000',
-                'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ];
-        } else { // institución
-            $validEspecificas = [
+        } else {
+            $rulesEspecificas = [
                 'tipo_institucion' => 'required|string|max:255',
                 'direccion' => 'nullable|string|max:255',
                 'url_sitio_web' => 'nullable|url|max:255',
                 'descripcion' => 'nullable|string|max:1000',
-                'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'latitud' => 'nullable|numeric|between:-90,90',
                 'longitud' => 'nullable|numeric|between:-180,180',
                 'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
             ];
         }
 
-        // se validan todos los campos
-        $validated = $request->validate(array_merge($validComunes, $validEspecificas));
+        $validated = $request->validate(array_merge($rulesComunes, $rulesEspecificas));
 
-        // Actualizar datos comunes del usuario
-        // $user->update([
-        //     'nombre' => $validated['nombre'],
-        //     'telefono' => $validated['telefono'],
-        //     'ciudad' => $validated['ciudad'],
-        //     'provincia' => $validated['provincia'],
-        // ]);
-
-        // manejar foto de perfil si existe
-        $fotoPerfil = null;
-        if ($request->hasFile('foto_perfil')) {
-            $fotoPerfil = $request->file('foto_perfil')->store('perfiles', 'public');
+        // 📌 Guardar foto en users.profile_photo_path
+        if ($request->hasFile('profile_photo_path')) {
+            $path = $request->file('profile_photo_path')->store('profile-photos', 'public');
+            $user->profile_photo_path = $path;
         }
 
-        // crear o actualizar perfil específico según tipo
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // 📌 Guardar datos comunes en users
+        $user->nombre = $validated['nombre'];
+        $user->telefono = $validated['telefono'];
+        $user->ciudad = $validated['ciudad'];
+        $user->provincia = $validated['provincia'];
+        $user->interests = $validated['interests'] ?? [];
+        $user->save();
+
+        // 📌 Guardar perfil específico
         if ($user->tipo_usuario === 'persona') {
             PerfPersona::updateOrCreate(
                 ['user_id' => $user->id],
@@ -181,7 +184,6 @@ class ProfileController extends Controller
                     'apellido' => $validated['apellido'],
                     'fecha_nac' => $validated['fecha_nac'] ?? null,
                     'biografia' => $validated['biografia'] ?? null,
-                    'foto_perfil' => $fotoPerfil,
                 ]
             );
         } else {
@@ -192,7 +194,6 @@ class ProfileController extends Controller
                     'direccion' => $validated['direccion'] ?? null,
                     'url_sitio_web' => $validated['url_sitio_web'] ?? null,
                     'descripcion' => $validated['descripcion'] ?? null,
-                    'foto_perfil' => $fotoPerfil,
                     'latitud' => $validated['latitud'] ?? null,
                     'longitud' => $validated['longitud'] ?? null,
                     'ano_fundacion' => $validated['ano_fundacion'] ?? null,
@@ -202,9 +203,7 @@ class ProfileController extends Controller
             );
         }
 
-        // Cambiar estado del usuario a activo
-        // $user->update(['estado' => 'activo']);
-
         return redirect()->route('inicio')->with('success', '¡Perfil completado exitosamente!');
     }
+
 }

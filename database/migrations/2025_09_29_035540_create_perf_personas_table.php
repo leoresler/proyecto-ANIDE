@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('apellido')->nullable();
             $table->date('fecha_nac')->nullable();
             $table->text('biografia')->nullable();
-            $table->string('foto_perfil')->nullable();
 
             $table->timestamps();
         });
