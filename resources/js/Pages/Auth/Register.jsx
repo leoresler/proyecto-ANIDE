@@ -12,7 +12,10 @@ export default function Register() {
         email: "",
         password: "",
         password_confirmation: "",
+        tipo_usuario: "persona",
     });
+
+    const [isInstitution, setIsInstitution] = useState(false); // estado para saber si es institucion o no
 
     /* validaciones basicas en la vista, en conjunto con @/utils/validaciones */
     const { validateField } = useValidation();
@@ -25,10 +28,7 @@ export default function Register() {
 
     // errores de registro en el servidor
     const hasServerError =
-        errors.email ||
-        errors.password ||
-        errors.password_confirmation;
-
+        errors.email || errors.password || errors.password_confirmation;
 
     const handleEmailChange = (e) => {
         const value = e.target.value;
@@ -66,6 +66,12 @@ export default function Register() {
         }
     };
 
+    const handleInstitutionChange = (e) => {
+        const checked = e.target.checked;
+        setIsInstitution(checked);
+        setData("tipo_usuario", checked ? "institucion" : "persona");
+    };
+
     const submit = (e) => {
         e.preventDefault();
 
@@ -78,11 +84,7 @@ export default function Register() {
             data.password
         );
 
-        if (
-            emailError ||
-            passwordError ||
-            passwordConfirmationError
-        ) {
+        if (emailError || passwordError || passwordConfirmationError) {
             setClientErrors({
                 email: emailError,
                 password: passwordError,
@@ -93,8 +95,8 @@ export default function Register() {
 
         setClientErrors({});
 
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
+        post(route("register"), {
+            onFinish: () => reset("password", "password_confirmation"),
         });
     };
 
@@ -102,8 +104,12 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-            <form onSubmit={submit} noValidate>
-                <div>
+            <form
+                onSubmit={submit}
+                noValidate
+                className="w-full max-w-sm sm:max-w-md p-4 sm:p-8"
+            >
+                <div className="mt-4">
                     <InputLabel htmlFor="email" value="Correo electronico" />
 
                     <TextInput
@@ -126,7 +132,7 @@ export default function Register() {
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full pl-5 pr-10"
                         placeholder="Ingresá tu contraseña"
                         autoComplete="new-password"
                         onChange={handlePasswordChange}
@@ -144,41 +150,69 @@ export default function Register() {
                         type="password"
                         name="password_confirmation"
                         value={data.password_confirmation}
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full pl-5 pr-10"
                         placeholder="Confirmar contraseña"
                         autoComplete="new-password"
                         onChange={handlePasswordConfirmationChange}
                     />
                 </div>
 
-                {/* mostrar errores */}
-                {(clientErrors.email || clientErrors.password || clientErrors.password_confirmation) && (
+                <div className="mt-4 flex gap-3 items-center">
+                    <InputLabel
+                        htmlFor="check_type"
+                        value="Si querés acceder como institución"
+                    />
+
+                    <input
+                        type="checkbox"
+                        name="check_type"
+                        checked={isInstitution}
+                        onChange={handleInstitutionChange}
+                    />
+                </div>
+
+                {/* errores */}
+                {(clientErrors.email ||
+                    clientErrors.password ||
+                    clientErrors.password_confirmation) && (
+                    <div className="mt-6 flex justify-center">
+                        <InputError
+                            message={
+                                clientErrors.email ||
+                                clientErrors.password ||
+                                clientErrors.password_confirmation
+                            }
+                            className="text-center font-semibold "
+                        />
+                    </div>
+                )}
+
+                {hasServerError &&
+                    !clientErrors.email &&
+                    !clientErrors.password &&
+                    !clientErrors.password_confirmation && (
                         <div className="mt-6 flex justify-center">
                             <InputError
-                                message={clientErrors.email || clientErrors.password || clientErrors.password_confirmation}
+                                message={
+                                    "Error en el registro. Verifica los datos ingresados."
+                                }
                                 className="text-center font-semibold "
                             />
                         </div>
                     )}
 
-                    {hasServerError && !clientErrors.email && !clientErrors.password && !clientErrors.password_confirmation && (
-                        <div className="mt-6 flex justify-center">
-                            <InputError
-                                message={"Error en el registro. Verifica los datos ingresados."}
-                                className="text-center font-semibold "
-                            />
-                        </div>
-                    )}
-
-                <div className="mt-6 flex items-center justify-end">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                     <Link
                         href={route("login")}
-                        className="rounded-md text-sm font-bold text-gray-700 hover:text-black focus:outline-none"
+                        className="text-sm font-bold text-gray-700 hover:text-black focus:outline-none text-center"
                     >
                         ¿Ya estas registrado?
                     </Link>
 
-                    <PrimaryButton className="ms-4" disabled={processing || !isFormValid}>
+                    <PrimaryButton
+                        className="w-full sm:w-auto justify-center"
+                        disabled={processing || !isFormValid}
+                    >
                         Registrarse
                     </PrimaryButton>
                 </div>

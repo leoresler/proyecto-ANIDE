@@ -13,12 +13,22 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // campos en comun de persona e institucion
+            $table->string('nombre'); // persona = nombre, institucion = razon social
+            $table->string('telefono');
+            $table->string('ciudad');
+            $table->string('provincia');
+
+            $table->enum('tipo_usuario', ['persona', 'institucion']);
+            $table->enum('estado', ['activo', 'inactivo', 'pendiente_verif'])->default('pendiente_verif');
+
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

@@ -20,9 +20,22 @@ Route::get('/', function () {
 
 Route::get('/inicio', function () {
     return Inertia::render('Inicio');
-})->middleware(['auth', 'verified'])->name('inicio');
+})->middleware(['auth', 'verified', 'profile.complete'])->name('inicio');
 
-Route::middleware('auth')->group(function () {
+
+// completar perfil usuario
+Route::get('/completar-datos/{type}', function ($type) {
+    return Inertia::render('CompletarDatosUser', [
+        'type' => $type
+    ]);
+})->middleware(['auth', 'verified', 'profile.complete'])->name('completar.datos');
+
+Route::post('/completar-datos', [ProfileController::class, 'completarPerfil'])
+    ->middleware(['auth', 'verified'])
+    ->name('completar.datos.store');
+
+
+Route::middleware(['auth', 'verified', 'profile.complete'])->group(function () {
     // perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -41,4 +54,4 @@ Route::middleware('auth')->group(function () {
     Route::get('/videos', [VideosController::class, 'index'])->name('videos.index');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -44,55 +44,61 @@ export default function ForgotPassword({ status }) {
         <GuestLayout>
             <Head title="Restablecer contraseña" />
 
-            <div className="flex flex-col items-center justify-center w-full max-w">
-                <div className="mb-4 text-md text-black font-semibold">
+            <div className="w-full max-w-sm sm:max-w-md p-4 sm:p-8 mt-4">
+                <div className="mb-6 text-center text-md text-gray-800 font-semibold">
                     Ingrese su direccion de correo electrónico y le enviaremos
                     un enlace para reestablecer su contraseña.
                 </div>
 
-                <div className="flex flex-row justify-cente">
-                    <form onSubmit={submit} noValidate>
+                <form
+                    onSubmit={submit}
+                    noValidate
+                    className="flex flex-col sm:flex-row sm:items-start sm:gap-3 justify-center"
+                >
+                    <div className="flex-1">
                         <TextInput
                             id="email"
                             type="email"
                             name="email"
                             value={data.email}
-                            className="mt-2 w-72"
+                            className="w-full"
                             isFocused={true}
                             onChange={handleEmailChange}
                         />
-
-                        <PrimaryButton
-                            className="mt-2 ml-4 px-8"
-                            disabled={processing}
-                        >
-                            Enviar
-                        </PrimaryButton>
 
                         <InputError
                             message={
                                 clientErrors.email ||
                                 (errors.email && "Error del servidor")
                             }
-                            className="mt-2"
+                            className="mt-2 mb-2"
                         />
-                    </form>
-                </div>
+                    </div>
+
+                    <PrimaryButton
+                        className="mt-4 sm:mt-0 px-6 w-full sm:w-auto justify-center"
+                        disabled={processing}
+                    >
+                        Enviar
+                    </PrimaryButton>
+                </form>
 
                 {status && (
-                    <div className="mt-4 text-sm font-semibold text-green-200">
+                    <div className="mt-6 text-center text-sm font-semibold text-green-600">
                         {status === "We have emailed your password reset link."
                             ? "Te hemos enviado un enlace para restablecer tu contraseña por correo electrónico."
                             : status}
                     </div>
                 )}
 
-                <Link
-                    href={"login"}
-                    className="rounded-3xl border border-transparent bg-edu-dark px-20 py-4 mt-6 text-xs font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 active:bg-gray-900"
-                >
-                    Volver
-                </Link>
+                <div className="mt-6 flex justify-center">
+                    <Link
+                        href={"login"}
+                        className="rounded-3xl border border-transparent bg-edu-dark px-20 py-4 mt-6 text-xs font-semibold uppercase tracking-widest text-white transition duration-150 ease-in-out hover:bg-gray-700 focus:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 active:bg-gray-900"
+                    >
+                        Volver
+                    </Link>
+                </div>
             </div>
         </GuestLayout>
     );

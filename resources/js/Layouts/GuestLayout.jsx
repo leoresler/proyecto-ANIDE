@@ -2,7 +2,7 @@ import ApplicationLogo from "@/Components/ApplicationLogo";
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="relative flex h-screen flex-col items-center bg-edu-dark pt-6 sm:justify-center sm:pt-0 overflow-hidden">
+        <div className="relative flex min-h-screen flex-col items-center bg-edu-dark pt-6 sm:justify-center sm:pt-0 overflow-hidden">
             
             <div className="z-20 logo-eduquen">
                 <ApplicationLogo />
@@ -28,7 +28,16 @@ export default function GuestLayout({ children }) {
                 />
             </div>
 
-            <div className="relative z-10 flex-1 flex items-center justify-center w-full">
+            {/* className="relative z-10 flex-1 flex items-center justify-center w-full mb-2" */}
+            <div
+                className="
+                    relative z-10 w-full flex-1 
+                    flex items-center justify-center 
+                    px-4 py-8
+                    sm:py-0 sm:items-center sm:justify-center
+                    overflow-y-auto
+                "
+            >
                 {children}
             </div>
         </div>
