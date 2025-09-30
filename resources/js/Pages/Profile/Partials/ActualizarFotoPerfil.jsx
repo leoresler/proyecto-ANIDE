@@ -1,7 +1,6 @@
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { useForm } from '@inertiajs/react';
-import { Inertia } from '@inertiajs/inertia';
 import { useRef, useEffect, useState } from 'react';
 
 export default function ActualizarFotoPerfil({ className = '', currentPhoto }) {

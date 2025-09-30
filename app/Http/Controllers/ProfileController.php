@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\PerfPersona;
+use App\Models\PerfInstitucion;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -120,4 +122,89 @@ class ProfileController extends Controller
 
 
 
+    /**
+     * Completar el perfil del usuario según su tipo (persona o institución)
+     */
+    public function completarPerfil(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+
+        $validComunes = [
+            'nombre' => 'required|string|max:255',
+            'telefono' => 'required|string|max:20',
+            'ciudad' => 'required|string|max:100',
+            'provincia' => 'required|string|max:100',
+        ];
+
+        if ($user->tipo_usuario === 'persona') {
+            $validEspecificas = [
+                'apellido' => 'required|string|max:255',
+                'fecha_nac' => 'nullable|date|before:today',
+                'biografia' => 'nullable|string|max:1000',
+                'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ];
+        } else { // institución
+            $validEspecificas = [
+                'tipo_institucion' => 'required|string|max:255',
+                'direccion' => 'nullable|string|max:255',
+                'url_sitio_web' => 'nullable|url|max:255',
+                'descripcion' => 'nullable|string|max:1000',
+                'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'latitud' => 'nullable|numeric|between:-90,90',
+                'longitud' => 'nullable|numeric|between:-180,180',
+                'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
+            ];
+        }
+
+        // se validan todos los campos
+        $validated = $request->validate(array_merge($validComunes, $validEspecificas));
+
+        // Actualizar datos comunes del usuario
+        // $user->update([
+        //     'nombre' => $validated['nombre'],
+        //     'telefono' => $validated['telefono'],
+        //     'ciudad' => $validated['ciudad'],
+        //     'provincia' => $validated['provincia'],
+        // ]);
+
+        // manejar foto de perfil si existe
+        $fotoPerfil = null;
+        if ($request->hasFile('foto_perfil')) {
+            $fotoPerfil = $request->file('foto_perfil')->store('perfiles', 'public');
+        }
+
+        // crear o actualizar perfil específico según tipo
+        if ($user->tipo_usuario === 'persona') {
+            PerfPersona::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'apellido' => $validated['apellido'],
+                    'fecha_nac' => $validated['fecha_nac'] ?? null,
+                    'biografia' => $validated['biografia'] ?? null,
+                    'foto_perfil' => $fotoPerfil,
+                ]
+            );
+        } else {
+            PerfInstitucion::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'tipo_institucion' => $validated['tipo_institucion'],
+                    'direccion' => $validated['direccion'] ?? null,
+                    'url_sitio_web' => $validated['url_sitio_web'] ?? null,
+                    'descripcion' => $validated['descripcion'] ?? null,
+                    'foto_perfil' => $fotoPerfil,
+                    'latitud' => $validated['latitud'] ?? null,
+                    'longitud' => $validated['longitud'] ?? null,
+                    'ano_fundacion' => $validated['ano_fundacion'] ?? null,
+                    'cantidad_seguidores' => 0,
+                    'verificado' => false,
+                ]
+            );
+        }
+
+        // Cambiar estado del usuario a activo
+        // $user->update(['estado' => 'activo']);
+
+        return redirect()->route('inicio')->with('success', '¡Perfil completado exitosamente!');
+    }
 }
