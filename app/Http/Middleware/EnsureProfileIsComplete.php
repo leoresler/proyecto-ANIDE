@@ -15,12 +15,12 @@ class EnsureProfileIsComplete
 
         if ($user) {
             // if ($user->estado === 'pendiente_verif') {
-            //     // permitir acceso solo a completar datos y logout
+            // // permitir acceso solo a completar datos y logout
             //     if (!$request->routeIs('completar.datos') && 
             //         !$request->routeIs('completar.datos.store') && 
             //         !$request->routeIs('logout')) {
-            //         return redirect()->route('completar.datos', ['type' => $user->tipo_usuario]);
-            //     }
+            //             return redirect()->route('completar.datos', ['type' => $user->tipo_usuario]);
+            //         }
             // }
 
             // si el usuario esta inactivo, se desloguea
