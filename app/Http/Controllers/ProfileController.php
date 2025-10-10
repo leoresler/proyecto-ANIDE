@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\PerfPersona;
 use App\Models\PerfInstitucion;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,12 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Events\Registered;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NuevaInstitucionRegistrada;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -26,8 +32,8 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'auth' => [
-            'user' => $request->user(),
-        ],
+                'user' => $request->user(),
+            ],
         ]);
     }
 
@@ -70,40 +76,40 @@ class ProfileController extends Controller
 
     public function updatePhoto(Request $request)
     {
-    $request->validate([
-        'photo' => 'required|image|max:2048', // máximo 2MB
-    ]);
+        $request->validate([
+            'photo' => 'required|image|max:2048', // máximo 2MB
+        ]);
 
-    $user = $request->user();
+        $user = $request->user();
 
-    // Si ya tenía una foto, eliminarla
-    if ($user->profile_photo_path) {
-        Storage::disk('public')->delete($user->profile_photo_path);
-    }
+        // Si ya tenía una foto, eliminarla
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
 
-    // Guardar la nueva
-    $path = $request->file('photo')->store('profile-photos', 'public');
+        // Guardar la nueva
+        $path = $request->file('photo')->store('profile-photos', 'public');
 
-    $user->profile_photo_path = $path;
-    $user->save();
+        $user->profile_photo_path = $path;
+        $user->save();
 
-    return back()->with('success', 'Foto de perfil actualizada.');
+        return back()->with('success', 'Foto de perfil actualizada.');
     }
 
     public function destroyPhoto(Request $request)
     {
-    $user = $request->user();
+        $user = $request->user();
 
-    // Si tiene foto, y no es la default, eliminarla
-    if ($user->profile_photo_path && $user->profile_photo_path !== 'profile-photos/default.png') {
-        Storage::disk('public')->delete($user->profile_photo_path);
-    }
+        // Si tiene foto, y no es la default, eliminarla
+        if ($user->profile_photo_path && $user->profile_photo_path !== 'profile-photos/default.png') {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
 
-    // Asignar la default
-    $user->profile_photo_path = null;
-    $user->save();
+        // Asignar la default
+        $user->profile_photo_path = null;
+        $user->save();
 
-    return Inertia::location(route('profile.edit'));
+        return Inertia::location(route('profile.edit'));
     }
 
     public function updateInterests(Request $request)
@@ -120,91 +126,113 @@ class ProfileController extends Controller
         return redirect()->route('profile.edit')->with('success', 'Intereses actualizados.');
     }
 
-
-
     /**
-     * Completar el perfil del usuario según su tipo (persona o institución)
+     * Completar los datos del usuario una vez verificado el email.
      */
-    public function completarPerfil(Request $request): RedirectResponse
+    public function completarPerfil(Request $request)
     {
         $user = Auth::user();
+        $tipoUsuario = $user->tipo_usuario;
 
-        $validComunes = [
+        $rules = [
+            'profile_photo_path' => 'nullable|image|max:2048',
             'nombre' => 'required|string|max:255',
             'telefono' => 'required|string|max:20',
             'ciudad' => 'required|string|max:100',
             'provincia' => 'required|string|max:100',
         ];
 
-        if ($user->tipo_usuario === 'persona') {
-            $validEspecificas = [
-                'apellido' => 'required|string|max:255',
-                'fecha_nac' => 'nullable|date|before:today',
-                'biografia' => 'nullable|string|max:1000',
-                'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ];
-        } else { // institución
-            $validEspecificas = [
-                'tipo_institucion' => 'required|string|max:255',
-                'direccion' => 'nullable|string|max:255',
-                'url_sitio_web' => 'nullable|url|max:255',
-                'descripcion' => 'nullable|string|max:1000',
-                'foto_perfil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'latitud' => 'nullable|numeric|between:-90,90',
-                'longitud' => 'nullable|numeric|between:-180,180',
-                'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
-            ];
+        if ($tipoUsuario === 'persona') {
+            $rules['apellido'] = 'required|string|max:255';
+            $rules['fecha_nac'] = 'nullable|date|before:today';
+            $rules['biografia'] = 'nullable|string|max:500';
+            $rules['interests'] = 'nullable|array';
+        } else {
+            $rules['tipo_institucion'] = 'required|string|max:100';
+            $rules['direccion'] = 'required|string|max:255';
+            $rules['url_sitio_web'] = 'nullable|url|max:255';
+            $rules['descripcion'] = 'nullable|string|max:1000';
+            $rules['tipo_documento'] = 'required|in:CUIT,CUIL,DNI';
+            $rules['documento_identificador'] = 'required|string|max:20';
         }
 
-        // se validan todos los campos
-        $validated = $request->validate(array_merge($validComunes, $validEspecificas));
+        $validated = $request->validate($rules);
 
-        // Actualizar datos comunes del usuario
-        // $user->update([
-        //     'nombre' => $validated['nombre'],
-        //     'telefono' => $validated['telefono'],
-        //     'ciudad' => $validated['ciudad'],
-        //     'provincia' => $validated['provincia'],
-        // ]);
+        // Actualizar datos básicos
+        $user = Auth::user();
 
-        // manejar foto de perfil si existe
-        $fotoPerfil = null;
-        if ($request->hasFile('foto_perfil')) {
-            $fotoPerfil = $request->file('foto_perfil')->store('perfiles', 'public');
+        if (!$user) {
+            abort(403, 'Usuario no autenticado.');
         }
 
-        // crear o actualizar perfil específico según tipo
-        if ($user->tipo_usuario === 'persona') {
+        $user->update([
+            'nombre' => $validated['nombre'],
+            'telefono' => $validated['telefono'],
+            'ciudad' => $validated['ciudad'],
+            'provincia' => $validated['provincia'],
+        ]);
+
+
+        // Guardar foto
+        if ($request->hasFile('profile_photo_path')) {
+            $path = $request->file('profile_photo_path')->store('profile-photos', 'public');
+            $user->update(['profile_photo_path' => $path]);
+        }
+
+        // Crear perfil según tipo
+        if ($tipoUsuario === 'persona') {
             PerfPersona::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'apellido' => $validated['apellido'],
                     'fecha_nac' => $validated['fecha_nac'] ?? null,
                     'biografia' => $validated['biografia'] ?? null,
-                    'foto_perfil' => $fotoPerfil,
                 ]
             );
+
+            if (isset($validated['interests'])) {
+                $user->update(['interests' => $validated['interests']]);
+            }
+
+            $user->update(['estado' => 'activo']);
+
+            return redirect()->route('inicio')
+                ->with('success', 'Perfil completado correctamente.');
         } else {
+            $approvalToken = bin2hex(random_bytes(20));
+
             PerfInstitucion::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'tipo_institucion' => $validated['tipo_institucion'],
-                    'direccion' => $validated['direccion'] ?? null,
+                    'direccion' => $validated['direccion'],
                     'url_sitio_web' => $validated['url_sitio_web'] ?? null,
                     'descripcion' => $validated['descripcion'] ?? null,
-                    'foto_perfil' => $fotoPerfil,
-                    'latitud' => $validated['latitud'] ?? null,
-                    'longitud' => $validated['longitud'] ?? null,
-                    'ano_fundacion' => $validated['ano_fundacion'] ?? null,
-                    'cantidad_seguidores' => 0,
-                    'verificado' => false,
+                    'documento_identificador' => $validated['documento_identificador'],
+                    'tipo_documento' => $validated['tipo_documento'],
+                    'verificado' => 0,
+                    'approval_token' => \Illuminate\Support\Str::random(64),
                 ]
             );
+
+            // Cambiar estado del usuario a pendiente aprobación
+            $user->update(['estado' => 'pendiente_aprobacion']);
+
+            // Generar URLs públicas para el email
+            $urlAprobar = url("/instituciones/aprobar/{$approvalToken}");
+            $urlRechazar = url("/instituciones/rechazar/{$approvalToken}");
+
+            // Enviar email al administrador
+            try {
+                Mail::to(env('MAIL_ADMIN_ADDRESS'))->send(
+                    new \App\Mail\NuevaInstitucionRegistrada($user, $urlAprobar, $urlRechazar)
+                );
+            } catch (\Exception $e) {
+                Log::error('Error enviando email al admin: ' . $e->getMessage());
+            }
+
+            return redirect()->route('institucion.pendiente')
+                ->with('info', 'Perfil completado. Tu institución será revisada por el administrador.');
         }
-
-        // Cambiar estado del usuario a activo
-        // $user->update(['estado' => 'activo']);
-
-        return redirect()->route('inicio')->with('success', '¡Perfil completado exitosamente!');
     }
 }

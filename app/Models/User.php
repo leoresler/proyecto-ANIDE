@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
@@ -41,8 +42,8 @@ class User extends Authenticatable
     ];
 
     /**
-    * Los accessors que deben incluirse al serializar el modelo.
-    */
+     * Los accessors que deben incluirse al serializar el modelo.
+     */
     protected $appends = ['profile_photo_url'];
 
 
@@ -73,7 +74,7 @@ class User extends Authenticatable
         // Ruta de la foto por defecto
         return asset('storage/profile-photos/default.png');
     }
-    
+
     public function persona()
     {
         return $this->hasOne(PerfPersona::class);
@@ -84,5 +85,30 @@ class User extends Authenticatable
         return $this->hasOne(PerfInstitucion::class);
     }
 
-    
+    /**
+     * Verifica si el usuario tiene acceso completo
+     * - Persona: email verificado + estado activo
+     * - Institución: email verificado + estado activo + verificado manual (verificado = 1)
+     */
+    public function tieneAccesoCompleto(): bool
+    {
+        // Debe estar activo
+        if ($this->estado !== 'activo') {
+            return false;
+        }
+
+        // Debe tener email verificado
+        if (!$this->hasVerifiedEmail()) {
+            return false;
+        }
+
+        // Si es institución, necesita verificación manual
+        if ($this->tipo_usuario === 'institucion') {
+            return $this->institucion && $this->institucion->verificado == 1;
+        }
+
+        // Si es persona, con lo anterior es suficiente
+        return true;
+    }
+
 }
