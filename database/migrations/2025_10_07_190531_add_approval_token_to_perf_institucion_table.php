@@ -9,20 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('name');
+        Schema::table('perf_institucion', function (Blueprint $table) {
+            $table->uuid('approval_token')->nullable()->unique()->after('verificado');
         });
     }
+
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('name')->after('id');
+        Schema::table('perf_institucion', function (Blueprint $table) {
+            //
         });
     }
 };

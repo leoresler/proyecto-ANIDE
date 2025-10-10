@@ -14,14 +14,32 @@ class VerifyEmailController extends Controller
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        $user = $request->user();
+
+        // Si ya verificó el email
+        if ($user->hasVerifiedEmail()) {
+            // Redirigir según el estado actual
+            if ($user->estado === 'pendiente_datos') {
+                return redirect()->route('completar.datos', ['type' => $user->tipo_usuario]);
+            }
+
+            if ($user->estado === 'pendiente_aprobacion') {
+                return redirect()->route('institucion.pendiente');
+            }
+
+            return redirect()->route('inicio')->with('verified', true);
         }
 
-        if ($request->user()->markEmailAsVerified()) {
-            event(new Verified($request->user()));
+        // Marcar email como verificado
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+
+            // Cambiar estado a 'pendiente_datos'
+            $user->update(['estado' => 'pendiente_datos']);
         }
 
-        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        // Redirigir a completar datos
+        return redirect()->route('completar.datos', ['type' => $user->tipo_usuario])
+            ->with('success', '¡Email verificado! Ahora completá tus datos.');
     }
 }

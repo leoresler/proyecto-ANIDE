@@ -85,7 +85,7 @@ export default function Login({ status, canResetPassword }) {
                 </div>
             )}
 
-            <div className="w-full max-w-md px-6 py-8">
+            <div className="w-full max-w-md px-6 py-8 p-4">
                 <h2 className="text-center text-2xl font-bold text-black mb-6">
                     ¡Bienvenido de nuevo!
                 </h2>

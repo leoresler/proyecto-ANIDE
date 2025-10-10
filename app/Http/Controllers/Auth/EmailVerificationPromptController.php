@@ -15,8 +15,26 @@ class EmailVerificationPromptController extends Controller
      */
     public function __invoke(Request $request): RedirectResponse|Response
     {
-        return $request->user()->hasVerifiedEmail()
-                    ? redirect()->intended(route('dashboard', absolute: false))
-                    : Inertia::render('Auth/VerifyEmail', ['status' => session('status')]);
+        // Si ya verificó el email
+        if ($request->user()->hasVerifiedEmail()) {
+            
+            // Si está en pendiente_datos, redirigir a completar datos
+            if ($request->user()->estado === 'pendiente_datos') {
+                return redirect()->route('completar.datos', ['type' => $request->user()->tipo_usuario]);
+            }
+            
+            // Si está en pendiente_aprobacion (institución), redirigir a vista de espera
+            if ($request->user()->estado === 'pendiente_aprobacion') {
+                return redirect()->route('institucion.pendiente');
+            }
+            
+            // Si está activo, ir al inicio
+            if ($request->user()->estado === 'activo') {
+                return redirect()->intended(route('inicio', absolute: false));
+            }
+        }
+        
+        // Mostrar la vista de verificación
+        return Inertia::render('Auth/VerifyEmail', ['status' => session('status')]);
     }
 }
