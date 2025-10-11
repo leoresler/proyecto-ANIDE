@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,7 +12,11 @@ class PerfPersona extends Model
     // Indicar explícitamente el nombre de la tabla
     protected $table = 'perf_persona';
 
-    protected $fillable = ['user_id', 'apellido', 'fecha_nac', 'biografia'];
+    protected $fillable = ['user_id', 'apellido', 'interests', 'fecha_nac', 'biografia'];
+
+    protected $casts = [
+        'interests' => 'array',
+    ];
 
     public function user()
     {

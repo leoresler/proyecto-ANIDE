@@ -27,7 +27,6 @@ return new class extends Migration
             $table->enum('estado', ['activo', 'inactivo', 'pendiente_verif', 'pendiente_datos', 'pendiente_aprobacion'])->default('pendiente_verif');
 
             $table->rememberToken();
-            $table->json('interests')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
