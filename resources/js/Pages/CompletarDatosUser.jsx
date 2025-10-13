@@ -37,8 +37,8 @@ export default function CompletarDatosUser() {
         direccion: type === "institucion" ? "" : undefined,
         url_sitio_web: type === "institucion" ? "" : undefined,
         descripcion: type === "institucion" ? "" : undefined,
-        doc_identificador: type === 'institucion' ? '' : undefined,
-        tipo_documento: type === 'institucion' ? 'CUIT' : undefined,
+        doc_identificador: "",
+        tipo_documento: "CUIT",
     });
 
     useEffect(() => {
@@ -172,7 +172,7 @@ export default function CompletarDatosUser() {
                                     handleFieldValidation('profile_photo', file);
                                 }
                             }}
-                            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
                         />
                         {(clientErrors.profile_photo_path || errors.profile_photo_path) && (
                             <InputError message={clientErrors.profile_photo_path || errors.profile_photo_path} className="mt-1" />
@@ -193,7 +193,7 @@ export default function CompletarDatosUser() {
                                     clearFieldError('nombre');
                                 }}
                                 onBlur={(e) => handleFieldValidation('nombre', e.target.value)}
-                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                 
                             />
                             {(clientErrors.nombre || errors.nombre) && (
@@ -214,7 +214,7 @@ export default function CompletarDatosUser() {
                                         clearFieldError('apellido');
                                     }}
                                     onBlur={(e) => handleFieldValidation('apellido', e.target.value)}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                     
                                 />
                                 {(clientErrors.apellido || errors.apellido) && (
@@ -236,7 +236,7 @@ export default function CompletarDatosUser() {
                                 }}
                                 onBlur={(e) => handleFieldValidation('telefono', e.target.value)}
                                 placeholder="Ej: 299 123 4567"
-                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                 
                             />
                             {(clientErrors.telefono || errors.telefono) && (
@@ -256,7 +256,7 @@ export default function CompletarDatosUser() {
                                     clearFieldError('ciudad');
                                 }}
                                 onBlur={(e) => handleFieldValidation('ciudad', e.target.value)}
-                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                 
                             />
                             {(clientErrors.ciudad || errors.ciudad) && (
@@ -276,7 +276,7 @@ export default function CompletarDatosUser() {
                                     clearFieldError('provincia');
                                 }}
                                 onBlur={(e) => handleFieldValidation('provincia', e.target.value)}
-                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                 
                             />
                             {(clientErrors.provincia || errors.provincia) && (
@@ -300,7 +300,7 @@ export default function CompletarDatosUser() {
                                         clearFieldError('fecha_nac');
                                     }}
                                     onBlur={(e) => handleFieldValidation('fecha_nac', e.target.value)}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                     
                                 />
                                 {(clientErrors.fecha_nac || errors.fecha_nac) && (
@@ -321,7 +321,7 @@ export default function CompletarDatosUser() {
                                     onBlur={(e) => handleFieldValidation('biografia', e.target.value)}
                                     maxLength="500"
                                     rows="3"
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                     placeholder="Cuéntanos sobre ti..."
                                 />
                                 <p className="text-sm text-gray-500 mt-1">
@@ -347,8 +347,8 @@ export default function CompletarDatosUser() {
                                             }}
                                             className={`px-4 py-2 rounded-full border transition-colors ${
                                                 data.interests.includes(option)
-                                                    ? "bg-blue-600 text-white border-blue-600"
-                                                    : "bg-white text-black border-gray-300 hover:border-blue-400"
+                                                    ? "bg-gray-600 text-white border-gray-600"
+                                                    : "bg-white text-black border-gray-300 hover:border-gray-400"
                                             }`}
                                         >
                                             {option}
@@ -377,7 +377,7 @@ export default function CompletarDatosUser() {
                                         clearFieldError('tipo_institucion');
                                     }}
                                     onBlur={(e) => handleFieldValidation('tipo_institucion', e.target.value)}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                     placeholder="Ej: Universidad, Terciario, etc."
                                 />
                                 {(clientErrors.tipo_institucion || errors.tipo_institucion) && (
@@ -397,7 +397,7 @@ export default function CompletarDatosUser() {
                                         clearFieldError('direccion');
                                     }}
                                     onBlur={(e) => handleFieldValidation('direccion', e.target.value)}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                 />
                                 {(clientErrors.direccion || errors.direccion) && (
                                     <InputError message={clientErrors.direccion || errors.direccion} className="mt-1" />
@@ -405,7 +405,7 @@ export default function CompletarDatosUser() {
                             </div>
 
                             {/* Documento Identificador */}
-                            <div className="md:col-span-2 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
                                 <h3 className="font-semibold mb-3">
                                     Documento Identificador *
                                 </h3>
@@ -424,7 +424,7 @@ export default function CompletarDatosUser() {
                                                 // Limpiar error del documento cuando cambia el tipo
                                                 clearFieldError('doc_identificador');
                                             }}
-                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                             
                                         >
                                             <option value="CUIT">CUIT</option>
@@ -452,7 +452,7 @@ export default function CompletarDatosUser() {
                                                 e.target.value, 
                                                 data.tipo_documento
                                             )}
-                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                             placeholder={
                                                 data.tipo_documento === 'DNI' 
                                                     ? "Ej: 12345678" 
@@ -479,7 +479,7 @@ export default function CompletarDatosUser() {
                                         clearFieldError('url_sitio_web');
                                     }}
                                     onBlur={(e) => handleFieldValidation('url_sitio_web', e.target.value)}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                     placeholder="https://..."
                                 />
                                 {(clientErrors.url_sitio_web || errors.url_sitio_web) && (
@@ -500,7 +500,7 @@ export default function CompletarDatosUser() {
                                     onBlur={(e) => handleFieldValidation('descripcion', e.target.value)}
                                     maxLength="1000"
                                     rows="4"
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
                                     placeholder="Describe tu institución..."
                                 />
                                 <p className="text-sm text-gray-500 mt-1">
@@ -525,7 +525,7 @@ export default function CompletarDatosUser() {
                         <SecondaryButton
                             type="submit"
                             disabled={processing}
-                            className="w-full px-6 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="w-full px-6 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-edu-dark hover:bg-gray-600"
                         >
                             {processing ? "Creando cuenta..." : "Crear mi cuenta"}
                         </SecondaryButton>

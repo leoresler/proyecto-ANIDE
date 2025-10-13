@@ -1,11 +1,18 @@
 <?php
 
-use App\Http\Controllers\Auth\InstitucionAprobacionController;
 use App\Http\Controllers\ComunidadController;
 use App\Http\Controllers\MapaController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\VideosController;
+
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Auth\InstitucionAprobacionController;
+
+use App\Http\Controllers\Publicaciones\PublicacionController;
+use App\Http\Controllers\Publicaciones\LikeController;
+use App\Http\Controllers\Publicaciones\FavoritoController;
+use App\Http\Controllers\Publicaciones\ComentarioController;
+
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,13 +48,13 @@ Route::post('/completar-datos', [ProfileController::class, 'completarPerfil'])
     ->name('completar.datos.store');
 
 
-// inicio - requiere autenticacion Y perfil completo
-Route::get('/inicio', function () {
-    return Inertia::render('Inicio');
-})->middleware(['auth', 'verified'])->name('inicio');
+// // inicio - requiere autenticacion, verificacion y completar datos
+// Route::get('/inicio', function () {
+//     return Inertia::render('Inicio');
+// })->middleware(['auth', 'verified'])->name('inicio');
 
 
-// rutas protegidas - requieren autenticacion Y perfil completo
+// rutas protegidas - requieren autenticacion, verificacion y completar datos
 Route::middleware(['auth', 'verified'])->group(function () {
     // perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -57,6 +64,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
     Route::post('/profile/interests', [ProfileController::class, 'updateInterests'])->name('profile.interests.update');
+
+    // Feed principal (inicio)
+    Route::get('/inicio', [PublicacionController::class, 'index'])->name('inicio');
+
+    // Rutas solo para instituciones
+    Route::middleware(['check.institucion'])->group(function () {
+        Route::get('/publicaciones/create', [PublicacionController::class, 'create'])
+            ->name('publicaciones.create');
+        Route::get('/publicaciones/misPublicaciones', [PublicacionController::class, 'misPublicaciones'])
+            ->name('publicaciones.misPublicaciones');
+        Route::post('/publicaciones', [PublicacionController::class, 'store'])
+            ->name('publicaciones.store');
+        Route::delete('/publicaciones/{id}', [PublicacionController::class, 'destroy'])
+            ->name('publicaciones.destroy');
+    });
+
+    // Publicaciones
+    Route::get('/publicaciones/{id}', [PublicacionController::class, 'show'])->name('publicaciones.show');
+
+    // Likes (tanto personas como instituciones)
+    Route::post('/likes/toggle', [LikeController::class, 'toggle'])->name('likes.toggle');
+
+    // Comentarios (tanto personas como instituciones)
+    Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
+    Route::delete('/comentarios/{id}', [ComentarioController::class, 'destroy'])
+        ->name('comentarios.destroy');
+
+
+    // Favoritos (solo personas)
+    Route::middleware(['check.persona'])->group(function () {
+        Route::post('/favoritos/toggle', [FavoritoController::class, 'toggle'])->name('favoritos.toggle');
+        Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
+    });
+
 
     // comunidad
     Route::get('/comunidad', [ComunidadController::class, 'index'])->name('comunidad.index');
@@ -73,8 +114,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 Route::get('/institucion/pendiente', function () {
-        return Inertia::render('InstitucionPendiente');
-    })->name('institucion.pendiente');
+    return Inertia::render('InstitucionPendiente');
+})->name('institucion.pendiente');
 
 
 
