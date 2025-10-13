@@ -15,6 +15,8 @@ class PerfInstitucion extends Model
     protected $fillable = [
         'user_id',
         'tipo_institucion',
+        'doc_identificador',
+        'tipo_documento',
         'direccion',
         'sitio_web',
         'cantidad_seguidores',
