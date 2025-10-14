@@ -14,22 +14,10 @@ class EnsureProfileIsComplete
     {
         $user = $request->user();
 
-<<<<<<< HEAD
         $rutasPublicas = [
             'institucion.aprobar',
             'institucion.rechazar'
         ];
-=======
-        if ($user) {
-            // if ($user->estado === 'pendiente_verif') {
-            // // permitir acceso solo a completar datos y logout
-            //     if (!$request->routeIs('completar.datos') && 
-            //         !$request->routeIs('completar.datos.store') && 
-            //         !$request->routeIs('logout')) {
-            //             return redirect()->route('completar.datos', ['type' => $user->tipo_usuario]);
-            //         }
-            // }
->>>>>>> 4a5f840be3553d392e5f21bbc4fe5211820b34ba
 
         if ($request->routeIs($rutasPublicas)) {
             return $next($request);

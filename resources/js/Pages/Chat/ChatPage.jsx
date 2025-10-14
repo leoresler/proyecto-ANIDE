@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
-export default function ChatPage({ auth, chats }) {
+export default function ChatPage({ auth, chats = [] }) {
     return (
         <AuthenticatedLayout
             user={auth.user}
