@@ -12,6 +12,7 @@ use App\Http\Controllers\Publicaciones\PublicacionController;
 use App\Http\Controllers\Publicaciones\LikeController;
 use App\Http\Controllers\Publicaciones\FavoritoController;
 use App\Http\Controllers\Publicaciones\ComentarioController;
+use App\Http\Controllers\Chats\ChatController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -117,8 +118,19 @@ Route::get('/institucion/pendiente', function () {
     return Inertia::render('InstitucionPendiente');
 })->name('institucion.pendiente');
 
+// chat
+Route::get('/chat', function () {
+    return Inertia::render('Chat/ChatPage');
+})->name('chat');
 
 
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chats/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chats/iniciar', [ChatController::class, 'iniciarChat'])->name('chat.iniciar');
+    Route::post('/chats/{id}/mensaje', [ChatController::class, 'enviarMensaje'])->name('chat.enviar');
+});
 
 
 

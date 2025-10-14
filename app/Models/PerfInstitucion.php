@@ -40,4 +40,9 @@ class PerfInstitucion extends Model
             $institucion->approval_token = Str::uuid();
         });
     }
+
+    public function chats()
+    {
+    return $this->hasMany(Chat::class, 'institucion_id');
+    }
 }

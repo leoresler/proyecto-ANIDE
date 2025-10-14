@@ -22,4 +22,9 @@ class PerfPersona extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function chats()
+    {
+    return $this->hasMany(Chat::class, 'persona_id');
+    }
 }
