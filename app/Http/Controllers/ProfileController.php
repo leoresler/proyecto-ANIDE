@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\PerfPersona;
 use App\Models\PerfInstitucion;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,12 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Events\Registered;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NuevaInstitucionRegistrada;
+use Illuminate\Support\Facades\Log;
 
 class ProfileController extends Controller
 {
@@ -26,8 +32,8 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'auth' => [
-            'user' => $request->user(),
-        ],
+                'user' => $request->user(),
+            ],
         ]);
     }
 
@@ -70,40 +76,36 @@ class ProfileController extends Controller
 
     public function updatePhoto(Request $request)
     {
-    $request->validate([
-        'photo' => 'required|image|max:2048', // máximo 2MB
-    ]);
+        $request->validate([
+            'photo' => 'required|image|max:2048',
+        ]);
 
-    $user = $request->user();
+        $user = $request->user();
 
-    // Si ya tenía una foto, eliminarla
-    if ($user->profile_photo_path) {
-        Storage::disk('public')->delete($user->profile_photo_path);
-    }
+        if ($user->profile_photo_path) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
 
-    // Guardar la nueva
-    $path = $request->file('photo')->store('profile-photos', 'public');
+        $path = $request->file('photo')->store('profile-photos', 'public');
 
-    $user->profile_photo_path = $path;
-    $user->save();
+        $user->profile_photo_path = $path;
+        $user->save();
 
-    return back()->with('success', 'Foto de perfil actualizada.');
+        return back()->with('success', 'Foto de perfil actualizada.');
     }
 
     public function destroyPhoto(Request $request)
     {
-    $user = $request->user();
+        $user = $request->user();
 
-    // Si tiene foto, y no es la default, eliminarla
-    if ($user->profile_photo_path && $user->profile_photo_path !== 'profile-photos/default.png') {
-        Storage::disk('public')->delete($user->profile_photo_path);
-    }
+        if ($user->profile_photo_path && $user->profile_photo_path !== 'profile-photos/default.png') {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
 
-    // Asignar la default
-    $user->profile_photo_path = null;
-    $user->save();
+        $user->profile_photo_path = null;
+        $user->save();
 
-    return Inertia::location(route('profile.edit'));
+        return Inertia::location(route('profile.edit'));
     }
 
     public function updateInterests(Request $request)
@@ -114,96 +116,213 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
-        $user->interests = $request->interests ?? [];
-        $user->save();
+
+        // Si el usuario es tipo persona
+        if ($user->tipo_usuario === 'persona') {
+            $perfil = PerfPersona::firstOrCreate(['user_id' => $user->id]);
+            $perfil->interests = $request->interests ?? [];
+            $perfil->save();
+        }
 
         return redirect()->route('profile.edit')->with('success', 'Intereses actualizados.');
     }
 
 
+    /**
+     * Validación personalizada para documentos argentinos
+     */
+    private function validateDocumento($tipoDocumento, $numeroDocumento)
+    {
+        // Limpiar el documento de caracteres especiales
+        $cleanDoc = preg_replace('/[^0-9]/', '', $numeroDocumento);
+
+        switch ($tipoDocumento) {
+            case 'DNI':
+                if (strlen($cleanDoc) < 7 || strlen($cleanDoc) > 8) {
+                    return false;
+                }
+                break;
+            case 'CUIT':
+            case 'CUIL':
+                if (strlen($cleanDoc) !== 11) {
+                    return false;
+                }
+                break;
+            default:
+                return false;
+        }
+
+        return true;
+    }
 
     /**
-     * Completar el perfil del usuario según su tipo (persona o institución)
+     * Completar los datos del usuario una vez verificado el email.
      */
-    public function completarPerfil(Request $request): RedirectResponse
+    public function completarPerfil(Request $request)
     {
         $user = Auth::user();
+        $tipoUsuario = $user->tipo_usuario;
 
-        $rulesComunes = [
-            'nombre' => 'required|string|max:255',
-            'telefono' => 'required|string|max:20',
-            'ciudad' => 'required|string|max:100',
-            'provincia' => 'required|string|max:100',
-            'profile_photo_path' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'interests' => 'nullable|array',
-            'interests.*' => 'string|max:255',
+        $rules = [
+            'profile_photo_path' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+                'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/'
+            ],
+            'telefono' => [
+                'required',
+                'string',
+                'min:8',
+                'max:20',
+                'regex:/^[\d\s\-\+\(\)]+$/'
+            ],
+            'ciudad' => 'required|string|min:2|max:100',
+            'provincia' => 'required|string|min:2|max:100',
         ];
 
-        if ($user->tipo_usuario === 'persona') {
-            $rulesEspecificas = [
-                'apellido' => 'required|string|max:255',
-                'fecha_nac' => 'nullable|date|before:today',
-                'biografia' => 'nullable|string|max:1000',
+        if ($tipoUsuario === 'persona') {
+            $rules['apellido'] = [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+                'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/'
             ];
+            $rules['fecha_nac'] = 'required|date|before:today|after:' . now()->subYears(120)->format('Y-m-d');
+            $rules['biografia'] = 'nullable|string|max:500';
+            $rules['interests'] = 'required|array|min:1';
+            $rules['interests.*'] = 'string|max:255';
         } else {
-            $rulesEspecificas = [
-                'tipo_institucion' => 'required|string|max:255',
-                'direccion' => 'nullable|string|max:255',
-                'url_sitio_web' => 'nullable|url|max:255',
-                'descripcion' => 'nullable|string|max:1000',
-                'latitud' => 'nullable|numeric|between:-90,90',
-                'longitud' => 'nullable|numeric|between:-180,180',
-                'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
-            ];
+            $rules['tipo_institucion'] = 'required|string|min:3|max:100';
+            $rules['direccion'] = 'required|string|min:5|max:255';
+            $rules['url_sitio_web'] = 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/';
+            $rules['descripcion'] = 'nullable|string|max:1000';
+            $rules['tipo_documento'] = 'required|in:CUIT,CUIL,DNI';
+            $rules['doc_identificador'] = 'required|string|max:20';
         }
 
-        $validated = $request->validate(array_merge($rulesComunes, $rulesEspecificas));
+        $validated = $request->validate($rules, [
+            // Mensajes personalizados
+            'nombre.required' => 'El nombre es obligatorio',
+            'nombre.min' => 'El nombre debe tener al menos 2 caracteres',
+            'nombre.regex' => 'El nombre solo puede contener letras',
+            'apellido.required' => 'El apellido es obligatorio',
+            'apellido.min' => 'El apellido debe tener al menos 2 caracteres',
+            'apellido.regex' => 'El apellido solo puede contener letras',
+            'telefono.required' => 'El teléfono es obligatorio',
+            'telefono.min' => 'El teléfono debe tener al menos 8 dígitos',
+            'telefono.regex' => 'El teléfono solo puede contener números, espacios y guiones',
+            'ciudad.required' => 'La ciudad es obligatoria',
+            'provincia.required' => 'La provincia es obligatoria',
+            'fecha_nac.required' => 'La fecha de nacimiento es obligatoria',
+            'fecha_nac.before' => 'La fecha de nacimiento no puede ser futura',
+            'fecha_nac.after' => 'La fecha de nacimiento no es válida',
+            'biografia.max' => 'La biografía no puede exceder 500 caracteres',
+            'interests.required' => 'Debes seleccionar al menos un interés',
+            'interests.min' => 'Debes seleccionar al menos un interés',
+            'tipo_institucion.required' => 'El tipo de institución es obligatorio',
+            'tipo_institucion.min' => 'El tipo de institución debe tener al menos 3 caracteres',
+            'direccion.required' => 'La dirección es obligatoria',
+            'direccion.min' => 'La dirección debe tener al menos 5 caracteres',
+            'url_sitio_web.url' => 'Ingresa una URL válida',
+            'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://',
+            'descripcion.max' => 'La descripción no puede exceder 1000 caracteres',
+            'doc_identificador.required' => 'El documento identificador es obligatorio',
+            'tipo_documento.required' => 'El tipo de documento es obligatorio',
+            'tipo_documento.in' => 'El tipo de documento no es válido',
+            'profile_photo_path.image' => 'El archivo debe ser una imagen',
+            'profile_photo_path.mimes' => 'Solo se permiten imágenes JPG, PNG o GIF',
+            'profile_photo_path.max' => 'La imagen no puede superar los 2MB',
+        ]);
 
-        // 📌 Guardar foto en users.profile_photo_path
+        // Validación adicional del documento si es institución
+        if ($tipoUsuario === 'institucion') {
+            if (!$this->validateDocumento($validated['tipo_documento'], $validated['doc_identificador'])) {
+                return back()->withErrors([
+                    'doc_identificador' => $validated['tipo_documento'] === 'DNI'
+                        ? 'El DNI debe tener 7 u 8 dígitos'
+                        : 'El ' . $validated['tipo_documento'] . ' debe tener 11 dígitos'
+                ])->withInput();
+            }
+        }
+
+        // Actualizar datos básicos
+        $user = Auth::user();
+
+        if (!$user) {
+            abort(403, 'Usuario no autenticado.');
+        }
+
+        $user->update([
+            'nombre' => $validated['nombre'],
+            'telefono' => $validated['telefono'],
+            'ciudad' => $validated['ciudad'],
+            'provincia' => $validated['provincia'],
+        ]);
+
+        // Guardar foto
         if ($request->hasFile('profile_photo_path')) {
             $path = $request->file('profile_photo_path')->store('profile-photos', 'public');
-            $user->profile_photo_path = $path;
+            $user->update(['profile_photo_path' => $path]);
         }
 
-        /** @var \App\Models\User $user */
-        $user = $request->user();
-
-        // 📌 Guardar datos comunes en users
-        $user->nombre = $validated['nombre'];
-        $user->telefono = $validated['telefono'];
-        $user->ciudad = $validated['ciudad'];
-        $user->provincia = $validated['provincia'];
-        $user->interests = $validated['interests'] ?? [];
-        $user->save();
-
-        // 📌 Guardar perfil específico
-        if ($user->tipo_usuario === 'persona') {
+        // Crear perfil según tipo
+        if ($tipoUsuario === 'persona') {
             PerfPersona::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'apellido' => $validated['apellido'],
-                    'fecha_nac' => $validated['fecha_nac'] ?? null,
+                    'fecha_nac' => $validated['fecha_nac'],
+                    'interests' => $validated['interests'] ?? [],
                     'biografia' => $validated['biografia'] ?? null,
                 ]
             );
+
+            $user->update(['estado' => 'activo']);
+
+            return redirect()->route('inicio')
+                ->with('success', 'Perfil completado correctamente.');
         } else {
+            $approvalToken = bin2hex(random_bytes(20));
+
+            // Limpiar documento antes de guardar
+            $documentoLimpio = preg_replace('/[^0-9]/', '', $validated['doc_identificador']);
+
             PerfInstitucion::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'tipo_institucion' => $validated['tipo_institucion'],
-                    'direccion' => $validated['direccion'] ?? null,
+                    'direccion' => $validated['direccion'],
                     'url_sitio_web' => $validated['url_sitio_web'] ?? null,
                     'descripcion' => $validated['descripcion'] ?? null,
-                    'latitud' => $validated['latitud'] ?? null,
-                    'longitud' => $validated['longitud'] ?? null,
-                    'ano_fundacion' => $validated['ano_fundacion'] ?? null,
-                    'cantidad_seguidores' => 0,
-                    'verificado' => false,
+                    'doc_identificador' => $documentoLimpio,
+                    'tipo_documento' => $validated['tipo_documento'],
+                    'verificado' => 0,
+                    'approval_token' => \Illuminate\Support\Str::random(64),
                 ]
             );
-        }
 
-        return redirect()->route('inicio')->with('success', '¡Perfil completado exitosamente!');
+            $user->update(['estado' => 'pendiente_aprobacion']);
+
+            // Generar URLs públicas para el email
+            $urlAprobar = url("/institucion/aprobar/{$approvalToken}");
+            $urlRechazar = url("/institucion/rechazar/{$approvalToken}");
+
+            // Enviar email al administrador
+            try {
+                Mail::to(env('MAIL_ADMIN_ADDRESS'))->send(
+                    new \App\Mail\NuevaInstitucionRegistrada($user, $urlAprobar, $urlRechazar)
+                );
+            } catch (\Exception $e) {
+                Log::error('Error enviando email al admin: ' . $e->getMessage());
+            }
+
+            return redirect()->route('institucion.pendiente')
+                ->with('info', 'Perfil completado. Tu institución será revisada por el administrador.');
+        }
     }
 
 }

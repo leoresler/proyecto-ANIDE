@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
 
     /**
@@ -20,12 +20,11 @@ class User extends Authenticatable
     protected $fillable = [
         'email',
         'password',
-        'profile_photo_path', // <-- agregado para poder guardar fotos
+        'profile_photo_path',
         'nombre',
         'telefono',
         'ciudad',
         'provincia',
-        'foto_perfil',
         'tipo_usuario',
         'estado',
     ];
@@ -41,10 +40,9 @@ class User extends Authenticatable
     ];
 
     /**
-    * Los accessors que deben incluirse al serializar el modelo.
-    */
+     * Los accessors que deben incluirse al serializar el modelo.
+     */
     protected $appends = ['profile_photo_url'];
-
 
     /**
      * Get the attributes that should be cast.
@@ -56,7 +54,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'interests' => 'array',
         ];
     }
 
@@ -70,10 +67,9 @@ class User extends Authenticatable
             return asset('storage/' . $this->profile_photo_path);
         }
 
-        // Ruta de la foto por defecto
         return asset('storage/profile-photos/default.png');
     }
-    
+
     public function persona()
     {
         return $this->hasOne(PerfPersona::class);
@@ -84,5 +80,25 @@ class User extends Authenticatable
         return $this->hasOne(PerfInstitucion::class);
     }
 
-    
+    /**
+     * Verifica si el usuario tiene acceso completo
+     * - Persona: email verificado + estado activo
+     * - Institución: email verificado + estado activo + verificado manual (verificado = 1)
+     */
+    public function tieneAccesoCompleto(): bool
+    {
+        if ($this->estado !== 'activo') {
+            return false;
+        }
+
+        if (!$this->hasVerifiedEmail()) {
+            return false;
+        }
+
+        if ($this->tipo_usuario === 'institucion') {
+            return $this->institucion && $this->institucion->verificado == 1;
+        }
+
+        return true;
+    }
 }

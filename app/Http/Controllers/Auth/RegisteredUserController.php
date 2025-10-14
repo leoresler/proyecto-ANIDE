@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,31 +31,28 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-
         $request->validate([
             'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'tipo_usuario' => 'required|in:persona,institucion'
         ]);
 
+        // Crear usuario con datos minimos
         $user = User::create([
             'email' => $request->email,
             'password' => Hash::make($request->password),
-
-            // campos en comun
-            'nombre' => 'null',
-            'telefono' => 'null',
-            'ciudad' => 'null',
-            'provincia' => 'null',
-
-            'tipo_usuario' => $request->tipo_usuario ?? 'persona',
+            'tipo_usuario' => $request->tipo_usuario,
             'estado' => 'pendiente_verif',
+            'nombre' => '',
+            'telefono' => '',
+            'ciudad' => '',
+            'provincia' => '',
         ]);
 
         event(new Registered($user));
+
         Auth::login($user);
 
-        return redirect()->route('completar.datos', ['type' => $user->tipo_usuario]);
-        // return redirect()->route('inicio');
+        return redirect()->route('verification.notice');
     }
 }

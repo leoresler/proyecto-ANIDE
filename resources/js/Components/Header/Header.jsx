@@ -1,19 +1,16 @@
-import ResponsiveNavLink from "@/Components/ResponsiveNavLink";
 import Dropdown from "@/Components/Dropdown";
 import { Link, usePage } from "@inertiajs/react";
 import { useState } from "react";
 import BarraBusqueda from "../BarraBusqueda/BarraBusqueda";
 import NavLink from "../NavLink";
 
-export default function Header() {
-    const user = usePage().props.auth.user;
-    const [mobileOpen, setMobileOpen] = useState(false);
+export default function Header({ onToggleSidebar }) {
 
     return (
-        <header className="bg-[#243746] text-white">
+        <header className="bg-[#243746] opacity-95 text-white sticky top-0 z-50">
             <nav className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
-                    <Link href="inicio" className="flex items-center">
+                    <Link href="/inicio" className="flex items-center">
                         <img
                             src="/images/logo-navbar-eduquen.webp"
                             alt="EDUQUÉN"
@@ -106,9 +103,8 @@ export default function Header() {
                     {/* boton para abrir menu en movil */}
                     <div className="md:hidden">
                         <button
-                            onClick={() => setMobileOpen((s) => !s)}
+                            onClick={onToggleSidebar}
                             className="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-white/10"
-                            aria-expanded={mobileOpen}
                         >
                             <img
                                 src="/svg/header/Group.svg"
@@ -116,51 +112,6 @@ export default function Header() {
                                 className="h-6 w-6"
                             />
                         </button>
-                    </div>
-                </div>
-
-                {/* menu para movil */}
-                <div
-                    className={`${
-                        mobileOpen ? "block" : "hidden"
-                    } md:hidden pb-4`}
-                >
-                    <div className="space-y-1 px-2 pt-2">
-                        <ResponsiveNavLink href={route("inicio")}>
-                            Inicio
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink href={route("comunidad.index")}>
-                            Comunidad
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink href={route("videos.index")}>
-                            Videos
-                        </ResponsiveNavLink>
-                        <ResponsiveNavLink href={route("mapa.index")}>
-                            Mapa
-                        </ResponsiveNavLink>
-                        {/* corregir link a notificaciones cuando se implemente */}
-                        <ResponsiveNavLink href={route("inicio")}>
-                            Notificaciones
-                        </ResponsiveNavLink>
-                    </div>
-
-                    {/* sacar despues */}
-                    <div className="border-t border-white/10 px-4 pt-4 pb-2">
-                        <div className="text-base font-medium">
-                            {user?.name}
-                        </div>
-                        <div className="space-y-1">
-                            <ResponsiveNavLink href={route("profile.edit")}>
-                                Perfil
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route("logout")}
-                                as="button"
-                            >
-                                Cerrar sesión
-                            </ResponsiveNavLink>
-                        </div>
                     </div>
                 </div>
             </nav>

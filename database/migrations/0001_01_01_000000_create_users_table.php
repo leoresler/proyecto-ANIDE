@@ -24,10 +24,9 @@ return new class extends Migration
             $table->string('provincia');
 
             $table->enum('tipo_usuario', ['persona', 'institucion']);
-            $table->enum('estado', ['activo', 'inactivo', 'pendiente_verif'])->default('pendiente_verif');
+            $table->enum('estado', ['activo', 'inactivo', 'pendiente_verif', 'pendiente_datos', 'pendiente_aprobacion'])->default('pendiente_verif');
 
             $table->rememberToken();
-            $table->json('interests')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
