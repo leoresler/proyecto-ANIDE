@@ -1,13 +1,11 @@
 import Dropdown from "@/Components/Dropdown";
 import { Link, usePage } from "@inertiajs/react";
-import { useState } from "react";
 import BarraBusqueda from "../BarraBusqueda/BarraBusqueda";
 import NavLink from "../NavLink";
 
 export default function Header({ onToggleSidebar }) {
-
     return (
-        <header className="bg-[#243746] opacity-95 text-white sticky top-0 z-50">
+        <header className="bg-[#243746] text-white sticky top-0 z-50">
             <nav className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
                     <Link href="/inicio" className="flex items-center">
@@ -63,7 +61,10 @@ export default function Header({ onToggleSidebar }) {
                     </div>
 
                     <div className="hidden md:flex items-center gap-3">
-                        <BarraBusqueda />
+                        <div className="hidden md:flex mx-6">
+                            <BarraBusqueda variant="global" />
+                        </div>
+                        
                         <Dropdown>
                             <Dropdown.Trigger>
                                 <button className="inline-flex items-center rounded-full p-2 ">
@@ -96,7 +97,7 @@ export default function Header({ onToggleSidebar }) {
                     {/* busqueda en movil */}
                     <div className="flex-1 px-4 md:hidden">
                         <div className="max-w-xs mx-auto">
-                            <BarraBusqueda />
+                            <BarraBusqueda variant="global" />
                         </div>
                     </div>
 

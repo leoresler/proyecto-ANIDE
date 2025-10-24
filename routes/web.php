@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Publicacion;
+use App\Models\PerfInstitucion;
+
 use App\Http\Controllers\ComunidadController;
 use App\Http\Controllers\MapaController;
 use App\Http\Controllers\UsuariosController;
@@ -14,6 +17,8 @@ use App\Http\Controllers\Publicaciones\FavoritoController;
 use App\Http\Controllers\Publicaciones\ComentarioController;
 
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -105,6 +110,110 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // videos
     Route::get('/videos', [VideosController::class, 'index'])->name('videos.index');
+
+    // busqueda en web para no crear controlador
+    Route::get('/api/buscar', function () {
+        $query = request()->input('q', '');
+
+        if (strlen($query) < 2) {
+            return response()->json([
+                'publicaciones' => [],
+                'instituciones' => []
+            ]);
+        }
+
+        // Buscar publicaciones
+        $publicaciones = Publicacion::query()
+            ->where(function ($q) use ($query) {
+                $q->where('titulo', 'LIKE', "%{$query}%")
+                    ->orWhere('contenido', 'LIKE', "%{$query}%");
+            })
+            ->where('publicado', true)
+            ->with(['institucion.user'])
+            ->select('id', 'titulo', 'contenido', 'perf_institucion_id', 'created_at')
+            ->orderBy('created_at', 'desc')
+            ->limit(15)
+            ->get();
+
+        // Buscar instituciones
+        $instituciones = PerfInstitucion::query()
+            ->whereHas('user', function ($q) use ($query) {
+                $q->where('nombre', 'LIKE', "%{$query}%")
+                    ->where('tipo_usuario', 'institucion')
+                    ->where('estado', 'activo');
+            })
+            ->where('verificado', true)
+            ->with('user:id,nombre,email,telefono,ciudad,provincia')
+            ->select('id', 'user_id', 'descripcion', 'foto_perfil', 'tipo_institucion', 'direccion')
+            ->limit(15)
+            ->get()
+            ->map(function ($institucion) {
+                return [
+                    'id' => $institucion->id,
+                    'user_id' => $institucion->user_id,
+                    'nombre' => $institucion->user->nombre ?? 'Sin nombre',
+                    'descripcion' => $institucion->descripcion,
+                    'foto_perfil' => $institucion->foto_perfil,
+                    'tipo_institucion' => $institucion->tipo_institucion,
+                    'direccion' => $institucion->direccion,
+                    'ciudad' => $institucion->user->ciudad ?? null,
+                    'provincia' => $institucion->user->provincia ?? null,
+                ];
+            });
+
+        return response()->json([
+            'publicaciones' => $publicaciones,
+            'instituciones' => $instituciones
+        ]);
+    })->name('busqueda.api');
+
+    Route::get('/busqueda', function () {
+        $query = request()->input('q', '');
+
+        $publicaciones = [];
+        $instituciones = [];
+
+        if (strlen($query) >= 2) {
+            $publicaciones = Publicacion::query()
+                ->where(function ($q) use ($query) {
+                    $q->where('titulo', 'LIKE', "%{$query}%")
+                        ->orWhere('contenido', 'LIKE', "%{$query}%");
+                })
+                ->where('publicado', true)
+                ->with(['institucion.user', 'media', 'likes', 'comentarios', 'favoritos'])
+                ->withCount(['likes', 'comentarios'])
+                ->latest()
+                ->paginate(10)
+                ->withQueryString();
+
+            $institucionesQuery = PerfInstitucion::query()
+                ->whereHas('user', function ($q) use ($query) {
+                    $q->where('nombre', 'LIKE', "%{$query}%")
+                        ->where('tipo_usuario', 'institucion')
+                        ->where('estado', 'activo');
+                })
+                ->where('verificado', true)
+                ->with('user:id,nombre,email,telefono,ciudad,provincia')
+                ->paginate(10)
+                ->withQueryString();
+
+            $institucionesQuery->getCollection()->transform(function ($institucion) {
+                $institucion->nombre = $institucion->user->nombre ?? 'Sin nombre';
+                $institucion->ciudad = $institucion->user->ciudad ?? null;
+                $institucion->provincia = $institucion->user->provincia ?? null;
+                return $institucion;
+            });
+
+            $instituciones = $institucionesQuery;
+        }
+
+        return Inertia::render('Busqueda/Index', [
+            'query' => $query,
+            'publicaciones' => $publicaciones,
+            'instituciones' => $instituciones,
+            'userType' => Auth::user()
+        ]);
+    })->name('busqueda.index');
 });
 
 

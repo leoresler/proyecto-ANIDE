@@ -44,4 +44,21 @@ class Publicacion extends Model
     {
         return $this->hasMany(Favorito::class, 'publicacion_id');
     }
+
+    public function getNombreInstitucionAttribute()
+    {
+        return $this->institucion?->nombre ?? 'Institución desconocida';
+    }
+
+    // Scope para publicaciones publicadas
+    public function scopePublicadas($query)
+    {
+        return $query->where('publicado', true);
+    }
+
+    // Scope para ordenar por más recientes
+    public function scopeRecientes($query)
+    {
+        return $query->orderBy('created_at', 'desc');
+    }
 }
