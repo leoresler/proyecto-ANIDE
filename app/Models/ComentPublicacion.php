@@ -13,11 +13,20 @@ class ComentPublicacion extends Model
     protected $table = 'coment_publicaciones';
 
     protected $fillable = [
-        'publicacion_id', 'perf_persona_id', 'perf_institucion_id', 'contenido', 'coment_padre_id'
+        'publicacion_id',
+        'perf_persona_id',
+        'perf_institucion_id',
+        'contenido',
+        'coment_padre_id',
+        'eliminado',
     ];
 
     // cargar relaciones
     protected $with = ['persona.user', 'institucion.user'];
+
+    protected $casts = [
+        'eliminado' => 'boolean',
+    ];
 
     public function publicacion()
     {
@@ -37,13 +46,13 @@ class ComentPublicacion extends Model
     public function respuestas()
     {
         return $this->hasMany(ComentPublicacion::class, 'coment_padre_id')
-                    ->orderBy('created_at', 'asc');
+            ->orderBy('created_at', 'asc');
     }
 
     public function likes()
     {
         return $this->hasMany(Like::class, 'target_id')
-                    ->where('target_tipo', 'comentario');
+            ->where('target_tipo', 'comentario');
     }
 
     // metodos GET
@@ -58,11 +67,11 @@ class ComentPublicacion extends Model
             $apellido = $this->persona->apellido ?? '';
             return trim("$nombre $apellido") ?: 'Usuario';
         }
-        
+
         if ($this->perf_institucion_id && $this->institucion) {
             return $this->institucion->user->nombre ?? 'Institución';
         }
-        
+
         return 'Usuario';
     }
 
@@ -74,11 +83,11 @@ class ComentPublicacion extends Model
         if ($this->perf_persona_id && $this->persona) {
             return $this->persona->user->profile_photo_url ?? asset('storage/profile-photos/default.png');
         }
-        
+
         if ($this->perf_institucion_id && $this->institucion) {
             return $this->institucion->user->profile_photo_url ?? asset('storage/profile-photos/default.png');
         }
-        
+
         return asset('storage/profile-photos/default.png');
     }
 }

@@ -14,12 +14,26 @@ export const CONFIG = {
         maxLength: 2000,
     },
     media: {
-        maxFiles: 10,
+        maxFiles: 6,
         maxSizeMB: 20,
-        allowedImageTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-        allowedVideoTypes: ['video/mp4', 'video/mov', 'video/avi', 'video/quicktime'],
-        allowedDocTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-    }
+        allowedImageTypes: [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+        ],
+        allowedVideoTypes: [
+            "video/mp4",
+            "video/mov",
+            "video/avi",
+            "video/quicktime",
+        ],
+        allowedDocTypes: [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ],
+    },
 };
 
 /**
@@ -28,24 +42,28 @@ export const CONFIG = {
 export const validarTitulo = (titulo) => {
     const errors = [];
 
-    if (!titulo || titulo.trim() === '') {
-        errors.push('El título es obligatorio');
+    if (!titulo || titulo.trim() === "") {
+        errors.push("El título es obligatorio");
         return errors;
     }
 
     const tituloTrimmed = titulo.trim();
 
     if (tituloTrimmed.length < CONFIG.titulo.minLength) {
-        errors.push(`El título debe tener al menos ${CONFIG.titulo.minLength} caracteres`);
+        errors.push(
+            `El título debe tener al menos ${CONFIG.titulo.minLength} caracteres`
+        );
     }
 
     if (tituloTrimmed.length > CONFIG.titulo.maxLength) {
-        errors.push(`El título no puede exceder ${CONFIG.titulo.maxLength} caracteres`);
+        errors.push(
+            `El título no puede exceder ${CONFIG.titulo.maxLength} caracteres`
+        );
     }
 
     // Validar que no sea solo espacios o caracteres especiales
     if (!/[a-zA-Z0-9]/.test(tituloTrimmed)) {
-        errors.push('El título debe contener al menos letras o números');
+        errors.push("El título debe contener al menos letras o números");
     }
 
     return errors;
@@ -57,19 +75,23 @@ export const validarTitulo = (titulo) => {
 export const validarContenido = (contenido) => {
     const errors = [];
 
-    if (!contenido || contenido.trim() === '') {
-        errors.push('El contenido es obligatorio');
+    if (!contenido || contenido.trim() === "") {
+        errors.push("El contenido es obligatorio");
         return errors;
     }
 
     const contenidoTrimmed = contenido.trim();
 
     if (contenidoTrimmed.length < CONFIG.contenido.minLength) {
-        errors.push(`El contenido debe tener al menos ${CONFIG.contenido.minLength} caracteres`);
+        errors.push(
+            `El contenido debe tener al menos ${CONFIG.contenido.minLength} caracteres`
+        );
     }
 
     if (contenidoTrimmed.length > CONFIG.contenido.maxLength) {
-        errors.push(`El contenido no puede exceder ${CONFIG.contenido.maxLength} caracteres`);
+        errors.push(
+            `El contenido no puede exceder ${CONFIG.contenido.maxLength} caracteres`
+        );
     }
 
     return errors;
@@ -80,18 +102,26 @@ export const validarContenido = (contenido) => {
  */
 export const validarArchivo = (file) => {
     const errors = [];
+
+    // Manejar archivos inexistentes o medias sin archivo
+    if (!file || !file.size) {
+        return errors; // ignoramos medias existentes
+    }
+
     const maxSizeBytes = CONFIG.media.maxSizeMB * 1024 * 1024;
 
     // Validar tamaño
     if (file.size > maxSizeBytes) {
-        errors.push(`${file.name}: El archivo excede el tamaño máximo de ${CONFIG.media.maxSizeMB}MB`);
+        errors.push(
+            `${file.name}: El archivo excede el tamaño máximo de ${CONFIG.media.maxSizeMB}MB`
+        );
     }
 
     // Validar tipo de archivo
     const allAllowedTypes = [
         ...CONFIG.media.allowedImageTypes,
         ...CONFIG.media.allowedVideoTypes,
-        ...CONFIG.media.allowedDocTypes
+        ...CONFIG.media.allowedDocTypes,
     ];
 
     if (!allAllowedTypes.includes(file.type)) {
@@ -102,10 +132,11 @@ export const validarArchivo = (file) => {
     if (CONFIG.media.allowedImageTypes.includes(file.type)) {
         // Validaciones adicionales para imágenes si es necesario
     } else if (CONFIG.media.allowedVideoTypes.includes(file.type)) {
-        // Los videos pueden ser más grandes, validar límite mayor
         const maxVideoSizeMB = 50;
         if (file.size > maxVideoSizeMB * 1024 * 1024) {
-            errors.push(`${file.name}: Los videos no pueden exceder ${maxVideoSizeMB}MB`);
+            errors.push(
+                `${file.name}: Los videos no pueden exceder ${maxVideoSizeMB}MB`
+            );
         }
     }
 
@@ -118,15 +149,22 @@ export const validarArchivo = (file) => {
 export const validarMedia = (mediaFiles) => {
     const errors = [];
 
+    if (!Array.isArray(mediaFiles)) return errors;
+
     // Validar cantidad de archivos
     if (mediaFiles.length > CONFIG.media.maxFiles) {
-        errors.push(`Solo puedes subir hasta ${CONFIG.media.maxFiles} archivos`);
+        errors.push(
+            `Solo puedes subir hasta ${CONFIG.media.maxFiles} archivos`
+        );
     }
 
-    // Validar cada archivo
+    // Validar cada archivo (solo los que tengan file)
     mediaFiles.forEach((media) => {
-        const fileErrors = validarArchivo(media.file);
-        errors.push(...fileErrors);
+        const fileToValidate = media.file || media; // por compatibilidad
+        if (fileToValidate && fileToValidate.size) {
+            const fileErrors = validarArchivo(fileToValidate);
+            errors.push(...fileErrors);
+        }
     });
 
     return errors;
@@ -154,8 +192,10 @@ export const validarFormulario = (data, mediaFiles) => {
     }
 
     // Retornar solo los errores que existen
-    const hasErrors = Object.values(errors).some(errorArray => errorArray.length > 0);
-    
+    const hasErrors = Object.values(errors).some(
+        (errorArray) => errorArray.length > 0
+    );
+
     return {
         isValid: !hasErrors,
         errors: hasErrors ? errors : null,
@@ -168,9 +208,9 @@ export const validarFormulario = (data, mediaFiles) => {
 export const formatearErrores = (errors) => {
     const formattedErrors = {};
 
-    Object.keys(errors).forEach(key => {
+    Object.keys(errors).forEach((key) => {
         if (errors[key].length > 0) {
-            formattedErrors[key] = errors[key].join('. ');
+            formattedErrors[key] = errors[key].join(". ");
         }
     });
 
@@ -182,11 +222,11 @@ export const formatearErrores = (errors) => {
  */
 export const validarEnTiempoReal = (campo, valor, mediaFiles = []) => {
     switch (campo) {
-        case 'titulo':
+        case "titulo":
             return validarTitulo(valor);
-        case 'contenido':
+        case "contenido":
             return validarContenido(valor);
-        case 'media':
+        case "media":
             return validarMedia(mediaFiles);
         default:
             return [];
@@ -198,21 +238,23 @@ export const validarEnTiempoReal = (campo, valor, mediaFiles = []) => {
  */
 export const obtenerTipoArchivo = (file) => {
     if (CONFIG.media.allowedImageTypes.includes(file.type)) {
-        return 'imagen';
+        return "imagen";
     } else if (CONFIG.media.allowedVideoTypes.includes(file.type)) {
-        return 'video';
+        return "video";
     } else if (CONFIG.media.allowedDocTypes.includes(file.type)) {
-        return 'documento';
+        return "documento";
     }
-    return 'desconocido';
+    return "desconocido";
 };
 
 /**
  * Verifica si un archivo es válido para previsualización
  */
 export const puedePrevisualizar = (file) => {
-    return CONFIG.media.allowedImageTypes.includes(file.type) || 
-           CONFIG.media.allowedVideoTypes.includes(file.type);
+    return (
+        CONFIG.media.allowedImageTypes.includes(file.type) ||
+        CONFIG.media.allowedVideoTypes.includes(file.type)
+    );
 };
 
 // Exportar todo como default también

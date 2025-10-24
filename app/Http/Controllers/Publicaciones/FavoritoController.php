@@ -67,13 +67,37 @@ class FavoritoController extends Controller
             abort(403, 'Solo las personas tienen acceso a favoritos');
         }
 
-        $favoritos = Favorito::with(['publicacion.institucion.user', 'publicacion.media', 'publicacion.likes'])
+        $favoritos = Favorito::with([
+            'publicacion.institucion.user',
+            'publicacion.media',
+            'publicacion.likes',
+        ])
             ->where('perf_persona_id', $user->persona->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        $publicaciones = $favoritos->through(function ($fav) use ($user) {
+            $pub = $fav->publicacion;
+            if ($pub) {
+                $pub->is_favorite = true;
+
+                // Contador de likes
+                $pub->likes_count = $pub->likes ? $pub->likes->count() : 0;
+
+                // Si el usuario actual ya dio like
+                if ($user->tipo_usuario === 'persona') {
+                    $pub->user_has_liked = $pub->likes->contains('perf_persona_id', $user->persona->id);
+                } else {
+                    $pub->user_has_liked = $pub->likes->contains('perf_institucion_id', $user->institucion->id);
+                }
+            }
+            return $pub;
+        });
+
         return inertia('Favoritos/Index', [
-            'favoritos' => $favoritos,
+            'auth' => ['user' => $user],
+            'userType' => $user->tipo_usuario,
+            'favoritos' => $publicaciones,
         ]);
     }
 }

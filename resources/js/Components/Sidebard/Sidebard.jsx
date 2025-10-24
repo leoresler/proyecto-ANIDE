@@ -8,7 +8,7 @@ export default function Sidebar({ isOpen, onClose }) {
             {/* sidebard desktop */}
             <aside className="hidden md:flex flex-col w-64 bg-white p-4 h-[calc(100vh-64px)] sticky top-16">
                 <nav className="space-y-2">
-                    <BotonSidebar href="#" label="Perfil" />
+                    <BotonSidebar href="/profile" label="Perfil" />
                     <hr className="bg-black" />
 
                     <BotonSidebar
@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen, onClose }) {
                         label="Carreras"
                     />
                     <BotonSidebar
-                        href="#"
+                        href="/favoritos"
                         icon="/svg/sidebar/bookmark.svg"
                         label="Elementos Guardados"
                     />

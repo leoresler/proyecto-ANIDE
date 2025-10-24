@@ -7,10 +7,78 @@ use App\Models\Publicacion;
 use App\Models\PublicacionMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class PublicacionController extends Controller
 {
+    /**
+     * Almacena una nueva publicación
+     */
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->tipo_usuario !== 'institucion') {
+            abort(403, 'Solo las instituciones pueden crear publicaciones');
+        }
+
+        $validated = $request->validate([
+            'titulo' => 'required|string|max:255',
+            'contenido' => 'required|string',
+            'publicado' => 'nullable',
+        ]);
+
+        // Crear la publicación
+        $publicacion = Publicacion::create([
+            'perf_institucion_id' => $user->institucion->id,
+            'titulo' => $validated['titulo'],
+            'contenido' => $validated['contenido'],
+            'publicado' => $request->input('publicado') == '1' || $request->input('publicado') == 1 || $request->input('publicado') === true,
+        ]);
+
+
+        // Procesar archivos multimedia
+        $mediaCount = 0;
+
+        $index = 0;
+        while ($request->hasFile("media.{$index}.file")) {
+            try {
+                $file = $request->file("media.{$index}.file");
+                $tipo = $request->input("media.{$index}.tipo");
+
+                Log::info("Procesando media.{$index}.file", [
+                    'original_name' => $file->getClientOriginalName(),
+                    'tipo' => $tipo,
+                    'size' => $file->getSize(),
+                ]);
+
+                // Guardar el archivo
+                $path = $file->store('publicaciones', 'public');
+
+
+                // Crear el registro en la base de datos
+                $media = PublicacionMedia::create([
+                    'publicacion_id' => $publicacion->id,
+                    'tipo' => $tipo,
+                    'url' => $path,
+                    'orden' => $index,
+                ]);
+
+                $mediaCount++;
+            } catch (\Exception $e) {
+                Log::error("Error procesando media.{$index}.file: " . $e->getMessage());
+                Log::error($e->getTraceAsString());
+            }
+
+            $index++;
+        }
+
+        return redirect()->route('publicaciones.misPublicaciones')
+            ->with('success', 'Publicación creada exitosamente');
+    }
+
     /**
      * Muestra el feed principal con todas las publicaciones
      */
@@ -18,7 +86,6 @@ class PublicacionController extends Controller
     {
         $user = Auth::user();
 
-        // verifica si el usuario tiene su perfil cargado
         if ($user->tipo_usuario === 'persona' && !$user->persona) {
             abort(500, 'Perfil de persona no encontrado');
         }
@@ -28,7 +95,9 @@ class PublicacionController extends Controller
 
         $publicaciones = Publicacion::with([
             'institucion.user',
-            'media',
+            'media' => function ($query) {
+                $query->orderBy('orden', 'asc');
+            },
             'likes',
             'comentarios',
             'favoritos' => function ($query) use ($user) {
@@ -41,12 +110,10 @@ class PublicacionController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        // Agregar informacion adicional a cada publicacion
         $publicaciones->getCollection()->transform(function ($publicacion) use ($user) {
             $publicacion->likes_count = $publicacion->likes->count();
             $publicacion->comentarios_count = $publicacion->comentarios->count();
 
-            // Verificar si el usuario actual dio like
             if ($user->tipo_usuario === 'persona') {
                 $publicacion->user_has_liked = $publicacion->likes->contains(function ($like) use ($user) {
                     return $like->perf_persona_id === $user->persona->id;
@@ -57,13 +124,11 @@ class PublicacionController extends Controller
                 });
             }
 
-            // Verificar si está en favoritos (solo personas)
             if ($user->tipo_usuario === 'persona') {
                 $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
             } else {
                 $publicacion->is_favorite = false;
             }
-
 
 
             return $publicacion;
@@ -76,13 +141,12 @@ class PublicacionController extends Controller
     }
 
     /**
-     * Muestra una publicación especifica
+     * Muestra una publicación específica
      */
     public function show($id)
     {
         $user = Auth::user();
 
-        // verifica si el usuario tiene su perfil cargado
         if ($user->tipo_usuario === 'persona' && !$user->persona) {
             abort(500, 'Perfil de persona no encontrado');
         }
@@ -92,7 +156,9 @@ class PublicacionController extends Controller
 
         $publicacion = Publicacion::with([
             'institucion.user',
-            'media',
+            'media' => function ($query) {
+                $query->orderBy('orden', 'asc');
+            },
             'likes',
             'comentarios' => function ($query) {
                 $query->whereNull('coment_padre_id')
@@ -114,13 +180,9 @@ class PublicacionController extends Controller
             }
         ])->findOrFail($id);
 
-        // Incrementar contador de visualizaciones
         $publicacion->increment('count_visualizaciones');
-
-        // Información adicional
         $publicacion->likes_count = $publicacion->likes->count();
 
-        // Verificar si el usuario actual dio like
         if ($user->tipo_usuario === 'persona') {
             $publicacion->user_has_liked = $publicacion->likes->contains(function ($like) use ($user) {
                 return $like->perf_persona_id === $user->persona->id;
@@ -137,6 +199,9 @@ class PublicacionController extends Controller
             $publicacion->is_favorite = false;
         }
 
+        // DEBUG
+        Log::info("Show publicacion {$id} con " . $publicacion->media->count() . " archivos media");
+
         return Inertia::render('Publicaciones/Show', [
             'publicacion' => $publicacion,
             'userType' => $user->tipo_usuario,
@@ -145,7 +210,6 @@ class PublicacionController extends Controller
 
     /**
      * Muestra las publicaciones de la institución actual
-     * Solo accesible por instituciones
      */
     public function misPublicaciones()
     {
@@ -155,7 +219,13 @@ class PublicacionController extends Controller
             abort(403, 'No tienes permiso para acceder a esta página');
         }
 
-        $publicaciones = Publicacion::with(['media', 'likes', 'comentarios'])
+        $publicaciones = Publicacion::with([
+            'media' => function ($query) {
+                $query->orderBy('orden', 'asc');
+            },
+            'likes',
+            'comentarios'
+        ])
             ->where('perf_institucion_id', $user->institucion->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -186,48 +256,93 @@ class PublicacionController extends Controller
     }
 
     /**
-     * Almacena una nueva publicación
+     * Muestra el formulario de edición
      */
-    public function store(Request $request)
+    public function edit($id)
     {
         $user = Auth::user();
+        $publicacion = Publicacion::with('media')->findOrFail($id);
 
-        if ($user->tipo_usuario !== 'institucion') {
-            abort(403, 'Solo las instituciones pueden crear publicaciones');
+        if ($publicacion->perf_institucion_id !== $user->institucion->id) {
+            abort(403, 'No tienes permiso para editar esta publicación');
         }
 
-        $validated = $request->validate([
-            'titulo' => 'required|string|max:255',
-            'contenido' => 'required|string',
-            'publicado' => 'boolean',
-            'media' => 'nullable|array',
-            'media.*.file' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,mov,pdf,doc,docx|max:20480',
-            'media.*.tipo' => 'required|in:imagen,video,documento',
+        return Inertia::render('Publicaciones/Edit', [
+            'publicacion' => $publicacion,
         ]);
+    }
 
-        $publicacion = Publicacion::create([
-            'perf_institucion_id' => $user->institucion->id,
-            'titulo' => $validated['titulo'],
-            'contenido' => $validated['contenido'],
-            'publicado' => $validated['publicado'] ?? true,
-        ]);
+    /**
+     * Actualiza una publicación existente
+     */
+    public function update(Request $request, $id)
+    {
+        $user = Auth::user();
+        $publicacion = Publicacion::findOrFail($id);
 
-        // Procesar archivos media
-        if ($request->hasFile('media')) {
-            foreach ($request->file('media') as $index => $mediaItem) {
-                $path = $mediaItem['file']->store('publicaciones', 'public');
+        if ($publicacion->perf_institucion_id !== $user->institucion->id) {
+            abort(403, 'No tienes permiso para editar esta publicación');
+        }
 
-                PublicacionMedia::create([
-                    'publicacion_id' => $publicacion->id,
-                    'tipo' => $mediaItem['tipo'],
-                    'url' => $path,
-                    'orden' => $index,
-                ]);
+        if ($publicacion->publicado) {
+            $validated = $request->validate([
+                'contenido' => 'required|string',
+            ]);
+
+            $publicacion->update([
+                'contenido' => $validated['contenido'],
+            ]);
+        } else {
+            $validated = $request->validate([
+                'titulo' => 'required|string|max:255',
+                'contenido' => 'required|string',
+                'publicado' => 'nullable',
+            ]);
+
+            $publicacion->update([
+                'titulo' => $validated['titulo'],
+                'contenido' => $validated['contenido'],
+                'publicado' => $request->input('publicado') == '1' || $request->input('publicado') == 1,
+            ]);
+
+            if ($request->has('deleted_media')) {
+                $deletedMedia = $request->input('deleted_media');
+                if (is_array($deletedMedia)) {
+                    foreach ($deletedMedia as $mediaId) {
+                        $media = PublicacionMedia::find($mediaId);
+                        if ($media && $media->publicacion_id === $publicacion->id) {
+                            Storage::disk('public')->delete($media->url);
+                            $media->delete();
+                        }
+                    }
+                }
+            }
+
+            $currentMaxOrder = $publicacion->media()->max('orden') ?? -1;
+            $index = 0;
+
+            while ($request->hasFile("media.{$index}.file")) {
+                try {
+                    $file = $request->file("media.{$index}.file");
+                    $tipo = $request->input("media.{$index}.tipo");
+                    $path = $file->store('publicaciones', 'public');
+
+                    PublicacionMedia::create([
+                        'publicacion_id' => $publicacion->id,
+                        'tipo' => $tipo,
+                        'url' => $path,
+                        'orden' => $currentMaxOrder + $index + 1,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error("Error procesando nueva media: " . $e->getMessage());
+                }
+
+                $index++;
             }
         }
 
         return redirect()->route('publicaciones.misPublicaciones')
-            ->with('success', 'Publicación creada exitosamente');
+            ->with('success', 'Publicación actualizada exitosamente');
     }
 
     /**
@@ -238,7 +353,6 @@ class PublicacionController extends Controller
         $user = Auth::user();
         $publicacion = Publicacion::findOrFail($id);
 
-        // Verificar que la publicación pertenece a la institución del usuario
         if ($publicacion->perf_institucion_id !== $user->institucion->id) {
             abort(403, 'No tienes permiso para eliminar esta publicación');
         }

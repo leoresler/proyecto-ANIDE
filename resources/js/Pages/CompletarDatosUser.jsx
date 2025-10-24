@@ -466,50 +466,6 @@ export default function CompletarDatosUser() {
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="md:col-span-2">
-                                <InputLabel className="block font-medium mb-1">
-                                    Sitio web
-                                </InputLabel>
-                                <TextInput
-                                    type="url"
-                                    value={data.url_sitio_web || ''}
-                                    onChange={(e) => {
-                                        setData("url_sitio_web", e.target.value);
-                                        clearFieldError('url_sitio_web');
-                                    }}
-                                    onBlur={(e) => handleFieldValidation('url_sitio_web', e.target.value)}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
-                                    placeholder="https://..."
-                                />
-                                {(clientErrors.url_sitio_web || errors.url_sitio_web) && (
-                                    <InputError message={clientErrors.url_sitio_web || errors.url_sitio_web} className="mt-1" />
-                                )}
-                            </div>
-
-                            {/* <div className="md:col-span-2">
-                                <InputLabel className="block font-medium mb-1">
-                                    Descripción
-                                </InputLabel>
-                                <textarea
-                                    value={data.descripcion || ''}
-                                    onChange={(e) => {
-                                        setData("descripcion", e.target.value);
-                                        clearFieldError('descripcion');
-                                    }}
-                                    onBlur={(e) => handleFieldValidation('descripcion', e.target.value)}
-                                    maxLength="1000"
-                                    rows="4"
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
-                                    placeholder="Describe tu institución..."
-                                />
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {data.descripcion?.length || 0}/1000 caracteres
-                                </p>
-                                {(clientErrors.descripcion || errors.descripcion) && (
-                                    <InputError message={clientErrors.descripcion || errors.descripcion} className="mt-1" />
-                                )}
-                            </div> */}
                         </div>
                     )}
 
@@ -525,7 +481,7 @@ export default function CompletarDatosUser() {
                         <SecondaryButton
                             type="submit"
                             disabled={processing}
-                            className="w-full px-6 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-edu-dark hover:bg-gray-600"
+                            className="w-full px-6 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-edu-dark hover:bg-black"
                         >
                             {processing ? "Creando cuenta..." : "Crear mi cuenta"}
                         </SecondaryButton>

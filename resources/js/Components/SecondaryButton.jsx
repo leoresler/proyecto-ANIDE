@@ -10,7 +10,7 @@ export default function SecondaryButton({
             {...props}
             type={type}
             className={
-                `bg-blue-600 hover:bg-blue-700 font-medium rounded-lg ${
+                `font-medium rounded-full ${
                     disabled && 'opacity-25'
                 } ` + className
             }

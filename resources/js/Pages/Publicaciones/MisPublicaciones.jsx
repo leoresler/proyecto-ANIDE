@@ -1,18 +1,70 @@
-import React from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import SecondaryButton from "@/Components/SecondaryButton";
+import toast from "react-hot-toast";
+import { useFlash } from "@/hooks/useFlash";
 import { Heart, MessageCircle, Trash2, Edit, Eye } from "lucide-react";
 
 export default function MisPublicaciones({ auth, publicaciones }) {
+    useFlash();
+
     const handleDelete = (publicacionId) => {
-        if (
-            confirm("¿Estás seguro de que quieres eliminar esta publicación?")
-        ) {
-            router.delete(`/publicaciones/${publicacionId}`, {
-                preserveScroll: true,
-            });
-        }
+        toast(
+            (t) => (
+                <div className="flex flex-col space-y-3">
+                    <p className="font-medium">¿Eliminar esta publicación?</p>
+                    <p className="text-sm text-gray-600">
+                        Esta acción no se puede deshacer
+                    </p>
+                    <div className="flex space-x-2 justify-end">
+                        <button
+                            onClick={() => toast.dismiss(t.id)}
+                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={() => {
+                                toast.dismiss(t.id);
+
+                                const loadingToast = toast.loading(
+                                    "Eliminando publicación..."
+                                );
+
+                                router.delete(
+                                    `/publicaciones/${publicacionId}`,
+                                    {
+                                        preserveScroll: true,
+                                        onSuccess: () => {
+                                            toast.dismiss(loadingToast);
+                                            toast.success(
+                                                "Publicación eliminada correctamente"
+                                            );
+                                        },
+                                        onError: () => {
+                                            toast.dismiss(loadingToast);
+                                            toast.error(
+                                                "No se pudo eliminar la publicación"
+                                            );
+                                        },
+                                    }
+                                );
+                            }}
+                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-medium"
+                        >
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            ),
+            {
+                duration: Infinity,
+                style: {
+                    background: "#fff",
+                    color: "#000",
+                    maxWidth: "400px",
+                },
+            }
+        );
     };
 
     return (
@@ -20,38 +72,33 @@ export default function MisPublicaciones({ auth, publicaciones }) {
             <Head title="Mis Publicaciones" />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-8 flex justify-between items-center">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">
-                                Mis Publicaciones
+                                Publicaciones
                             </h1>
                             <p className="mt-2 text-gray-600">
                                 Administra todas tus publicaciones
                             </p>
                         </div>
                         <Link href="/publicaciones/create">
-                            <SecondaryButton className="py-2 px-4 rounded-xl bg-edu-dark text-white hover:bg-gray-600 text-sm">
-                                Crear Nueva Publicacion
-                            </SecondaryButton>
+                            <p className="text-blue-500 text-md font-bold hover:underline">
+                                Publicar 🡕
+                            </p>
                         </Link>
                     </div>
 
                     {/* Lista de publicaciones */}
                     {publicaciones.data.length === 0 ? (
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-12 text-center">
+                        <div className="bg-white overflow-hidden sm:rounded-xl p-12 text-center">
                             <p className="text-gray-500 text-lg mb-4">
                                 No has creado ninguna publicación todavía
                             </p>
-                            <Link href="/publicaciones/create">
-                                <SecondaryButton className="py-2 px-4 rounded-xl bg-edu-dark text-white hover:bg-gray-600 text-sm">
-                                    Creá tu primera publicacion
-                                </SecondaryButton>
-                            </Link>
                         </div>
                     ) : (
-                        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div className="bg-white overflow-hidden border sm:rounded-xl">
                             <div className="divide-y divide-gray-200">
                                 {publicaciones.data.map((publicacion) => (
                                     <div
@@ -59,39 +106,6 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                         className="p-6 hover:bg-gray-50 transition-colors"
                                     >
                                         <div className="flex items-start space-x-4">
-                                            {/* Thumbnail si tiene media */}
-                                            {publicacion.media &&
-                                                publicacion.media.length >
-                                                    0 && (
-                                                    <div className="flex-shrink-0">
-                                                        {publicacion.media[0]
-                                                            .tipo ===
-                                                            "imagen" && (
-                                                            <img
-                                                                src={
-                                                                    publicacion
-                                                                        .media[0]
-                                                                        .url_publica
-                                                                }
-                                                                alt="Thumbnail"
-                                                                className="w-32 h-32 object-cover rounded-lg"
-                                                            />
-                                                        )}
-                                                        {publicacion.media[0]
-                                                            .tipo ===
-                                                            "video" && (
-                                                            <video
-                                                                src={
-                                                                    publicacion
-                                                                        .media[0]
-                                                                        .url_publica
-                                                                }
-                                                                className="w-32 h-32 object-cover rounded-lg"
-                                                            />
-                                                        )}
-                                                    </div>
-                                                )}
-
                                             {/* Contenido */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between">
@@ -113,7 +127,6 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                                     {
                                                                         publicacion.likes_count
                                                                     }{" "}
-                                                                    likes
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center space-x-1">
@@ -122,7 +135,6 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                                     {
                                                                         publicacion.comentarios_count
                                                                     }{" "}
-                                                                    comentarios
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center space-x-1">
@@ -131,7 +143,6 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                                     {
                                                                         publicacion.count_visualizaciones
                                                                     }{" "}
-                                                                    vistas
                                                                 </span>
                                                             </div>
                                                             <span className="text-gray-400">
@@ -155,6 +166,13 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                             title="Ver publicación"
                                                         >
                                                             <Eye className="w-5 h-5" />
+                                                        </Link>
+                                                        <Link
+                                                            href={`/publicaciones/${publicacion.id}/edit`}
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                            title="Editar publicación"
+                                                        >
+                                                            <Edit className="w-5 h-5" />
                                                         </Link>
                                                         <button
                                                             onClick={() =>
@@ -201,7 +219,7 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                     href={link.url || "#"}
                                     className={`px-4 py-2 rounded ${
                                         link.active
-                                            ? "bg-blue-600 text-white"
+                                            ? "bg-edu-dark text-white"
                                             : "bg-white text-gray-700 hover:bg-gray-100"
                                     } ${
                                         !link.url

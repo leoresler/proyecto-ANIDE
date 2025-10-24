@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { Head, useForm } from "@inertiajs/react";
+import { useState } from "react";
+import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import InputError from "@/Components/InputError";
 import PrimaryButton from "@/Components/PrimaryButton";
+import toast from "react-hot-toast";
+import { useFlash } from "@/hooks/useFlash";
 import { X, Upload, FileText, AlertCircle } from "lucide-react";
 import {
     validarFormulario,
@@ -14,20 +16,16 @@ import {
 } from "@/utils/validacionesPublicaciones";
 
 export default function Create({ auth }) {
-    const {
-        data,
-        setData,
-        post,
-        processing,
-        errors: serverErrors,
-        reset,
-    } = useForm({
+    useFlash();
+
+    const [formState, setFormState] = useState({
         titulo: "",
         contenido: "",
         publicado: true,
     });
 
     const [mediaFiles, setMediaFiles] = useState([]);
+    const [processing, setProcessing] = useState(false);
     const [clientErrors, setClientErrors] = useState({
         titulo: [],
         contenido: [],
@@ -39,15 +37,14 @@ export default function Create({ auth }) {
         media: false,
     });
 
-    // Validar campo en tiempo real
     const handleBlur = (campo) => {
         setShowValidation((prev) => ({ ...prev, [campo]: true }));
 
         let errors = [];
         if (campo === "titulo") {
-            errors = validarEnTiempoReal("titulo", data.titulo);
+            errors = validarEnTiempoReal("titulo", formState.titulo);
         } else if (campo === "contenido") {
-            errors = validarEnTiempoReal("contenido", data.contenido);
+            errors = validarEnTiempoReal("contenido", formState.contenido);
         } else if (campo === "media") {
             errors = validarEnTiempoReal("media", null, mediaFiles);
         }
@@ -58,8 +55,7 @@ export default function Create({ auth }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Validar todo el formulario antes de enviar
-        const validation = validarFormulario(data, mediaFiles);
+        const validation = validarFormulario(formState, mediaFiles);
 
         if (!validation.isValid) {
             setClientErrors(validation.errors);
@@ -68,28 +64,52 @@ export default function Create({ auth }) {
                 contenido: true,
                 media: true,
             });
+
+            toast.error("Por favor, completa todos los campos requeridos");
             return;
         }
 
-        // Si las validaciones pasan, preparar y enviar datos
-        const formData = new FormData();
-        formData.append("titulo", data.titulo.trim());
-        formData.append("contenido", data.contenido.trim());
-        formData.append("publicado", data.publicado ? "1" : "0");
+        setProcessing(true);
 
-        // Agregar archivos media
+        const formData = new FormData();
+        formData.append("titulo", formState.titulo.trim());
+        formData.append("contenido", formState.contenido.trim());
+        formData.append("publicado", formState.publicado ? "1" : "0");
+
         mediaFiles.forEach((media, index) => {
             formData.append(`media[${index}][file]`, media.file);
             formData.append(`media[${index}][tipo]`, media.tipo);
         });
 
-        post("/publicaciones", {
-            data: formData,
+        const loadingToast = toast.loading("Creando publicación...");
+
+        router.post("/publicaciones", formData, {
             forceFormData: true,
+            preserveScroll: false,
             onSuccess: () => {
-                // Limpiar el formulario si es exitoso
-                reset();
+                toast.dismiss(loadingToast);
+                toast.success("¡Publicación creada exitosamente! 🎉");
+                setFormState({ titulo: "", contenido: "", publicado: true });
                 setMediaFiles([]);
+                setProcessing(false);
+            },
+            onError: (errors) => {
+                toast.dismiss(loadingToast);
+
+                if (errors.titulo) {
+                    toast.error(errors.titulo[0]);
+                } else if (errors.contenido) {
+                    toast.error(errors.contenido[0]);
+                } else if (errors.media) {
+                    toast.error(errors.media[0]);
+                } else {
+                    toast.error("Hubo un error al crear la publicación");
+                }
+
+                setProcessing(false);
+            },
+            onFinish: () => {
+                setProcessing(false);
             },
         });
     };
@@ -97,12 +117,14 @@ export default function Create({ auth }) {
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
 
-        // Validar cantidad total de archivos
         if (mediaFiles.length + files.length > CONFIG.media.maxFiles) {
+            toast.error(
+                `Solo podés subir hasta ${CONFIG.media.maxFiles} archivos en total`
+            );
             setClientErrors((prev) => ({
                 ...prev,
                 media: [
-                    `Solo puedes subir hasta ${CONFIG.media.maxFiles} archivos en total`,
+                    `Solo podés subir hasta ${CONFIG.media.maxFiles} archivos en total`,
                 ],
             }));
             setShowValidation((prev) => ({ ...prev, media: true }));
@@ -123,7 +145,8 @@ export default function Create({ auth }) {
         const updatedMedia = [...mediaFiles, ...newMedia];
         setMediaFiles(updatedMedia);
 
-        // Validar los archivos agregados
+        toast.success(`${files.length} archivo(s) agregado(s)`);
+
         const errors = validarEnTiempoReal("media", null, updatedMedia);
         setClientErrors((prev) => ({ ...prev, media: errors }));
         if (errors.length > 0) {
@@ -134,29 +157,27 @@ export default function Create({ auth }) {
     const removeMedia = (index) => {
         const newMedia = mediaFiles.filter((_, i) => i !== index);
         setMediaFiles(newMedia);
+        toast.success("Archivo eliminado");
 
-        // Revalidar después de eliminar
         const errors = validarEnTiempoReal("media", null, newMedia);
         setClientErrors((prev) => ({ ...prev, media: errors }));
     };
 
-    // Combinar errores del cliente y del servidor
     const getFieldErrors = (field) => {
         const client =
             showValidation[field] && clientErrors[field]?.length > 0
                 ? clientErrors[field]
                 : [];
-        const server = serverErrors[field] ? [serverErrors[field]] : [];
-        return [...client, ...server];
+        return client;
     };
 
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Crear Publicación" />
 
-            <div className="py-12">
-                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div className="py-8">
+                <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
+                    <div className="bg-white overflow-hidden sm:rounded-lg">
                         <div className="p-8">
                             <h1 className="text-3xl font-bold text-gray-900 mb-6">
                                 Crear Nueva Publicación
@@ -172,9 +193,12 @@ export default function Create({ auth }) {
                                     <TextInput
                                         id="titulo"
                                         type="text"
-                                        value={data.titulo}
+                                        value={formState.titulo}
                                         onChange={(e) => {
-                                            setData("titulo", e.target.value);
+                                            setFormState({
+                                                ...formState,
+                                                titulo: e.target.value,
+                                            });
                                             if (showValidation.titulo) {
                                                 const errors =
                                                     validarEnTiempoReal(
@@ -188,7 +212,7 @@ export default function Create({ auth }) {
                                             }
                                         }}
                                         onBlur={() => handleBlur("titulo")}
-                                        className="mt-1 block w-full"
+                                        className="mt-1 block w-full rounded-md"
                                         placeholder="Título de la publicación"
                                         maxLength={CONFIG.titulo.maxLength}
                                     />
@@ -205,7 +229,7 @@ export default function Create({ auth }) {
                                             )}
                                         </div>
                                         <span className="text-xs text-gray-500 ml-2">
-                                            {data.titulo.length}/
+                                            {formState.titulo.length}/
                                             {CONFIG.titulo.maxLength}
                                         </span>
                                     </div>
@@ -219,12 +243,12 @@ export default function Create({ auth }) {
                                     />
                                     <textarea
                                         id="contenido"
-                                        value={data.contenido}
+                                        value={formState.contenido}
                                         onChange={(e) => {
-                                            setData(
-                                                "contenido",
-                                                e.target.value
-                                            );
+                                            setFormState({
+                                                ...formState,
+                                                contenido: e.target.value,
+                                            });
                                             if (showValidation.contenido) {
                                                 const errors =
                                                     validarEnTiempoReal(
@@ -256,7 +280,7 @@ export default function Create({ auth }) {
                                             )}
                                         </div>
                                         <span className="text-xs text-gray-500 ml-2">
-                                            {data.contenido.length}/
+                                            {formState.contenido.length}/
                                             {CONFIG.contenido.maxLength}
                                         </span>
                                     </div>
@@ -299,7 +323,7 @@ export default function Create({ auth }) {
                                     {/* Errores de media */}
                                     {getFieldErrors("media").length > 0 && (
                                         <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                                            <div className="flex items-start">
+                                            <div className="flex items-center">
                                                 <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
                                                 <div className="flex-1">
                                                     {getFieldErrors(
@@ -404,18 +428,18 @@ export default function Create({ auth }) {
                                     <input
                                         id="publicado"
                                         type="checkbox"
-                                        checked={data.publicado}
+                                        checked={formState.publicado}
                                         onChange={(e) =>
-                                            setData(
-                                                "publicado",
-                                                e.target.checked
-                                            )
+                                            setFormState({
+                                                ...formState,
+                                                publicado: e.target.checked,
+                                            })
                                         }
                                         className="rounded border-gray-300 text-gray-600 shadow-sm focus:border-gray-500 focus:ring-gray-500"
                                     />
                                     <InputLabel
                                         htmlFor="publicado"
-                                        value="Publicar inmediatamente"
+                                        value="Publicar"
                                     />
                                 </div>
 
@@ -423,11 +447,14 @@ export default function Create({ auth }) {
                                 <div className="flex items-center justify-end space-x-4 pt-4">
                                     <a
                                         href="/publicaciones/misPublicaciones"
-                                        className="inline-flex items-center px-14 py-4 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        className="inline-flex items-center px-14 py-4 bg-white border border-gray-300 rounded-full font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         Cancelar
                                     </a>
-                                    <PrimaryButton disabled={processing} className="px-4 rounded-md">
+                                    <PrimaryButton
+                                        disabled={processing}
+                                        className="px-4 rounded-full"
+                                    >
                                         {processing
                                             ? "Creando..."
                                             : "Crear Publicación"}

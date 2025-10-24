@@ -1,4 +1,3 @@
-import React from "react";
 import { Heart, MessageCircle, Bookmark, Share2 } from "lucide-react";
 
 /**

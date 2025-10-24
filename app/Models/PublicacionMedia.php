@@ -19,7 +19,7 @@ class PublicacionMedia extends Model
         'orden',
     ];
 
-    // Si querés que te devuelva automáticamente la url pública
+    // url publica
     protected $appends = ['url_publica'];
 
     public function publicacion()
@@ -27,7 +27,7 @@ class PublicacionMedia extends Model
         return $this->belongsTo(Publicacion::class, 'publicacion_id');
     }
 
-    // Accessor para obtener la URL pública (Storage::url)
+    // accesor para obtener la URL publica (Storage::url)
     public function getUrlPublicaAttribute()
     {
         return $this->url ? Storage::url($this->url) : null;

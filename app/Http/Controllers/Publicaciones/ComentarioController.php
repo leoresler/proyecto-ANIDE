@@ -4,13 +4,23 @@ namespace App\Http\Controllers\Publicaciones;
 
 use App\Http\Controllers\Controller;
 use App\Models\ComentPublicacion;
+use App\Services\OpenAIModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ComentarioController extends Controller
 {
+    protected $moderationService;
+
+    public function __construct(OpenAIModerationService $moderationService)
+    {
+        $this->moderationService = $moderationService;
+    }
+
     /**
      * Almacena un nuevo comentario
+     * Bloquea comentarios con palabras prohibidas
      */
     public function store(Request $request)
     {
@@ -22,28 +32,48 @@ class ComentarioController extends Controller
 
         $user = Auth::user();
 
-        // solo personas pueden comentar
-        if ($user->tipo_usuario !== 'persona') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo las personas pueden comentar',
-            ], 403);
-        }
+        // Moderar el contenido ANTES de permitir su publicación
+        $moderationResult = $this->moderationService->moderate($validated['contenido']);
 
-        $comentario = ComentPublicacion::create([
-            'publicacion_id' => $validated['publicacion_id'],
-            'perf_persona_id' => $user->persona->id,
-            'contenido' => $validated['contenido'],
-            'coment_padre_id' => $validated['coment_padre_id'] ?? null,
+        Log::info('Intento de comentario', [
+            'user_id' => $user->id,
+            'is_safe' => $moderationResult['is_safe'],
+            'detected_words' => $moderationResult['detected_words'] ?? [],
         ]);
 
-        // cargar relaciones para devolver el comentario completo
+        // Si el comentario NO es seguro, bloquearlo completamente
+        if (!$moderationResult['is_safe']) {
+            $detectedCount = count($moderationResult['detected_words'] ?? []);
+
+            return response()->json([
+                'success' => false,
+                'blocked' => true,
+                'detected_words_count' => $detectedCount,
+                'message' => $moderationResult['message'],
+            ], 422);
+        }
+
+        $comentarioData = [
+            'publicacion_id' => $validated['publicacion_id'],
+            'contenido' => $validated['contenido'], // Guardar texto ORIGINAL
+            'coment_padre_id' => $validated['coment_padre_id'] ?? null,
+        ];
+
+        // Agregar el ID según el tipo de usuario
+        if ($user->tipo_usuario === 'persona') {
+            $comentarioData['perf_persona_id'] = $user->persona->id;
+        } else {
+            $comentarioData['perf_institucion_id'] = $user->institucion->id;
+        }
+
+        $comentario = ComentPublicacion::create($comentarioData);
+
+        // Cargar relaciones para devolver el comentario completo
         $comentario = ComentPublicacion::with([
             'persona.user',
             'institucion.user',
             'likes'
         ])->find($comentario->id);
-
 
         return response()->json([
             'success' => true,
@@ -58,17 +88,35 @@ class ComentarioController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $comentario = ComentPublicacion::findOrFail($id);
+        $comentario = ComentPublicacion::with('publicacion')->findOrFail($id);
 
-        // Verificar que el comentario pertenece al usuario
-        if ($comentario->perf_persona_id !== $user->persona->id) {
+        $puedeEliminar = false;
+
+        // Verificar si es el dueño del comentario
+        if ($user->tipo_usuario === 'persona' && $comentario->perf_persona_id === $user->persona->id) {
+            $puedeEliminar = true;
+        } elseif ($user->tipo_usuario === 'institucion' && $comentario->perf_institucion_id === $user->institucion->id) {
+            $puedeEliminar = true;
+        }
+
+        // Verificar si es el dueño de la publicación
+        if (
+            $user->tipo_usuario === 'institucion' &&
+            $comentario->publicacion->perf_institucion_id === $user->institucion->id
+        ) {
+            $puedeEliminar = true;
+        }
+
+        if (!$puedeEliminar) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes permiso para eliminar este comentario',
             ], 403);
         }
 
-        $comentario->delete();
+        $comentario->update([
+            'eliminado' => true,
+        ]);
 
         return response()->json([
             'success' => true,

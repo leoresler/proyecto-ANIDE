@@ -48,11 +48,6 @@ Route::post('/completar-datos', [ProfileController::class, 'completarPerfil'])
     ->name('completar.datos.store');
 
 
-// // inicio - requiere autenticacion, verificacion y completar datos
-// Route::get('/inicio', function () {
-//     return Inertia::render('Inicio');
-// })->middleware(['auth', 'verified'])->name('inicio');
-
 
 // rutas protegidas - requieren autenticacion, verificacion y completar datos
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -76,6 +71,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('publicaciones.misPublicaciones');
         Route::post('/publicaciones', [PublicacionController::class, 'store'])
             ->name('publicaciones.store');
+        Route::get('/publicaciones/{id}/edit', [PublicacionController::class, 'edit'])
+            ->name('publicaciones.edit');
+        Route::post('/publicaciones/{id}', [PublicacionController::class, 'update'])
+            ->name('publicaciones.update');
         Route::delete('/publicaciones/{id}', [PublicacionController::class, 'destroy'])
             ->name('publicaciones.destroy');
     });
@@ -83,20 +82,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Publicaciones
     Route::get('/publicaciones/{id}', [PublicacionController::class, 'show'])->name('publicaciones.show');
 
-    // Likes (tanto personas como instituciones)
+    // Likes
     Route::post('/likes/toggle', [LikeController::class, 'toggle'])->name('likes.toggle');
 
-    // Comentarios (tanto personas como instituciones)
+    // Comentarios
     Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
     Route::delete('/comentarios/{id}', [ComentarioController::class, 'destroy'])
         ->name('comentarios.destroy');
 
-
-    // Favoritos (solo personas)
-    Route::middleware(['check.persona'])->group(function () {
-        Route::post('/favoritos/toggle', [FavoritoController::class, 'toggle'])->name('favoritos.toggle');
-        Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
-    });
+    Route::post('/favoritos/toggle', [FavoritoController::class, 'toggle'])->name('favoritos.toggle');
+    Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
 
 
     // comunidad

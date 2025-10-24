@@ -1,4 +1,3 @@
-import React from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import PublicacionCard from "@/Components/Publicacion/PublicacionCard";
@@ -7,7 +6,7 @@ export default function Inicio({ auth, publicaciones, userType }) {
     const publicacionesData = publicaciones?.data || [];
     const publicacionesLinks = publicaciones?.links || [];
 
-    // accesos estaticos - reemplazar despues por info del backend si es que lo dejamos
+    // Accesos estáticos
     const accesos = [
         { nombre: "UTN - FRN", img: "/images/utn.png" },
         { nombre: "UNCo", img: "/images/unco.png" },
@@ -47,9 +46,8 @@ export default function Inicio({ auth, publicaciones, userType }) {
         <AuthenticatedLayout user={auth.user}>
             <Head title="Inicio" />
 
-            <div className="py-12">
-                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                    {/* boton para crear publicacion (solo instituciones) o mostrar accesos directos (solo personas) */}
+            <div className="py-8">
+                <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
                     {userType === "persona" && (
                         <div>
                             <div className="flex items-center gap-3 text-gray-500 mb-3">
@@ -86,6 +84,7 @@ export default function Inicio({ auth, publicaciones, userType }) {
                             </div>
                         </div>
                     )}
+
                     {userType === "institucion" && (
                         <div className="flex items-center mb-6 justify-between gap-2">
                             <p>
@@ -93,7 +92,7 @@ export default function Inicio({ auth, publicaciones, userType }) {
                             </p>
                             <Link href="/publicaciones/create">
                                 <p className="text-edu-dark text-md font-bold">
-                                    Compartí tus últimas novedades 🡕
+                                    Compartí tus últimas novedades
                                 </p>
                                 <hr className="border-gray-500" />
                             </Link>
@@ -109,16 +108,18 @@ export default function Inicio({ auth, publicaciones, userType }) {
                                 </p>
                             </div>
                         ) : (
-                            publicacionesData.map((publicacion) => (
-                                <PublicacionCard
-                                    key={publicacion.id}
-                                    publicacion={publicacion}
-                                    userType={userType}
-                                    onLike={handleLike}
-                                    onFavorite={handleFavorite}
-                                    variant="card"
-                                />
-                            ))
+                            publicacionesData.map((publicacion) => {
+                                return (
+                                    <PublicacionCard
+                                        key={publicacion.id}
+                                        publicacion={publicacion}
+                                        userType={userType}
+                                        onLike={handleLike}
+                                        onFavorite={handleFavorite}
+                                        variant="card"
+                                    />
+                                );
+                            })
                         )}
                     </div>
 
