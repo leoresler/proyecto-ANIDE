@@ -132,6 +132,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/chats/{id}/mensaje', [ChatController::class, 'enviarMensaje'])->name('chat.enviar');
 });
 
+Route::post('/chats/{chatId}/escribiendo', [ChatController::class, 'escribiendo'])
+    ->middleware('auth');
+
 
 
 require __DIR__ . '/auth.php';

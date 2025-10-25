@@ -2,35 +2,32 @@
 
 namespace App\Http\Controllers\Chats;
 
-
-use App\Http\Controllers\Controller; // <-- IMPORTAR EL CONTROLLER BASE
+use App\Http\Controllers\Controller;
 use App\Models\Chat;
 use App\Models\Mensaje;
 use App\Models\PerfPersona;
 use App\Models\PerfInstitucion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\MensajeEnviado;
+use App\Events\UsuarioEscribiendo;
 
 class ChatController extends Controller
 {
-    /**
-     * Muestra todos los chats del usuario autenticado
-     */
     public function index()
     {
         $user = Auth::user();
 
-        // Determinar si el usuario es persona o institución
         $persona = PerfPersona::where('user_id', $user->id)->first();
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
 
         if ($persona) {
             $chats = Chat::where('persona_id', $persona->id)
-                         ->with(['institucion.user', 'mensajes'])
+                         ->with(['institucion.user', 'mensajes.emisor'])
                          ->get();
         } elseif ($institucion) {
             $chats = Chat::where('institucion_id', $institucion->id)
-                         ->with(['persona.user', 'mensajes'])
+                         ->with(['persona.user', 'mensajes.emisor'])
                          ->get();
         } else {
             $chats = collect();
@@ -42,9 +39,6 @@ class ChatController extends Controller
         ]);
     }
 
-    /**
-     * Muestra los mensajes de un chat específico
-     */
     public function show($id)
     {
         $chat = Chat::with(['mensajes.emisor', 'persona.user', 'institucion.user'])
@@ -56,9 +50,6 @@ class ChatController extends Controller
         ]);
     }
 
-    /**
-     * Inicia un nuevo chat (si no existe) entre una persona y una institución
-     */
     public function iniciarChat(Request $request)
     {
         $request->validate([
@@ -68,7 +59,6 @@ class ChatController extends Controller
 
         $user = Auth::user();
 
-        // Identificar quién está iniciando el chat
         $persona = PerfPersona::where('user_id', $user->id)->first();
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
 
@@ -89,26 +79,32 @@ class ChatController extends Controller
         return redirect()->route('chat.show', $chat->id);
     }
 
-    /**
-     * Envía un mensaje dentro de un chat
-     */
-    public function enviarMensaje(Request $request, $id)
+    public function enviarMensaje(Request $request, $chatId)
     {
         $request->validate([
             'contenido' => 'required|string|max:1000',
         ]);
 
-        $chat = Chat::findOrFail($id);
+        $chat = Chat::findOrFail($chatId);
 
         $mensaje = Mensaje::create([
             'chat_id' => $chat->id,
-            'emisor_id' => Auth::id(),
+            'emisor_id' => auth()->id(),
             'contenido' => $request->contenido,
         ]);
 
-        // Más adelante se puede emitir un evento broadcast aquí (para tiempo real)
-        // event(new MensajeEnviado($mensaje));
+        $mensaje->load('emisor');
 
+        // Emitimos el evento a todos los demás usuarios conectados
+        broadcast(new MensajeEnviado($mensaje))->toOthers();
+
+        // Retornamos el mensaje al cliente que lo envió
         return response()->json(['mensaje' => $mensaje]);
+    }
+
+    public function escribiendo(Request $request, $chatId)
+    {
+        broadcast(new UsuarioEscribiendo($chatId, $request->user()))->toOthers();
+        return response()->json(['status' => 'ok']);
     }
 }
