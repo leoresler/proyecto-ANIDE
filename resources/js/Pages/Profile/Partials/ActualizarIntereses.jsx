@@ -31,7 +31,7 @@ export default function ActualizarIntereses({ className = '', currentInterests =
 
     return (
         <section className={className}>
-            <header>
+            <header className="mt-10">
                 <h2 className="text-lg font-medium text-gray-900">Tus intereses</h2>
                 <p className="mt-1 text-sm text-gray-600">
                     Selecciona los temas que más te interesan.
