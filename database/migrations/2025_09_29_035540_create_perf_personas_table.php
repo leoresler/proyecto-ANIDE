@@ -19,7 +19,6 @@ return new class extends Migration
             $table->date('fecha_nac')->nullable(false);
             $table->json('interests')->nullable();
             $table->text('biografia')->nullable();
-            $table->string('foto_perfil')->nullable();
 
             $table->timestamps();
         });

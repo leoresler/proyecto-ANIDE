@@ -79,4 +79,9 @@ class PerfInstitucion extends Model
     }
 
     protected $appends = ['nombre'];
+
+    public function chats()
+    {
+    return $this->hasMany(Chat::class, 'institucion_id');
+    }
 }

@@ -46,7 +46,7 @@ export default function ActualizarFotoPerfil({ className = '', currentPhoto }) {
 
     return (
         <section className={className}>
-            <header>
+            <header className="mt-10">
                 <h2 className="text-lg font-medium text-gray-900">Foto de perfil</h2>
                 <p className="mt-1 text-sm text-gray-600">Sube una imagen para personalizar tu perfil.</p>
             </header>

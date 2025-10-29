@@ -1,0 +1,17 @@
+<?php
+
+use Illuminate\Support\Facades\Broadcast;
+
+Broadcast::routes(['middleware' => ['web', 'auth']]);
+
+Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
+    $chat = \App\Models\Chat::find($chatId);
+    if (!$chat) return false;
+
+    if (($chat->persona_id && optional($user->persona)->id === $chat->persona_id) ||
+        ($chat->institucion_id && optional($user->institucion)->id === $chat->institucion_id)) {
+        return ['id' => $user->id, 'name' => $user->name];
+    }
+
+    return false;
+});
