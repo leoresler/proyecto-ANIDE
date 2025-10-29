@@ -135,6 +135,10 @@ Route::middleware(['auth'])->group(function () {
 Route::post('/chats/{chatId}/escribiendo', [ChatController::class, 'escribiendo'])
     ->middleware('auth');
 
+ 
+Route::put('/profile/interests', [ProfileController::class, 'updateInterests'])
+    ->name('profile.interests.update');
+
 
 
 require __DIR__ . '/auth.php';

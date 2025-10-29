@@ -1,11 +1,17 @@
+import { useEffect } from 'react';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import { useForm } from '@inertiajs/react';
 
 export default function ActualizarIntereses({ className = '', currentInterests = [] }) {
-    const { data, setData, post, processing, errors } = useForm({
-        interests: currentInterests, // array inicial de intereses
+    const { data, setData, put, processing, errors } = useForm({
+        interests: [],
     });
+
+    // Inicializa los intereses con los del usuario logueado
+    useEffect(() => {
+        setData('interests', currentInterests);
+    }, [currentInterests]);
 
     const handleChange = (e) => {
         const { value, checked } = e.target;
@@ -22,7 +28,7 @@ export default function ActualizarIntereses({ className = '', currentInterests =
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('profile.interests.update'), {
+        put(route('profile.interests.update'), {
             preserveScroll: true,
         });
     };

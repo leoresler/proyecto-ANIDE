@@ -28,14 +28,33 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
+        $persona = $user->persona;
+        $institucion = $user->institucion;
+
+        // Determinar qué perfil usar para los intereses
+        $perfil = $persona ?? $institucion;
+
+        // Convertir los intereses a array si existen
+        $interests = [];
+        if ($perfil && $perfil->interests) {
+            $interests = is_string($perfil->interests)
+                ? json_decode($perfil->interests, true)
+                : $perfil->interests;
+        }
+        
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
-            'auth' => [
-                'user' => $request->user(),
-            ],
+            'auth' => ['user' => $user],
+            'persona' => $persona,
+            'institucion' => $institucion,
+            'currentInterests' => $interests, // ✅ se envía al frontend
         ]);
     }
+
+
 
     /**
      * Update the user's profile information.
@@ -53,6 +72,7 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit');
     }
 
+    
     /**
      * Delete the user's account.
      */
@@ -108,24 +128,27 @@ class ProfileController extends Controller
         return Inertia::location(route('profile.edit'));
     }
 
-    public function updateInterests(Request $request)
+    public function updateInterests(Request $request): RedirectResponse
     {
         $request->validate([
             'interests' => 'array',
-            'interests.*' => 'string|max:255',
         ]);
 
         $user = $request->user();
 
-        // Si el usuario es tipo persona
-        if ($user->tipo_usuario === 'persona') {
-            $perfil = PerfPersona::firstOrCreate(['user_id' => $user->id]);
-            $perfil->interests = $request->interests ?? [];
-            $perfil->save();
+        // Detectar perfil activo
+        $perfil = $user->persona ?? $user->institucion;
+
+        if (!$perfil) {
+            return back()->withErrors(['interests' => 'No se encontró un perfil asociado.']);
         }
 
-        return redirect()->route('profile.edit')->with('success', 'Intereses actualizados.');
+        $perfil->interests = json_encode($request->interests);
+        $perfil->save();
+
+        return back()->with('status', 'Intereses actualizados.');
     }
+
 
 
     /**
