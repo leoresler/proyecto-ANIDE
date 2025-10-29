@@ -27,6 +27,6 @@
         "leaflet": "^1.9.4",
         "lucide-react": "^0.545.0",
         "react-hot-toast": "^2.6.0",
-        "react-leaflet": "^5.0.0"
+        "react-leaflet": "^4.2.1"
     }
 }
