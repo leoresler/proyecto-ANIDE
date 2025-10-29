@@ -38,6 +38,11 @@ class PerfInstitucion extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function residencias()
+    {
+        return $this->hasMany(Residencia::class, 'perf_institucion_id');
+    }
+
     // metodos GET
     public function getNombreAttribute()
     {

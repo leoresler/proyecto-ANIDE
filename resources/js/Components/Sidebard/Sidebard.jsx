@@ -36,11 +36,6 @@ export default function Sidebar({ isOpen, onClose }) {
                         icon="/svg/sidebar/clock.svg"
                         label="Actividad"
                     />
-                    <BotonSidebar
-                        href="#"
-                        icon="/svg/sidebar/compass.svg"
-                        label="Explorar"
-                    />
                     <hr className="bg-black" />
                     <Link
                         href="#"
@@ -98,11 +93,6 @@ export default function Sidebar({ isOpen, onClose }) {
                                 href="#"
                                 icon="/svg/sidebar/clock.svg"
                                 label="Actividad"
-                            />
-                            <BotonSidebar
-                                href="#"
-                                icon="/svg/sidebar/compass.svg"
-                                label="Explorar"
                             />
                             <hr className="bg-black" />
                             <Link

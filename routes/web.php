@@ -3,13 +3,13 @@
 use App\Models\Publicacion;
 use App\Models\PerfInstitucion;
 
-use App\Http\Controllers\ComunidadController;
 use App\Http\Controllers\MapaController;
 use App\Http\Controllers\UsuariosController;
 use App\Http\Controllers\VideosController;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\InstitucionAprobacionController;
+use App\Http\Controllers\ResidenciaController;
 
 use App\Http\Controllers\Publicaciones\PublicacionController;
 use App\Http\Controllers\Publicaciones\LikeController;
@@ -84,13 +84,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('publicaciones.destroy');
     });
 
-    // Publicaciones
+    // publicaciones
     Route::get('/publicaciones/{id}', [PublicacionController::class, 'show'])->name('publicaciones.show');
 
-    // Likes
+    // likes
     Route::post('/likes/toggle', [LikeController::class, 'toggle'])->name('likes.toggle');
 
-    // Comentarios
+    // comentarios
     Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
     Route::delete('/comentarios/{id}', [ComentarioController::class, 'destroy'])
         ->name('comentarios.destroy');
@@ -98,12 +98,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/favoritos/toggle', [FavoritoController::class, 'toggle'])->name('favoritos.toggle');
     Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
 
-
-    // comunidad
-    Route::get('/comunidad', [ComunidadController::class, 'index'])->name('comunidad.index');
+    // residencias
+    Route::resource('residencias', ResidenciaController::class);
 
     // mapa
     Route::get('/mapa', [MapaController::class, 'index'])->name('mapa.index');
+    Route::post('/mapa/filtrar', [MapaController::class, 'filtrar'])->name('mapa.filtrar');
+
 
     // usuarios
     Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
@@ -222,6 +223,12 @@ Route::get('/institucion/pendiente', function () {
 })->name('institucion.pendiente');
 
 
+// rutas publicas para ver mapa
+Route::get('/api/residencias/map/all', [ResidenciaController::class, 'getAllForMap'])
+    ->name('residencias.map.all');
+
+Route::get('/api/residencias/institucion/{institucionId}', [ResidenciaController::class, 'getByInstitucion'])
+    ->name('residencias.by.institucion');
 
 
 

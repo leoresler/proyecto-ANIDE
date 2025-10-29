@@ -74,7 +74,7 @@ export default function BusquedaIndex({
                             <span
                                 className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                                     totalResultados > 0
-                                        ? "bg-green-100 text-green-800"
+                                        ? "bg-blue-100 text-blue-800"
                                         : "bg-gray-100 text-gray-600"
                                 }`}
                             >
@@ -213,9 +213,9 @@ export default function BusquedaIndex({
                             {institucionesData.length > 0 && (
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                                             <svg
-                                                className="w-5 h-5 text-green-600"
+                                                className="w-5 h-5 text-blue-600"
                                                 fill="none"
                                                 stroke="currentColor"
                                                 viewBox="0 0 24 24"
@@ -241,7 +241,7 @@ export default function BusquedaIndex({
                                                 <Link
                                                     key={institucion.id}
                                                     href={`/institucion/${institucion.id}`}
-                                                    className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-green-200 group"
+                                                    className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-gray-400 group"
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         {institucion.foto_perfil ? (
@@ -255,9 +255,9 @@ export default function BusquedaIndex({
                                                                 className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
                                                             />
                                                         ) : (
-                                                            <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <div className="w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                                                                 <svg
-                                                                    className="w-8 h-8 text-green-600"
+                                                                    className="w-8 h-8 text-blue-600"
                                                                     fill="none"
                                                                     stroke="currentColor"
                                                                     viewBox="0 0 24 24"
@@ -274,7 +274,7 @@ export default function BusquedaIndex({
                                                             </div>
                                                         )}
                                                         <div className="flex-1 min-w-0">
-                                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-edu-dark transition-colors">
                                                                 {
                                                                     institucion.nombre
                                                                 }
@@ -288,7 +288,7 @@ export default function BusquedaIndex({
                                                             )}
                                                         </div>
                                                         <svg
-                                                            className="w-6 h-6 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0"
+                                                            className="w-6 h-6 text-gray-400 group-hover:text-edu-dark transition-colors flex-shrink-0"
                                                             fill="none"
                                                             stroke="currentColor"
                                                             viewBox="0 0 24 24"

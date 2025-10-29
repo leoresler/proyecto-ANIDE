@@ -186,7 +186,7 @@ export default function BarraBusqueda({
                     placeholder={
                         variant === "global"
                             ? "Buscar en EDUQUÉN"
-                            : "Buscar en favoritos"
+                            : "Ingresá título o contenido"
                     }
                     className="w-full border-0 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-0"
                 />
@@ -395,12 +395,12 @@ export default function BarraBusqueda({
                                                                     "institucion"
                                                                 )
                                                             }
-                                                            className="w-full text-left px-3 py-3 hover:bg-green-50 rounded transition-colors border-b border-gray-100 last:border-0"
+                                                            className="w-full text-left px-3 py-3 hover:bg-blue-50 rounded transition-colors border-b border-gray-100 last:border-0"
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                                                                     <svg
-                                                                        className="w-5 h-5 text-green-600"
+                                                                        className="w-5 h-5 text-blue-600"
                                                                         fill="none"
                                                                         stroke="currentColor"
                                                                         viewBox="0 0 24 24"
@@ -437,7 +437,7 @@ export default function BarraBusqueda({
                                 <div className="border-t border-gray-200 p-3 bg-gray-50">
                                     <button
                                         type="submit"
-                                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-edu-dark hover:bg-black rounded-lg transition-colors flex items-center justify-center gap-2"
                                     >
                                         <span>Ver todos los resultados</span>
                                         <svg
