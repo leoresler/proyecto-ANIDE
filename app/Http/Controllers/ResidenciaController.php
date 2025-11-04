@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Residencia;
+use App\Models\PerfInstitucion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -11,197 +12,244 @@ use Inertia\Inertia;
 class ResidenciaController extends Controller
 {
     /**
-     * Muestra todas las residencias de la institución autenticada
+     * Display a listing of the resource.
      */
     public function index()
     {
         $user = Auth::user();
-
+        
         if ($user->tipo_usuario !== 'institucion') {
-            abort(403, 'Solo las instituciones pueden acceder a esta sección');
+            abort(403, 'Solo las instituciones pueden gestionar residencias');
         }
 
-        $institucion = $user->institucion;
+        $institucion = PerfInstitucion::where('user_id', $user->id)->first();
+        
+        if (!$institucion) {
+            abort(404, 'Institución no encontrada');
+        }
 
         $residencias = Residencia::where('perf_institucion_id', $institucion->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
         return Inertia::render('Residencias/Index', [
-            'residencias' => $residencias,
-            'institucion' => $institucion,
+            'residencias' => $residencias
         ]);
     }
 
     /**
-     * Muestra el formulario para crear una nueva residencia
-     */
-    public function create()
-    {
-        $user = Auth::user();
-
-        if ($user->tipo_usuario !== 'institucion') {
-            abort(403, 'Solo las instituciones pueden crear residencias');
-        }
-
-        return Inertia::render('Residencias/Create', [
-            'institucion' => $user->institucion,
-        ]);
-    }
-
-    /**
-     * Almacena una nueva residencia
+     * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         $user = Auth::user();
-
+        
         if ($user->tipo_usuario !== 'institucion') {
-            abort(403, 'Solo las instituciones pueden crear residencias');
+            return back()->withErrors(['error' => 'Solo las instituciones pueden crear residencias']);
+        }
+
+        $institucion = PerfInstitucion::where('user_id', $user->id)->first();
+        
+        if (!$institucion) {
+            return back()->withErrors(['error' => 'Institución no encontrada']);
         }
 
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'direccion' => 'required|string|max:255',
+            'nombre' => 'required|string|min:3|max:255',
+            'contacto' => 'required|string|max:255',
+            'capacidad' => 'required|integer|min:1',
+            'ciudad' => 'required|string|max:100',
+            'provincia' => 'required|string|max:100',
+            'direccion' => 'required|string|min:5|max:255',
             'latitud' => 'required|numeric|between:-90,90',
             'longitud' => 'required|numeric|between:-180,180',
-            'capacidad' => 'nullable|integer|min:0',
-            'foto_portada' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'info_adicional' => 'nullable|string|max:1000',
+            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
+        ], [
+            'nombre.required' => 'El nombre es obligatorio',
+            'nombre.min' => 'El nombre debe tener al menos 3 caracteres',
+            'contacto.required' => 'El contacto es obligatorio',
+            'capacidad.required' => 'La capacidad es obligatoria',
+            'capacidad.min' => 'La capacidad debe ser al menos 1',
+            'direccion.required' => 'La dirección es obligatoria',
+            'direccion.min' => 'La dirección debe tener al menos 5 caracteres',
+            'latitud.required' => 'La latitud es obligatoria',
+            'longitud.required' => 'La longitud es obligatoria',
+            'foto_portada.image' => 'El archivo debe ser una imagen',
+            'foto_portada.max' => 'La imagen no puede superar los 2MB',
         ]);
 
-        $validated['perf_institucion_id'] = $user->institucion->id;
+        // Construir la dirección completa
+        $direccionCompleta = "{$validated['direccion']}, {$validated['ciudad']}, {$validated['provincia']}";
 
-        // Manejo de la foto de portada
+        $residenciaData = [
+            'perf_institucion_id' => $institucion->id,
+            'nombre' => $validated['nombre'],
+            'direccion' => $direccionCompleta,
+            'contacto' => $validated['contacto'],
+            'capacidad' => $validated['capacidad'],
+            'latitud' => $validated['latitud'],
+            'longitud' => $validated['longitud'],
+            'info_adicional' => $validated['info_adicional'] ?? null,
+        ];
+
+        // Guardar foto si existe
         if ($request->hasFile('foto_portada')) {
             $path = $request->file('foto_portada')->store('residencias', 'public');
-            $validated['foto_portada'] = $path;
+            $residenciaData['foto_portada'] = $path;
         }
 
-        $residencia = Residencia::create($validated);
+        $residencia = Residencia::create($residenciaData);
 
-        return redirect()->route('residencias.index')
-            ->with('success', 'Residencia creada exitosamente');
+        return back()->with('success', 'Residencia creada exitosamente');
     }
 
     /**
-     * Muestra una residencia específica
+     * Display the specified resource.
      */
-    public function show(Residencia $residencia)
+    public function show(string $id)
     {
-        $residencia->load('institucion.user');
+        $residencia = Residencia::with('institucion.user')->findOrFail($id);
 
         return Inertia::render('Residencias/Show', [
-            'residencia' => $residencia,
+            'residencia' => $residencia
         ]);
     }
 
     /**
-     * Muestra el formulario para editar una residencia
+     * Update the specified resource in storage.
      */
-    public function edit(Residencia $residencia)
+    public function update(Request $request, string $id)
     {
+        $residencia = Residencia::findOrFail($id);
         $user = Auth::user();
 
-        // Verificar que la residencia pertenece a la institución del usuario
-        if (
-            $user->tipo_usuario !== 'institucion' ||
-            $residencia->perf_institucion_id !== $user->institucion->id
-        ) {
-            abort(403, 'No tienes permiso para editar esta residencia');
-        }
-
-        return Inertia::render('Residencias/Edit', [
-            'residencia' => $residencia,
-        ]);
-    }
-
-    /**
-     * Actualiza una residencia
-     */
-    public function update(Request $request, Residencia $residencia)
-    {
-        $user = Auth::user();
-
-        // Verificar que la residencia pertenece a la institución del usuario
-        if (
-            $user->tipo_usuario !== 'institucion' ||
-            $residencia->perf_institucion_id !== $user->institucion->id
-        ) {
-            abort(403, 'No tienes permiso para actualizar esta residencia');
+        // Verificar que el usuario es dueño de la residencia
+        $institucion = PerfInstitucion::where('user_id', $user->id)->first();
+        
+        if (!$institucion || $residencia->perf_institucion_id !== $institucion->id) {
+            abort(403, 'No tienes permisos para editar esta residencia');
         }
 
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'direccion' => 'required|string|max:255',
+            'nombre' => 'required|string|min:3|max:255',
+            'contacto' => 'required|string|max:255',
+            'capacidad' => 'required|integer|min:1',
+            'ciudad' => 'required|string|max:100',
+            'provincia' => 'required|string|max:100',
+            'direccion' => 'required|string|min:5|max:255',
             'latitud' => 'required|numeric|between:-90,90',
             'longitud' => 'required|numeric|between:-180,180',
-            'capacidad' => 'nullable|integer|min:0',
-            'foto_portada' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'info_adicional' => 'nullable|string|max:1000',
+            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
         ]);
 
-        // Manejo de la foto de portada
+        // Construir la dirección completa
+        $direccionCompleta = "{$validated['direccion']}, {$validated['ciudad']}, {$validated['provincia']}";
+
+        $residenciaData = [
+            'nombre' => $validated['nombre'],
+            'direccion' => $direccionCompleta,
+            'contacto' => $validated['contacto'],
+            'capacidad' => $validated['capacidad'],
+            'latitud' => $validated['latitud'],
+            'longitud' => $validated['longitud'],
+            'info_adicional' => $validated['info_adicional'] ?? null,
+        ];
+
+        // Actualizar foto si existe
         if ($request->hasFile('foto_portada')) {
-            // Eliminar la foto anterior si existe
+            // Eliminar foto anterior si existe
             if ($residencia->foto_portada) {
                 Storage::disk('public')->delete($residencia->foto_portada);
             }
-
+            
             $path = $request->file('foto_portada')->store('residencias', 'public');
-            $validated['foto_portada'] = $path;
+            $residenciaData['foto_portada'] = $path;
         }
 
-        $residencia->update($validated);
+        $residencia->update($residenciaData);
 
-        return redirect()->route('residencias.index')
-            ->with('success', 'Residencia actualizada exitosamente');
+        return back()->with('success', 'Residencia actualizada exitosamente');
     }
 
     /**
-     * Elimina una residencia (soft delete)
+     * Remove the specified resource from storage.
      */
-    public function destroy(Residencia $residencia)
+    public function destroy(string $id)
     {
+        $residencia = Residencia::findOrFail($id);
         $user = Auth::user();
 
-        // Verificar que la residencia pertenece a la institución del usuario
-        if (
-            $user->tipo_usuario !== 'institucion' ||
-            $residencia->perf_institucion_id !== $user->institucion->id
-        ) {
-            abort(403, 'No tienes permiso para eliminar esta residencia');
+        // Verificar que el usuario es dueño de la residencia
+        $institucion = PerfInstitucion::where('user_id', $user->id)->first();
+        
+        if (!$institucion || $residencia->perf_institucion_id !== $institucion->id) {
+            abort(403, 'No tienes permisos para eliminar esta residencia');
+        }
+
+        // Eliminar foto si existe
+        if ($residencia->foto_portada) {
+            Storage::disk('public')->delete($residencia->foto_portada);
         }
 
         $residencia->delete();
 
-        return redirect()->route('residencias.index')
-            ->with('success', 'Residencia eliminada exitosamente');
+        return back()->with('success', 'Residencia eliminada exitosamente');
     }
 
     /**
-     * Obtiene todas las residencias de todas las instituciones (para el mapa público)
+     * Get all residencias for map (public)
      */
     public function getAllForMap()
     {
-        $residencias = Residencia::with(['institucion.user' => function ($query) {
-            $query->select('id', 'nombre', 'ciudad', 'provincia');
-        }])
-            ->whereHas('institucion', function ($query) {
-                $query->where('verificado', true);
-            })
-            ->get(['id', 'perf_institucion_id', 'nombre', 'direccion', 'contacto', 'latitud', 'longitud', 'capacidad']);
+        $residencias = Residencia::with('institucion.user')
+            ->whereNotNull('latitud')
+            ->whereNotNull('longitud')
+            ->get()
+            ->map(function ($residencia) {
+                return [
+                    'id' => $residencia->id,
+                    'nombre' => $residencia->nombre,
+                    'direccion' => $residencia->direccion,
+                    'contacto' => $residencia->contacto,
+                    'latitud' => (float) $residencia->latitud,
+                    'longitud' => (float) $residencia->longitud,
+                    'capacidad' => $residencia->capacidad,
+                    'foto_portada' => $residencia->foto_portada,
+                    'info_adicional' => $residencia->info_adicional,
+                    'institucion' => [
+                        'id' => $residencia->institucion->id,
+                        'nombre' => $residencia->institucion->nombre,
+                    ]
+                ];
+            });
 
         return response()->json($residencias);
     }
 
     /**
-     * Obtiene las residencias de una institución específica
+     * Get residencias by institucion ID
      */
     public function getByInstitucion($institucionId)
     {
         $residencias = Residencia::where('perf_institucion_id', $institucionId)
-            ->get(['id', 'nombre', 'direccion', 'latitud', 'longitud', 'capacidad']);
+            ->whereNotNull('latitud')
+            ->whereNotNull('longitud')
+            ->get()
+            ->map(function ($residencia) {
+                return [
+                    'id' => $residencia->id,
+                    'nombre' => $residencia->nombre,
+                    'direccion' => $residencia->direccion,
+                    'contacto' => $residencia->contacto,
+                    'latitud' => (float) $residencia->latitud,
+                    'longitud' => (float) $residencia->longitud,
+                    'capacidad' => $residencia->capacidad,
+                    'foto_portada' => $residencia->foto_portada,
+                    'info_adicional' => $residencia->info_adicional,
+                ];
+            });
 
         return response()->json($residencias);
     }

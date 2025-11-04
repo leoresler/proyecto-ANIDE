@@ -28,12 +28,26 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        $residencias = [];
+
+        // Si es institución, cargar sus residencias
+        if ($user->tipo_usuario === 'institucion') {
+            $institucion = PerfInstitucion::where('user_id', $user->id)->first();
+            if ($institucion) {
+                $residencias = $institucion->residencias()
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            }
+        }
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'auth' => [
                 'user' => $request->user(),
             ],
+            'residencias' => $residencias,
         ]);
     }
 
@@ -127,7 +141,6 @@ class ProfileController extends Controller
         return redirect()->route('profile.edit')->with('success', 'Intereses actualizados.');
     }
 
-
     /**
      * Validación personalizada para documentos argentinos
      */
@@ -179,8 +192,6 @@ class ProfileController extends Controller
                 'max:20',
                 'regex:/^[\d\s\-\+\(\)]+$/'
             ],
-            'ciudad' => 'required|string|min:2|max:100',
-            'provincia' => 'required|string|min:2|max:100',
         ];
 
         if ($tipoUsuario === 'persona') {
@@ -195,9 +206,15 @@ class ProfileController extends Controller
             $rules['biografia'] = 'nullable|string|max:500';
             $rules['interests'] = 'required|array|min:1';
             $rules['interests.*'] = 'string|max:255';
+            $rules['ciudad'] = 'required|string|min:2|max:100';
+            $rules['provincia'] = 'required|string|min:2|max:100';
         } else {
             $rules['tipo_institucion'] = 'required|string|min:3|max:100';
+            $rules['ciudad'] = 'required|string|min:2|max:100';
+            $rules['provincia'] = 'required|string|min:2|max:100';
             $rules['direccion'] = 'required|string|min:5|max:255';
+            $rules['latitud'] = 'required|numeric|between:-90,90';
+            $rules['longitud'] = 'required|numeric|between:-180,180';
             $rules['url_sitio_web'] = 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/';
             $rules['descripcion'] = 'nullable|string|max:1000';
             $rules['tipo_documento'] = 'required|in:CUIT,CUIL,DNI';
@@ -227,6 +244,8 @@ class ProfileController extends Controller
             'tipo_institucion.min' => 'El tipo de institución debe tener al menos 3 caracteres',
             'direccion.required' => 'La dirección es obligatoria',
             'direccion.min' => 'La dirección debe tener al menos 5 caracteres',
+            'latitud.required' => 'Debes validar la dirección primero',
+            'longitud.required' => 'Debes validar la dirección primero',
             'url_sitio_web.url' => 'Ingresa una URL válida',
             'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://',
             'descripcion.max' => 'La descripción no puede exceder 1000 caracteres',
@@ -256,12 +275,17 @@ class ProfileController extends Controller
             abort(403, 'Usuario no autenticado.');
         }
 
-        $user->update([
+        $userData = [
             'nombre' => $validated['nombre'],
             'telefono' => $validated['telefono'],
-            'ciudad' => $validated['ciudad'],
-            'provincia' => $validated['provincia'],
-        ]);
+        ];
+
+        if ($tipoUsuario === 'persona') {
+            $userData['ciudad'] = $validated['ciudad'];
+            $userData['provincia'] = $validated['provincia'];
+        }
+
+        $user->update($userData);
 
         // Guardar foto
         if ($request->hasFile('profile_photo_path')) {
@@ -291,11 +315,16 @@ class ProfileController extends Controller
             // Limpiar documento antes de guardar
             $documentoLimpio = preg_replace('/[^0-9]/', '', $validated['doc_identificador']);
 
+            // Construir dirección completa
+            $direccionCompleta = "{$validated['direccion']}, {$validated['ciudad']}, {$validated['provincia']}";
+
             PerfInstitucion::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'tipo_institucion' => $validated['tipo_institucion'],
-                    'direccion' => $validated['direccion'],
+                    'direccion' => $direccionCompleta,
+                    'latitud' => $validated['latitud'],
+                    'longitud' => $validated['longitud'],
                     'url_sitio_web' => $validated['url_sitio_web'] ?? null,
                     'descripcion' => $validated['descripcion'] ?? null,
                     'doc_identificador' => $documentoLimpio,

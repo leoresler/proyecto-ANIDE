@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\PerfInstitucion;
+use App\Models\Residencia;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 class MapaController extends Controller
 {
@@ -14,12 +16,19 @@ class MapaController extends Controller
     public function index()
     {
         // Obtener todas las instituciones verificadas con sus residencias
-        $instituciones = PerfInstitucion::with(['user', 'residencias'])
+        $instituciones = PerfInstitucion::with(['user', 'residencias' => function($query) {
+                // Asegurarse de cargar solo residencias que no estén eliminadas
+                $query->whereNotNull('latitud')
+                      ->whereNotNull('longitud');
+            }])
             ->where('verificado', true)
             ->whereNotNull('latitud')
             ->whereNotNull('longitud')
             ->get()
             ->map(function ($institucion) {
+                // Log para debugging
+                Log::info('Institución: ' . $institucion->nombre . ' - Residencias: ' . $institucion->residencias->count());
+                
                 return [
                     'id' => $institucion->id,
                     'nombre' => $institucion->nombre,
@@ -34,6 +43,8 @@ class MapaController extends Controller
                     'descripcion' => $institucion->descripcion,
                     'url_sitio_web' => $institucion->url_sitio_web,
                     'residencias' => $institucion->residencias->map(function ($residencia) {
+                        Log::info('Residencia mapeada: ' . $residencia->nombre . ' - Lat: ' . $residencia->latitud . ' - Lng: ' . $residencia->longitud);
+                        
                         return [
                             'id' => $residencia->id,
                             'nombre' => $residencia->nombre,
@@ -45,7 +56,7 @@ class MapaController extends Controller
                             'foto_portada' => $residencia->foto_portada,
                             'info_adicional' => $residencia->info_adicional,
                         ];
-                    })
+                    })->values() // Asegurar que sea un array indexado
                 ];
             });
 
@@ -56,6 +67,14 @@ class MapaController extends Controller
             ->pluck('tipo_institucion')
             ->filter()
             ->values();
+
+        // Log del total de instituciones y residencias
+        $totalResidencias = Residencia::whereHas('institucion', function($q) {
+            $q->where('verificado', true);
+        })->whereNotNull('latitud')->whereNotNull('longitud')->count();
+        
+        Log::info('Total instituciones en mapa: ' . $instituciones->count());
+        Log::info('Total residencias en BD: ' . $totalResidencias);
 
         return Inertia::render('Mapa/Index', [
             'instituciones' => $instituciones,
@@ -68,7 +87,9 @@ class MapaController extends Controller
      */
     public function filtrar(Request $request)
     {
-        $query = PerfInstitucion::with(['user', 'residencias'])
+        $query = PerfInstitucion::with(['user', 'residencias' => function($query) {
+                $query->whereNotNull('latitud')->whereNotNull('longitud');
+            }])
             ->where('verificado', true)
             ->whereNotNull('latitud')
             ->whereNotNull('longitud');
@@ -78,7 +99,7 @@ class MapaController extends Controller
             $query->where('tipo_institucion', $request->tipo_institucion);
         }
 
-        // Filtro por área de estudio (buscar en descripción o en tabla relacionada si existe)
+        // Filtro por área de estudio
         if ($request->filled('area_estudio')) {
             $query->where(function ($q) use ($request) {
                 $q->where('descripcion', 'like', '%' . $request->area_estudio . '%')
@@ -112,11 +133,10 @@ class MapaController extends Controller
                         'foto_portada' => $residencia->foto_portada,
                         'info_adicional' => $residencia->info_adicional,
                     ];
-                })
+                })->values()
             ];
         });
 
-        // Aplicar filtro de distancia en el cliente si se proporciona
         return response()->json($instituciones);
     }
 }

@@ -105,10 +105,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/mapa', [MapaController::class, 'index'])->name('mapa.index');
     Route::post('/mapa/filtrar', [MapaController::class, 'filtrar'])->name('mapa.filtrar');
 
-
-    // usuarios
-    Route::get('/usuarios', [UsuariosController::class, 'index'])->name('usuarios.index');
-
     // videos
     Route::get('/videos', [VideosController::class, 'index'])->name('videos.index');
 
