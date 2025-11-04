@@ -1,11 +1,15 @@
 import { Link } from "@inertiajs/react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { useState } from "react";
 import BotonSidebar from "./botonSidebard";
+import ChatPage from "@/Pages/Chat/ChatPage";
 
 export default function Sidebar({ isOpen, onClose }) {
+    const [showMore, setShowMore] = useState(false); // 👈 nuevo estado
+
     return (
         <>
-            {/* sidebard desktop */}
+            {/* sidebar desktop */}
             <aside className="hidden md:flex flex-col w-64 bg-white p-4 h-[calc(100vh-64px)] sticky top-16">
                 <nav className="space-y-2">
                     <BotonSidebar href="/profile" label="Perfil" />
@@ -36,18 +40,31 @@ export default function Sidebar({ isOpen, onClose }) {
                         icon="/svg/sidebar/clock.svg"
                         label="Actividad"
                     />
+                    <BotonSidebar
+                                href="/chats"
+                                icon="/svg/sidebar/chat.svg"
+                                label="Chat"
+                    />
                     <hr className="bg-black" />
-                    <Link
-                        href="#"
-                        className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded"
+
+                    <button
+                        onClick={() => setShowMore(!showMore)}
+                        className="flex items-center space-x-2 hover:bg-gray-100 pl-2 rounded w-full"
                     >
-                        {" "}
-                        <ChevronDown size={18} /> <span>Ver más</span>{" "}
-                    </Link>
+                        {showMore ? (
+                            <>
+                                <ChevronUp size={18} /> <span>Ver menos</span>
+                            </>
+                        ) : (
+                            <>
+                                <ChevronDown size={18} /> <span>Ver más</span>
+                            </>
+                        )}
+                    </button>
                 </nav>
             </aside>
 
-            {/* sidebard movil */}
+            {/* sidebar móvil */}
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex">
                     {/* Fondo oscuro */}
@@ -94,14 +111,29 @@ export default function Sidebar({ isOpen, onClose }) {
                                 icon="/svg/sidebar/clock.svg"
                                 label="Actividad"
                             />
+                            <BotonSidebar
+                                href="/chats"
+                                icon="/svg/sidebar/chat.svg"
+                                label="Chat"
+                            />
                             <hr className="bg-black" />
-                            <Link
-                                href="#"
-                                className="flex items-center space-x-2 hover:bg-gray-100 p-2 rounded"
+
+                            <button
+                                onClick={() => setShowMore(!showMore)}
+                                className="flex items-center space-x-2 hover:bg-gray-100 pl-2 rounded w-full"
                             >
-                                {" "}
-                                <ChevronDown size={18} /> <span>Ver más</span>{" "}
-                            </Link>
+                                {showMore ? (
+                                    <>
+                                        <ChevronUp size={18} />{" "}
+                                        <span>Ver menos</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ChevronDown size={18} />{" "}
+                                        <span>Ver más</span>
+                                    </>
+                                )}
+                            </button>
                         </nav>
                     </aside>
                 </div>

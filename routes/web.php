@@ -15,6 +15,8 @@ use App\Http\Controllers\Publicaciones\PublicacionController;
 use App\Http\Controllers\Publicaciones\LikeController;
 use App\Http\Controllers\Publicaciones\FavoritoController;
 use App\Http\Controllers\Publicaciones\ComentarioController;
+use App\Http\Controllers\Chats\ChatController;
+use App\Http\Controllers\InstitucionController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
@@ -218,6 +220,10 @@ Route::get('/institucion/pendiente', function () {
     return Inertia::render('InstitucionPendiente');
 })->name('institucion.pendiente');
 
+// chat
+Route::get('/chat', function () {
+    return Inertia::render('Chat/ChatPage');
+})->name('chat');
 
 // rutas publicas para ver mapa
 Route::get('/api/residencias/map/all', [ResidenciaController::class, 'getAllForMap'])
@@ -227,6 +233,27 @@ Route::get('/api/residencias/institucion/{institucionId}', [ResidenciaController
     ->name('residencias.by.institucion');
 
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chats/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chats/iniciar', [ChatController::class, 'iniciarChat'])->name('chat.iniciar');
+    Route::post('/chats/{id}/mensaje', [ChatController::class, 'enviarMensaje'])->name('chat.enviar');
+});
 
+Route::post('/chats/{chatId}/escribiendo', [ChatController::class, 'escribiendo'])
+    ->middleware('auth');
+
+ 
+Route::put('/profile/interests', [ProfileController::class, 'updateInterests'])
+    ->name('profile.interests.update');
+
+Route::patch('/profile/institucion', [ProfileController::class, 'updateInstitucion'])
+    ->middleware(['auth'])
+    ->name('profile.institucion.update');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/instituciones/{id}', [InstitucionController::class, 'show'])
+        ->name('instituciones.show');
+});
 
 require __DIR__ . '/auth.php';
