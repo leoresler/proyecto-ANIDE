@@ -69,6 +69,11 @@ class PerfInstitucion extends Model
         return $this->user?->email;
     }
 
+    public function publicaciones()
+    {
+        return $this->hasMany(Publicacion::class, 'perf_institucion_id');
+    }
+
     protected static function booted()
     {
         static::creating(function ($institucion) {
