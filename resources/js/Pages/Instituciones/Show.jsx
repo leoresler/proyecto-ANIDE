@@ -107,6 +107,60 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                     )}
                 </div>
 
+                {/* 🔹 Residencias */}
+                <div className="mt-16">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                        Residencias
+                    </h3>
+
+                    {institucion.residencias?.length === 0 ? (
+                        <p className="text-gray-500 text-center">
+                            Esta institución aún no tiene residencias registradas.
+                        </p>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {institucion.residencias.map((res) => (
+                                <div
+                                    key={res.id}
+                                    className="bg-white rounded-2xl shadow-md overflow-hidden"
+                                >
+                                    <img
+                                        src={
+                                            res.foto_portada
+                                                ? `/storage/${res.foto_portada}`
+                                                : '/images/residencia-default.jpg'
+                                        }
+                                        alt={res.nombre}
+                                        className="w-full h-40 object-cover"
+                                    />
+
+                                    <div className="p-4">
+                                        <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                                            {res.nombre}
+                                        </h4>
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            {res.direccion || 'Dirección no especificada'}
+                                        </p>
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            <strong>Capacidad:</strong> {res.capacidad || 'N/A'}
+                                        </p>
+                                        {res.contacto && (
+                                            <p className="text-sm text-gray-600 mb-2">
+                                                <strong>Contacto:</strong> {res.contacto}
+                                            </p>
+                                        )}
+                                        <p className="text-sm text-gray-600 mb-2">
+                                            <strong>Información adicional: </strong> 
+                                            {res.info_adicional || 'Sin información adicional'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+
                 <div className="mt-10 text-center">
                     <Link
                         href={route('inicio')}

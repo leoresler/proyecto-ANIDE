@@ -16,6 +16,7 @@ class InstitucionController extends Controller
     {
         $institucion = PerfInstitucion::with([
             'user',
+            'residencias',
             'publicaciones' => function ($query) {
                 $query->publicadas()
                     ->recientes()
