@@ -10,4 +10,6 @@ export default defineConfig({
         }),
         react(),
     ],
+    // config para ver web en movil
+    
 });

@@ -6,7 +6,7 @@ export default function () {
         <GuestLayout>
             <Head title="Bienvenido"></Head>
 
-            <div className="text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+            <div className="text-white px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto mb-8">
 
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center leading-tight">
                     Conectá tu presente con tu futuro
