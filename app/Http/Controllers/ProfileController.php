@@ -41,15 +41,36 @@ class ProfileController extends Controller
             }
         }
 
+
+        $persona = $user->persona;
+        $institucion = $user->institucion;
+
+        // Determinar qué perfil usar para los intereses
+        $perfil = $persona ?? $institucion;
+
+        // Convertir los intereses a array si existen
+        $interests = [];
+        if ($perfil && $perfil->interests) {
+            $interests = is_string($perfil->interests)
+                ? json_decode($perfil->interests, true)
+                : $perfil->interests;
+        }
+        
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
             'auth' => [
                 'user' => $request->user(),
             ],
             'residencias' => $residencias,
+            'auth' => ['user' => $user],
+            'persona' => $persona,
+            'institucion' => $institucion,
+            'currentInterests' => $interests, // ✅ se envía al frontend
         ]);
     }
+
+
 
     /**
      * Update the user's profile information.
@@ -67,6 +88,7 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit');
     }
 
+    
     /**
      * Delete the user's account.
      */
@@ -122,23 +144,25 @@ class ProfileController extends Controller
         return Inertia::location(route('profile.edit'));
     }
 
-    public function updateInterests(Request $request)
+    public function updateInterests(Request $request): RedirectResponse
     {
         $request->validate([
             'interests' => 'array',
-            'interests.*' => 'string|max:255',
         ]);
 
         $user = $request->user();
 
-        // Si el usuario es tipo persona
-        if ($user->tipo_usuario === 'persona') {
-            $perfil = PerfPersona::firstOrCreate(['user_id' => $user->id]);
-            $perfil->interests = $request->interests ?? [];
-            $perfil->save();
+        // Detectar perfil activo
+        $perfil = $user->persona ?? $user->institucion;
+
+        if (!$perfil) {
+            return back()->withErrors(['interests' => 'No se encontró un perfil asociado.']);
         }
 
-        return redirect()->route('profile.edit')->with('success', 'Intereses actualizados.');
+        $perfil->interests = json_encode($request->interests);
+        $perfil->save();
+
+        return back()->with('status', 'Intereses actualizados.');
     }
 
     /**
@@ -353,4 +377,35 @@ class ProfileController extends Controller
                 ->with('info', 'Perfil completado. Tu institución será revisada por el administrador.');
         }
     }
+
+    public function updateInstitucion(Request $request)
+    {
+        $user = $request->user();
+
+        // Asegurar que el usuario sea de tipo institución
+        if ($user->tipo_usuario !== 'institucion') {
+            return back()->withErrors(['general' => 'Solo las instituciones pueden modificar estos datos.']);
+        }
+
+        $validated = $request->validate([
+            'tipo_institucion' => 'required|string|min:3|max:100',
+            'direccion' => 'required|string|min:5|max:255',
+            'url_sitio_web' => 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/',
+        ], [
+            'tipo_institucion.required' => 'El tipo de institución es obligatorio.',
+            'direccion.required' => 'La dirección es obligatoria.',
+            'url_sitio_web.url' => 'Ingresá una URL válida.',
+            'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://.',
+        ]);
+
+        // Buscar el perfil existente
+        $institucion = PerfInstitucion::where('user_id', $user->id)->firstOrFail();
+
+        // Actualizar solo los campos editables
+        $institucion->update($validated);
+
+        return back()->with('status', 'Perfil institucional actualizado correctamente.');
+    }
+
+
 }

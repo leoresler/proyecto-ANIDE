@@ -89,7 +89,8 @@ export default function PublicacionCard({ publicacion, userType }) {
     return (
         <div className="bg-white rounded-3xl border shadow-lg transition-shadow overflow-hidden">
             {/* Header - Nombre de la institución */}
-            <div className="p-4 flex items-center space-x-3">
+            <Link href={`/instituciones/${publicacion.institucion.user.id}`}>
+                <div className="p-4 flex items-center space-x-3">
                 <img
                     src={
                         publicacion.institucion?.user?.profile_photo_url ||
@@ -115,6 +116,8 @@ export default function PublicacionCard({ publicacion, userType }) {
                     </p>
                 </div>
             </div>
+            </Link>
+            
 
             <Link href={`/publicaciones/${publicacion.id}`}>
                 {/* Contenido de texto */}
