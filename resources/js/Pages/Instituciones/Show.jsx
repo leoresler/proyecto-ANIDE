@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Heart, MessageCircle } from 'lucide-react';
 
@@ -29,6 +29,22 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                     />
                     <p className="text-gray-700 mt-4 max-w-2xl mx-auto">{institucion.descripcion}</p>
                 </div>
+
+                {/* 🔹 Botón para iniciar chat */}
+                {auth.user?.id !== institucion.user_id && (
+                    <div className="text-center mt-6">
+                        <button
+                            onClick={() => {
+                                router.post(route('chat.iniciar'), {
+                                    institucion_id: institucion.id,
+                                });
+                            }}
+                            className="bg-edu-dark hover:bg-edu-darker text-white font-semibold px-5 py-2 rounded-lg shadow transition"
+                        >
+                            💬 Iniciar chat
+                        </button>
+                    </div>
+                )}
 
                 {/* 🔹 Información */}
                 <div className="text-gray-700 mb-8 text-center space-y-2">

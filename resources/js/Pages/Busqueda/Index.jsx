@@ -240,7 +240,7 @@ export default function BusquedaIndex({
                                             (institucion) => (
                                                 <Link
                                                     key={institucion.id}
-                                                    href={`/institucion/${institucion.id}`}
+                                                    href={`/instituciones/${institucion.id}`}
                                                     className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-gray-400 group"
                                                 >
                                                     <div className="flex items-center gap-4">
