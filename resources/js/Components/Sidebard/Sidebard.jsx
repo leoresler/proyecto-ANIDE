@@ -1,12 +1,22 @@
 import { Link } from "@inertiajs/react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BotonSidebar from "./botonSidebard";
 import ChatPage from "@/Pages/Chat/ChatPage";
+import ChatButton from "@/Components/ChatButton";
 
-export default function Sidebar({ isOpen, onClose }) {
+
+export default function Sidebar({ isOpen, onClose, mensajesNoLeidos}) {
     const [showMore, setShowMore] = useState(false); // 👈 nuevo estado
+    // const count = typeof mensajesNoLeidos !== 'undefined' ? mensajesNoLeidos : unreadCount || 0;
 
+    const [count, setCount] = useState(mensajesNoLeidos);
+
+    useEffect(() => {
+        const actualizar = () => setCount(prev => prev + 1);
+        window.addEventListener("mensaje-recibido", actualizar);
+        return () => window.removeEventListener("mensaje-recibido", actualizar);
+    }, []);
     return (
         <>
             {/* sidebar desktop */}
@@ -40,12 +50,17 @@ export default function Sidebar({ isOpen, onClose }) {
                         icon="/svg/sidebar/clock.svg"
                         label="Actividad"
                     />
+                    
+             
                     <BotonSidebar
-                                href="/chats"
-                                icon="/svg/sidebar/chat.svg"
-                                label="Chat"
+                        href="/chats"
+                        icon="/svg/sidebar/chat.svg"
+                        label="Chat"
+                        unreadCount={count}
                     />
-                    <hr className="bg-black" />
+
+                    <hr className="bg-black mt-3" />
+
 
                     <button
                         onClick={() => setShowMore(!showMore)}
@@ -115,6 +130,7 @@ export default function Sidebar({ isOpen, onClose }) {
                                 href="/chats"
                                 icon="/svg/sidebar/chat.svg"
                                 label="Chat"
+                                unreadCount={count}
                             />
                             <hr className="bg-black" />
 

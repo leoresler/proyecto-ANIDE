@@ -1,13 +1,39 @@
 import { useState } from "react";
-
 import Header from "@/Components/Header/Header";
 import Sidebar from "@/Components/Sidebard/Sidebard";
 // import Footer from "@/Components/Footer";
 import { Toaster } from "react-hot-toast";
+import { usePage } from '@inertiajs/react';
+import ChatButton from '@/Components/ChatButton';
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+import { useEffect } from "react";
 
 export default function AuthenticatedLayout({ header, children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const unreadCount = usePage().props.unreadCount ?? 0;
 
+    const user = usePage().props.auth.user;
+
+    useEffect(() => {
+        if (!user) return;
+
+        window.Pusher = Pusher;
+
+        window.Echo = new Echo({
+            broadcaster: "pusher",
+            key: import.meta.env.VITE_PUSHER_APP_KEY,
+            cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+            forceTLS: true,
+        });
+
+        window.Echo.private(`user.${user.id}`)
+            .listen('.MensajeEnviado', () => {
+                // Actualizar contador global
+                window.dispatchEvent(new CustomEvent("mensaje-recibido"));
+            });
+    }, [user]);
+    
     return (
         <div className="min-h-screen bg-white flex flex-col">
             <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
@@ -16,6 +42,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 <Sidebar
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
+                    unreadCount={unreadCount}
                 />
 
                 {/* contenido */}

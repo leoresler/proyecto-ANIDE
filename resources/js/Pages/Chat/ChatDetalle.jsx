@@ -36,6 +36,7 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
         const channel = window.Echo.private(`chat.${chat.id}`);
         channel.listen(".usuario.escribiendo", (e) => {
             console.log("Evento escribiendo recibido:", e);
+            if (e.user.id === userId) return;
             setUsuarioEscribiendo(e.user.nombre);
             clearTimeout(timeoutRef.current);
             timeoutRef.current = setTimeout(() => {
@@ -64,8 +65,6 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
 
         try {
             const response = await axios.post(route('chat.enviar', chat.id), { contenido });
-            const nuevoMensaje = response.data.mensaje;
-            setMensajes((prev) => [...prev, nuevoMensaje]);
             setContenido("");
         } catch (error) {
             console.error("Error al enviar mensaje:", error);

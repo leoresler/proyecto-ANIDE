@@ -44,9 +44,16 @@ class ChatController extends Controller
         $chat = Chat::with(['mensajes.emisor', 'persona.user', 'institucion.user'])
                     ->findOrFail($id);
 
+        // Marcar como leídos los mensajes que no fueron enviados por el usuario actual
+        \App\Models\Mensaje::where('chat_id', $id)
+        ->where('emisor_id', '!=', auth()->id())
+        ->where('leido', false)
+        ->update(['leido' => true]);
+
         return inertia('Chat/ChatDetalle', [
             'chat' => $chat,
             'mensajes' => $chat->mensajes,
+            'auth' => ['user' => auth()->user()],
         ]);
     }
 
