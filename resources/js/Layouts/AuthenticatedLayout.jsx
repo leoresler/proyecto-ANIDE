@@ -1,22 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/Components/Header/Header";
 import Sidebar from "@/Components/Sidebard/Sidebard";
-// import Footer from "@/Components/Footer";
 import { Toaster } from "react-hot-toast";
-import { usePage } from '@inertiajs/react';
-import ChatButton from '@/Components/ChatButton';
+import { usePage, router } from '@inertiajs/react'; // <-- uso router
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
-import { useEffect } from "react";
 
 export default function AuthenticatedLayout({ header, children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const unreadCount = usePage().props.unreadCount ?? 0;
 
-    const user = usePage().props.auth.user;
+    // Compatibilidad: acepta unreadCount (viejo) o unreadMessagesCount (backend)
+    const pageProps = usePage().props;
+    const unreadCount = pageProps.unreadCount ?? pageProps.unreadMessagesCount ?? 0;
+
+    const user = pageProps.auth?.user;
 
     useEffect(() => {
         if (!user) return;
+
+        // 👉 DEFINIMOS EL USER ID GLOBAL AQUÍ
+        window.authUserId = user.id;
 
         window.Pusher = Pusher;
 
@@ -25,15 +28,47 @@ export default function AuthenticatedLayout({ header, children }) {
             key: import.meta.env.VITE_PUSHER_APP_KEY,
             cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
             forceTLS: true,
+            // authEndpoint, auth headers u otras opciones si las necesitás
         });
 
-        window.Echo.private(`user.${user.id}`)
-            .listen('.MensajeEnviado', () => {
-                // Actualizar contador global
-                window.dispatchEvent(new CustomEvent("mensaje-recibido"));
-            });
+        console.log("Echo inicializado para user", user.id);
+
+        // 👉 ESCUCHAMOS LOS MENSAJES QUE LLEGAN AL USUARIO
+        const channel = window.Echo.private(`user.${user.id}`);
+
+        channel.subscribed(() => console.log(`Suscripto a user.${user.id}`));
+        channel.error((err) => console.error('Error en canal user.:', err));
+
+        channel.listen(".MensajeEnviado", (payload) => {
+            console.log("Evento MensajeEnviado (layout) recibido:", payload);
+            // Emitimos un evento global para que otros componentes lo recojan
+            window.dispatchEvent(new Event("mensaje-recibido"));
+        });
+
+        return () => {
+            try {
+                channel.stopListening(".MensajeEnviado");
+                channel.unsubscribe && channel.unsubscribe();
+            } catch (e) {
+                console.warn("Error al limpiar canal user:", e);
+            }
+        };
     }, [user]);
-    
+
+    //actualiza el contador del punto rojo
+    useEffect(() => {
+        const handler = () => {
+            // Usamos router.reload (importado de @inertiajs/react)
+            router.reload({ only: ["unreadCount", "unreadMessagesCount"] });
+        };
+
+        window.addEventListener("mensaje-recibido", handler);
+
+        return () => {
+            window.removeEventListener("mensaje-recibido", handler);
+        };
+    }, []);
+
     return (
         <div className="min-h-screen bg-white flex flex-col">
             <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
@@ -45,7 +80,6 @@ export default function AuthenticatedLayout({ header, children }) {
                     unreadCount={unreadCount}
                 />
 
-                {/* contenido */}
                 <div className="flex-1 flex flex-col">
                     {header && (
                         <div className="bg-white shadow-sm">
@@ -61,9 +95,6 @@ export default function AuthenticatedLayout({ header, children }) {
                         </div>
                     </main>
 
-                    {/* <Footer /> */}
-
-                    {/* libreria 'react-hot-toast' para mensajes en pantalla al usuario */}
                     <Toaster
                         position="bottom-right"
                         toastOptions={{
@@ -74,20 +105,6 @@ export default function AuthenticatedLayout({ header, children }) {
                                 borderRadius: "12px",
                                 padding: "16px",
                                 fontSize: "14px",
-                            },
-                            success: {
-                                duration: 3000,
-                                iconTheme: {
-                                    primary: "#10b981",
-                                    secondary: "#fff",
-                                },
-                            },
-                            error: {
-                                duration: 4000,
-                                iconTheme: {
-                                    primary: "#ef4444",
-                                    secondary: "#fff",
-                                },
                             },
                         }}
                     />

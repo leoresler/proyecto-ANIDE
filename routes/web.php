@@ -256,4 +256,7 @@ Route::middleware(['auth'])->group(function () {
         ->name('instituciones.show');
 });
 
+Route::post('/chats/{chat}/marcar-leidos', [ChatController::class, 'marcarLeidos']);
+
+
 require __DIR__ . '/auth.php';

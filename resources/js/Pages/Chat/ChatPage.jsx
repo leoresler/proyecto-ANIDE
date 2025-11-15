@@ -1,8 +1,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import React, { useEffect, useState } from "react";
 
 export default function ChatPage({ auth, chats = [] }) {
     const userId = auth.user.id;
+
+    const chatIds = chats.map(c => c.id); // 🔥 AHORA SÍ existe
+
+    useEffect(() => {
+        window.usuarioChats = chatIds;
+        console.log("Chats del usuario:", chatIds);
+    }, [chatIds]);
+
 
     return (
         <AuthenticatedLayout

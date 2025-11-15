@@ -55,7 +55,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
-            'unreadMessagesCount' => $unread,
+            'unreadCount' => $unread,
         ];
     }
 

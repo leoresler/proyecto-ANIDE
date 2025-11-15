@@ -22,6 +22,28 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
     else if (institucionUser?.id === userId) otraParte = personaUser;
     else otraParte = personaUser || institucionUser;
 
+    //resetar contador cuando abre mensaje
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent("chat-abierto"));
+    }, []);
+
+    // 🔥 Marcar mensajes como leídos al abrir el chat
+    useEffect(() => {
+        const marcarComoLeidos = async () => {
+            try {
+                await axios.post(`/chats/${chat.id}/marcar-leidos`);
+                
+                // 🔥 Forzar actualización del Sidebar
+                window.dispatchEvent(new CustomEvent("mensaje-recibido"));
+            } catch (error) {
+                console.error("Error al marcar como leídos:", error);
+            }
+        };
+
+        marcarComoLeidos();
+    }, [chat.id]);
+
+
     // Emitir evento cuando se escribe algo
     const handleTyping = async () => {
         clearTimeout(timeoutRef.current);
