@@ -51,8 +51,13 @@ class ChatController extends Controller
         \App\Models\Mensaje::where('chat_id', $id)
         ->where('emisor_id', '!=', auth()->id())
         ->where('leido', false)
-        ->update(['leido' => true]);
+        ->update([
+            'leido' => true,
+            'leido_en' => now(),
+        ]);
 
+        broadcast(new \App\Events\MensajeLeido($id, auth()->id()))->toOthers();
+    
         return inertia('Chat/ChatDetalle', [
             'chat' => $chat,
             'mensajes' => $chat->mensajes,

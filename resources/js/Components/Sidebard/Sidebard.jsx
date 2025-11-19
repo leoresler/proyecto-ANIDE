@@ -27,6 +27,26 @@ export default function Sidebar({ isOpen, onClose, unreadCount }) {
         };
     }, []);
 
+    // Cuando llega un mensaje REAL-TIME desde Echo → recargar unreadCount
+    useEffect(() => {
+        const actualizar = () => {
+            console.log("🔄 Recalculando unread...");
+            router.reload({ only: ["unreadCount"] });
+        };
+
+        // 🔥 Evento que vos ya usabas
+        window.addEventListener("mensaje-recibido", actualizar);
+
+        // 🔥 Evento que faltaba para actualizaciones en tiempo real
+        window.addEventListener("nuevo-mensaje", actualizar);
+
+        return () => {
+            window.removeEventListener("mensaje-recibido", actualizar);
+            window.removeEventListener("nuevo-mensaje", actualizar);
+        };
+    }, []);
+
+
     return (
         <>
             {/* sidebar desktop */}

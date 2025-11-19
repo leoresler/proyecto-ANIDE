@@ -105,10 +105,15 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
         channel.listen(".MensajeEnviado", (e) => {
             console.log("📨 Evento recibido:", e);
             setMensajes((prev) => [...prev, e.mensaje]);
+            // Avisar al Sidebar que un chat recibió un mensaje
+        window.dispatchEvent(
+            new CustomEvent("mensaje-nuevo-chatpage", { detail: { mensaje: e.mensaje } })
+        );
         });
 
         return () => channel.stopListening(".MensajeEnviado");
     }, [chat.id]);
+
 
     return (
         <AuthenticatedLayout

@@ -41,9 +41,27 @@ export default function AuthenticatedLayout({ header, children }) {
 
         channel.listen(".MensajeEnviado", (payload) => {
             console.log("Evento MensajeEnviado (layout) recibido:", payload);
-            // Emitimos un evento global para que otros componentes lo recojan
+
+            // 👉 Emitimos el evento global pero con los datos del mensaje
+            window.dispatchEvent(new CustomEvent("mensaje-nuevo-chatpage", {
+                detail: payload
+            }));
+
+            // Esto queda para actualizar el punto rojo
             window.dispatchEvent(new Event("mensaje-recibido"));
         });
+
+
+        channel.listen(".MensajeLeido", (e) => {
+            console.log("📥 Evento MensajeLeido recibido", e);
+
+            if (window.__setChatPageRerender) {
+                window.__setChatPageRerender(Date.now());
+            }
+        });
+
+
+
 
         return () => {
             try {
