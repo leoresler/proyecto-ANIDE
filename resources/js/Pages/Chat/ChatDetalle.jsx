@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import axios from "axios";
 import "../../echo.js";
+import { throttle } from 'lodash';
 
 export default function ChatDetalle({ chat, mensajes, auth }) {
     const [contenido, setContenido] = useState("");
@@ -10,7 +11,9 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
 
     const [usuarioEscribiendo, setUsuarioEscribiendo] = useState(null);
     const timeoutRef = useRef(null);
-
+    const throttledRef = useRef(null);      
+    const latestChatIdRef = useRef(chat.id);  
+    const mountedRef = useRef(false);
     const userId = auth.user.id;
 
     // Determinar el otro usuario del chat
@@ -26,6 +29,11 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
     useEffect(() => {
         window.dispatchEvent(new CustomEvent("chat-abierto"));
     }, []);
+
+    // Mantener el chatId actualizado para que la función throttled use siempre el chat actual
+    useEffect(() => {
+        latestChatIdRef.current = chat.id;
+    }, [chat.id]);
 
     // 🔥 Marcar mensajes como leídos al abrir el chat
     useEffect(() => {
@@ -44,30 +52,79 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
     }, [chat.id]);
 
 
-    // Emitir evento cuando se escribe algo
-    const handleTyping = async () => {
+    // Crear la función throttled UNA SOLA VEZ (persistente entre renders)
+    useEffect(() => {
+        // Si ya existe, no la recreamos
+        if (!throttledRef.current) {
+        // 3s de throttle como tenías (ajustalo si querés 1000 o 2000)
+        throttledRef.current = throttle(() => {
+            const cid = latestChatIdRef.current;
+            // seguridad: si no hay chatId no hacemos nada
+            if (!cid) return;
+            axios.post(`/chats/${cid}/escribiendo`).catch(() => {});
+        }, 3000, { trailing: false }); // trailing:false para no ejecutar al final de burst (opcional)
+        }
+
+        // No necesitamos cleanup aquí (lodash throttle se mantiene)
+    }, []); // se ejecuta solo una vez
+
+    // handleTyping usa siempre la función persistente
+    const handleTyping = () => {
         clearTimeout(timeoutRef.current);
-        await axios.post(`/chats/${chat.id}/escribiendo`);
-        timeoutRef.current = setTimeout(() => {
-            setUsuarioEscribiendo(null);
-        }, 3000);
+
+        // Llamamos a la función throttled almacenada
+        throttledRef.current && throttledRef.current();
+
+        // Mantenemos la UI local del "está escribiendo" (se limpia a los 3s)
+        timeoutRef.current = setTimeout(() => setUsuarioEscribiendo(null), 3000);
     };
 
-    // Escuchar evento "usuario escribiendo"
+    // Escuchar evento "usuario escribiendo" — idempotente y limpio
     useEffect(() => {
-        const channel = window.Echo.private(`chat.${chat.id}`);
-        channel.listen(".usuario.escribiendo", (e) => {
-            console.log("Evento escribiendo recibido:", e);
-            if (e.user.id === userId) return;
-            setUsuarioEscribiendo(e.user.nombre);
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = setTimeout(() => {
-                setUsuarioEscribiendo(null);
-            }, 3000);
-        });
+        // Evitar doble attach en StrictMode (opcional pero útil)
+        if (mountedRef.current) {
+        // si ya estaba montado, hacemos el detach del canal anterior (por seguridad)
+        try {
+            const prevChannel = window.Echo.private(`chat.${chat.id}`);
+            prevChannel.stopListening(".usuario.escribiendo");
+        } catch (e) { /* ignore */ }
+        }
+        mountedRef.current = true;
 
-        return () => channel.stopListening(".usuario.escribiendo");
+        const channel = window.Echo.private(`chat.${chat.id}`);
+
+        // asegurar que no queden listeners previos en este canal/evento
+        try {
+        channel.stopListening(".usuario.escribiendo");
+        } catch (err) {
+        // stopListening puede fallar si no había nada, lo ignoramos
+        }
+
+        const callback = (e) => {
+        // Debug: verás solo los eventos reales recibidos
+        console.log("Evento escribiendo recibido:", e);
+
+        if (e.user?.id === userId) return;
+
+        setUsuarioEscribiendo(e.user?.nombre ?? null);
+
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => setUsuarioEscribiendo(null), 3000);
+        };
+
+        channel.listen(".usuario.escribiendo", callback);
+
+
+        // limpiamos al desmontar
+        return () => {
+            try {
+                channel.stopListening(".usuario.escribiendo");
+            } catch (e) {
+                // ignore
+            }
+        };
     }, [chat.id]);
+
 
     // Scroll automático al final del chat
     const mensajesEndRef = useRef(null);
