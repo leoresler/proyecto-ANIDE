@@ -11,7 +11,7 @@ class FavoritoController extends Controller
 {
     /**
      * Toggle favorito en una publicación
-     * Solo personas pueden guardar favoritos
+     * guardar y eliminar favoritos
      */
     public function toggle(Request $request)
     {
@@ -21,16 +21,12 @@ class FavoritoController extends Controller
 
         $user = Auth::user();
 
-        // Solo personas pueden guardar favoritos
-        if ($user->tipo_usuario !== 'persona') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo las personas pueden guardar publicaciones en favoritos',
-            ], 403);
-        }
+        // Determinar el campo según el tipo de usuario
+        $campo = $user->tipo_usuario === 'persona' ? 'perf_persona_id' : 'perf_institucion_id';
+        $perfilId = $user->tipo_usuario === 'persona' ? $user->persona->id : $user->institucion->id;
 
         $favorito = Favorito::where([
-            'perf_persona_id' => $user->persona->id,
+            $campo => $perfilId,
             'publicacion_id' => $validated['publicacion_id'],
         ])->first();
 
@@ -45,7 +41,7 @@ class FavoritoController extends Controller
         } else {
             // Si no existe, crear
             Favorito::create([
-                'perf_persona_id' => $user->persona->id,
+                $campo => $perfilId,
                 'publicacion_id' => $validated['publicacion_id'],
             ]);
             return response()->json([
@@ -63,16 +59,16 @@ class FavoritoController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->tipo_usuario !== 'persona') {
-            abort(403, 'Solo las personas tienen acceso a favoritos');
-        }
+        // Determinar el campo según el tipo de usuario
+        $campo = $user->tipo_usuario === 'persona' ? 'perf_persona_id' : 'perf_institucion_id';
+        $perfilId = $user->tipo_usuario === 'persona' ? $user->persona->id : $user->institucion->id;
 
         $favoritos = Favorito::with([
             'publicacion.institucion.user',
             'publicacion.media',
             'publicacion.likes',
         ])
-            ->where('perf_persona_id', $user->persona->id)
+            ->where($campo, $perfilId)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 

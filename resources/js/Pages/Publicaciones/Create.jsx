@@ -7,13 +7,17 @@ import InputError from "@/Components/InputError";
 import PrimaryButton from "@/Components/PrimaryButton";
 import toast from "react-hot-toast";
 import { useFlash } from "@/hooks/useFlash";
-import { X, Upload, FileText, AlertCircle } from "lucide-react";
+import { X, Upload, FileText, AlertCircle, Tag } from "lucide-react";
 import {
     validarFormulario,
     validarEnTiempoReal,
     obtenerTipoArchivo,
     CONFIG,
 } from "@/utils/validacionesPublicaciones";
+import {
+    CATEGORIAS,
+    MAX_CATEGORIAS_PUBLICACION,
+} from "@/utils/categoriasConfig";
 
 export default function Create({ auth }) {
     useFlash();
@@ -22,6 +26,7 @@ export default function Create({ auth }) {
         titulo: "",
         contenido: "",
         publicado: true,
+        categorias: [],
     });
 
     const [mediaFiles, setMediaFiles] = useState([]);
@@ -30,11 +35,13 @@ export default function Create({ auth }) {
         titulo: [],
         contenido: [],
         media: [],
+        categorias: [],
     });
     const [showValidation, setShowValidation] = useState({
         titulo: false,
         contenido: false,
         media: false,
+        categorias: false,
     });
 
     const handleBlur = (campo) => {
@@ -47,13 +54,73 @@ export default function Create({ auth }) {
             errors = validarEnTiempoReal("contenido", formState.contenido);
         } else if (campo === "media") {
             errors = validarEnTiempoReal("media", null, mediaFiles);
+        } else if (campo === "categorias") {
+            errors = validarCategorias(formState.categorias);
         }
 
         setClientErrors((prev) => ({ ...prev, [campo]: errors }));
     };
 
+    // Validación de categorías
+    const validarCategorias = (categorias) => {
+        if (!categorias || categorias.length === 0) {
+            return ["Debes seleccionar al menos una categoría"];
+        }
+        if (categorias.length > MAX_CATEGORIAS_PUBLICACION) {
+            return [
+                `Puedes seleccionar hasta ${MAX_CATEGORIAS_PUBLICACION} categorías`,
+            ];
+        }
+        return [];
+    };
+
+    // Toggle de categorías
+    const toggleCategoria = (categoria) => {
+        setFormState((prev) => {
+            const yaSeleccionada = prev.categorias.includes(categoria);
+
+            if (yaSeleccionada) {
+                // Remover
+                return {
+                    ...prev,
+                    categorias: prev.categorias.filter((c) => c !== categoria),
+                };
+            } else {
+                // Verificar límite
+                if (prev.categorias.length >= MAX_CATEGORIAS_PUBLICACION) {
+                    toast.error(
+                        `Solo puedes seleccionar hasta ${MAX_CATEGORIAS_PUBLICACION} categorías`
+                    );
+                    return prev;
+                }
+                // Agregar
+                return {
+                    ...prev,
+                    categorias: [...prev.categorias, categoria],
+                };
+            }
+        });
+
+        // Limpiar error si existe
+        if (showValidation.categorias) {
+            setClientErrors((prev) => ({ ...prev, categorias: [] }));
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validar categorías
+        const erroresCategorias = validarCategorias(formState.categorias);
+        if (erroresCategorias.length > 0) {
+            setClientErrors((prev) => ({
+                ...prev,
+                categorias: erroresCategorias,
+            }));
+            setShowValidation((prev) => ({ ...prev, categorias: true }));
+            toast.error("Debes seleccionar al menos una categoría");
+            return;
+        }
 
         const validation = validarFormulario(formState, mediaFiles);
 
@@ -63,6 +130,7 @@ export default function Create({ auth }) {
                 titulo: true,
                 contenido: true,
                 media: true,
+                categorias: true,
             });
 
             toast.error("Por favor, completa todos los campos requeridos");
@@ -76,6 +144,11 @@ export default function Create({ auth }) {
         formData.append("contenido", formState.contenido.trim());
         formData.append("publicado", formState.publicado ? "1" : "0");
 
+        // Agregar categorías al FormData
+        formState.categorias.forEach((categoria, index) => {
+            formData.append(`categorias[${index}]`, categoria);
+        });
+
         mediaFiles.forEach((media, index) => {
             formData.append(`media[${index}][file]`, media.file);
             formData.append(`media[${index}][tipo]`, media.tipo);
@@ -88,8 +161,13 @@ export default function Create({ auth }) {
             preserveScroll: false,
             onSuccess: () => {
                 toast.dismiss(loadingToast);
-                toast.success("¡Publicación creada exitosamente! 🎉");
-                setFormState({ titulo: "", contenido: "", publicado: true });
+                toast.success("¡Publicación creada exitosamente!");
+                setFormState({
+                    titulo: "",
+                    contenido: "",
+                    publicado: true,
+                    categorias: [],
+                });
                 setMediaFiles([]);
                 setProcessing(false);
             },
@@ -102,6 +180,8 @@ export default function Create({ auth }) {
                     toast.error(errors.contenido[0]);
                 } else if (errors.media) {
                     toast.error(errors.media[0]);
+                } else if (errors.categorias) {
+                    toast.error(errors.categorias[0]);
                 } else {
                     toast.error("Hubo un error al crear la publicación");
                 }
@@ -121,12 +201,6 @@ export default function Create({ auth }) {
             toast.error(
                 `Solo podés subir hasta ${CONFIG.media.maxFiles} archivos en total`
             );
-            setClientErrors((prev) => ({
-                ...prev,
-                media: [
-                    `Solo podés subir hasta ${CONFIG.media.maxFiles} archivos en total`,
-                ],
-            }));
             setShowValidation((prev) => ({ ...prev, media: true }));
             return;
         }
@@ -212,7 +286,7 @@ export default function Create({ auth }) {
                                             }
                                         }}
                                         onBlur={() => handleBlur("titulo")}
-                                        className="mt-1 block w-full rounded-md"
+                                        className="mt-1 block w-full rounded-lg"
                                         placeholder="Título de la publicación"
                                         maxLength={CONFIG.titulo.maxLength}
                                     />
@@ -262,7 +336,7 @@ export default function Create({ auth }) {
                                             }
                                         }}
                                         onBlur={() => handleBlur("contenido")}
-                                        className="mt-1 block w-full border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-md shadow-sm"
+                                        className="mt-1 block w-full border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg shadow-sm"
                                         rows="8"
                                         placeholder="Escribe el contenido de tu publicación..."
                                         maxLength={CONFIG.contenido.maxLength}
@@ -284,6 +358,114 @@ export default function Create({ auth }) {
                                             {CONFIG.contenido.maxLength}
                                         </span>
                                     </div>
+                                </div>
+
+                                {/* SECCIÓN DE CATEGORÍAS */}
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <Tag className="w-5 h-5 text-blue-600" />
+                                            <div>
+                                                <p className="font-bold text-lg text-gray-900">
+                                                    Categorías de la publicación
+                                                    *
+                                                </p>
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    Selecciona hasta{" "}
+                                                    {MAX_CATEGORIAS_PUBLICACION}{" "}
+                                                    categorías
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span
+                                            className={`text-lg font-bold ${
+                                                formState.categorias.length >=
+                                                MAX_CATEGORIAS_PUBLICACION
+                                                    ? "text-red-600"
+                                                    : "text-blue-600"
+                                            }`}
+                                        >
+                                            {formState.categorias.length}/
+                                            {MAX_CATEGORIAS_PUBLICACION}
+                                        </span>
+                                    </div>
+
+                                    {/* Categorías disponibles para seleccionar */}
+                                    <div className="mb-4">
+                                        <p className="text-sm font-medium text-gray-700 mb-2">
+                                            Categorías disponibles:
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {CATEGORIAS.filter(
+                                                (cat) =>
+                                                    !formState.categorias.includes(
+                                                        cat
+                                                    )
+                                            ).map((cat) => (
+                                                <button
+                                                    key={cat}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        toggleCategoria(cat)
+                                                    }
+                                                    disabled={
+                                                        formState.categorias
+                                                            .length >=
+                                                        MAX_CATEGORIAS_PUBLICACION
+                                                    }
+                                                    className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    + {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Categorías seleccionadas */}
+                                    {formState.categorias.length > 0 && (
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-700 mb-2">
+                                                Categorías seleccionadas:
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {formState.categorias.map(
+                                                    (cat) => (
+                                                        <span
+                                                            key={cat}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm shadow-md"
+                                                        >
+                                                            {cat}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    toggleCategoria(
+                                                                        cat
+                                                                    )
+                                                                }
+                                                                className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                                                            >
+                                                                <X className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {getFieldErrors("categorias").length >
+                                        0 && (
+                                        <div className="mt-3">
+                                            {getFieldErrors("categorias").map(
+                                                (error, idx) => (
+                                                    <InputError
+                                                        key={idx}
+                                                        message={error}
+                                                    />
+                                                )
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Archivos multimedia */}
@@ -322,7 +504,7 @@ export default function Create({ auth }) {
 
                                     {/* Errores de media */}
                                     {getFieldErrors("media").length > 0 && (
-                                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                                             <div className="flex items-center">
                                                 <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" />
                                                 <div className="flex-1">
@@ -447,17 +629,12 @@ export default function Create({ auth }) {
                                 <div className="flex items-center justify-end space-x-4 pt-4">
                                     <a
                                         href="/publicaciones/misPublicaciones"
-                                        className="inline-flex items-center px-14 py-4 bg-white border border-gray-300 rounded-full font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        className="inline-flex items-center px-6 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         Cancelar
                                     </a>
-                                    <PrimaryButton
-                                        disabled={processing}
-                                        className="px-4 rounded-full"
-                                    >
-                                        {processing
-                                            ? "Creando..."
-                                            : "Crear Publicación"}
+                                    <PrimaryButton disabled={processing}>
+                                        {processing ? "Creando..." : "Publicar"}
                                     </PrimaryButton>
                                 </div>
                             </form>

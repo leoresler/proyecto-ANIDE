@@ -13,6 +13,7 @@ class Favorito extends Model
 
     protected $fillable = [
         'perf_persona_id',
+        'perf_institucion_id',
         'publicacion_id',
     ];
 

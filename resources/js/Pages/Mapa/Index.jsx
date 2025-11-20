@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import toast, { Toaster } from "react-hot-toast";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -19,6 +21,16 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersLayer = useRef(null);
+    const userMarker = useRef(null);
+    const userCircle = useRef(null);
+
+    const {
+        location: userLocation,
+        watching,
+        getCurrentPosition,
+        startWatching,
+        stopWatching,
+    } = useGeolocation();
 
     const [filtros, setFiltros] = useState({
         tipoInstitucion: "",
@@ -32,9 +44,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
     const [mostrarFiltros, setMostrarFiltros] = useState(false);
     const [institucionesFiltradas, setInstitucionesFiltradas] =
         useState(instituciones);
-    const [ubicacionUsuario, setUbicacionUsuario] = useState(null);
 
-    // Coordenadas del centro de Neuquén
     const NEUQUEN_CENTER = [-38.9516, -68.0591];
 
     // Iconos personalizados
@@ -76,22 +86,6 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
             markersLayer.current = L.layerGroup().addTo(mapInstance.current);
         }
 
-        // Obtener ubicación del usuario
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const userLocation = [
-                        position.coords.latitude,
-                        position.coords.longitude,
-                    ];
-                    setUbicacionUsuario(userLocation);
-                },
-                (error) => {
-                    console.log("No se pudo obtener la ubicación del usuario");
-                }
-            );
-        }
-
         return () => {
             if (mapInstance.current) {
                 mapInstance.current.remove();
@@ -99,6 +93,79 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
             }
         };
     }, []);
+
+    // Actualizar ubicación del usuario en el mapa
+    useEffect(() => {
+        if (userLocation && mapInstance.current) {
+            const coords = [userLocation.lat, userLocation.lng];
+
+            // Remover marcador y círculo anterior
+            if (userMarker.current) {
+                mapInstance.current.removeLayer(userMarker.current);
+            }
+            if (userCircle.current) {
+                mapInstance.current.removeLayer(userCircle.current);
+            }
+
+            // Crear círculo pulsante para la ubicación del usuario
+            const pulsingIcon = L.divIcon({
+                className: "user-location-marker",
+                html: `
+                    <div style="position: relative; width: 20px; height: 20px;">
+                        <div style="
+                            position: absolute;
+                            width: 20px;
+                            height: 20px;
+                            background: #1e40af;
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 0 10px rgba(30, 64, 175, 0.8);
+                            animation: pulse 2s infinite;
+                        "></div>
+                    </div>
+                    <style>
+                        @keyframes pulse {
+                            0% {
+                                box-shadow: 0 0 0 0 rgba(30, 64, 175, 0.7);
+                            }
+                            70% {
+                                box-shadow: 0 0 0 15px rgba(30, 64, 175, 0);
+                            }
+                            100% {
+                                box-shadow: 0 0 0 0 rgba(30, 64, 175, 0);
+                            }
+                        }
+                    </style>
+                `,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10],
+            });
+
+            // Agregar nuevo marcador
+            userMarker.current = L.marker(coords, {
+                icon: pulsingIcon,
+                zIndexOffset: 1000,
+            }).addTo(mapInstance.current);
+
+            userMarker.current.bindPopup(`
+                <div style="font-family: system-ui; text-align: center;">
+                    <p style="margin: 0; font-weight: 600; color: #1e40af;">Tu ubicación</p>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">
+                        Precisión: ${Math.round(userLocation.accuracy)}m
+                    </p>
+                </div>
+            `);
+
+            // Agregar círculo de precisión
+            userCircle.current = L.circle(coords, {
+                radius: userLocation.accuracy,
+                color: "#1e40af",
+                fillColor: "#3b82f6",
+                fillOpacity: 0.1,
+                weight: 1,
+            }).addTo(mapInstance.current);
+        }
+    }, [userLocation]);
 
     // Búsqueda en tiempo real
     useEffect(() => {
@@ -154,19 +221,15 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
             markersLayer.current.clearLayers();
 
             institucionesFiltradas.forEach((institucion) => {
-                // Marcador de institución
                 const marker = L.marker(
                     [institucion.latitud, institucion.longitud],
-                    {
-                        icon: iconoInstitucion,
-                    }
+                    { icon: iconoInstitucion }
                 );
 
                 const popupContent = crearPopupInstitucion(institucion);
                 marker.bindPopup(popupContent, { maxWidth: 400 });
                 marker.addTo(markersLayer.current);
 
-                // Marcadores de residencias
                 if (
                     institucion.residencias &&
                     institucion.residencias.length > 0
@@ -174,16 +237,14 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                     institucion.residencias.forEach((residencia) => {
                         const resMarker = L.marker(
                             [residencia.latitud, residencia.longitud],
-                            {
-                                icon: iconoResidencia,
-                            }
+                            { icon: iconoResidencia }
                         );
 
                         const resPopupContent = crearPopupResidencia(
                             residencia,
                             institucion
                         );
-                        resMarker.bindPopup(resPopupContent, { maxWidth: 400 });
+                        resMarker.bindPopup(resPopupContent, { maxWidth: 350 });
                         resMarker.addTo(markersLayer.current);
                     });
                 }
@@ -196,40 +257,58 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
             <div style="font-family: system-ui; max-width: 350px;">
                 ${
                     institucion.foto_perfil
-                        ? `<img src="/storage/${institucion.foto_perfil}" alt="${institucion.nombre}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" />`
+                        ? `<img src="/storage/${institucion.foto_perfil}" alt="${institucion.nombre}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 16px;" />`
                         : ""
                 }
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1f2937;">${
-                    institucion.nombre
-                }</h3>
-                ${
-                    institucion.tipo_institucion
-                        ? `<p style="margin: 4px 0; font-size: 13px; color: #6b7280;"><strong>Tipo:</strong> ${institucion.tipo_institucion}</p>`
-                        : ""
-                }
+
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                <h3 style="margin:0; font-size:18px; font-weight:600; color:#1f2937;">
+                    ${institucion.nombre}
+                </h3>
+
+                <a href="/instituciones/${institucion.id}"
+                   style="color:#2563eb; margin-top: 2px; text-decoration:underline; font-size:14px; font-weight:500; white-space:nowrap;">
+                    Perfil →
+                </a>
+            </div>
+                
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <img src="/svg/mapa/school-sharp.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">${
+                        institucion.tipo_institucion || "Sin tipo especificado"
+                    }</p>
+                </div>
+                
                 ${
                     institucion.direccion
-                        ? `<p style="margin: 4px 0; font-size: 13px; color: #6b7280;"><strong>📍 Dirección:</strong> ${institucion.direccion}</p>`
+                        ? `
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <img src="/svg/mapa/location-sharp.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">${institucion.direccion}</p>
+                </div>
+                `
                         : ""
                 }
+                
                 ${
                     institucion.telefono
-                        ? `<p style="margin: 4px 0; font-size: 13px; color: #6b7280;"><strong>📞 Teléfono:</strong> ${institucion.telefono}</p>`
+                        ? `
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <img src="/svg/mapa/call.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">${institucion.telefono}</p>
+                </div>
+                `
                         : ""
                 }
+                
                 ${
                     institucion.descripcion
-                        ? `<p style="margin: 8px 0 4px 0; font-size: 13px; color: #374151;">${institucion.descripcion.substring(
+                        ? `<p style="margin: 12px 0 8px 0; font-size: 14px; color: #374151; line-height: 1.5;">${institucion.descripcion.substring(
                               0,
-                              150
+                              100
                           )}${
-                              institucion.descripcion.length > 150 ? "..." : ""
+                              institucion.descripcion.length > 100 ? "..." : ""
                           }</p>`
-                        : ""
-                }
-                ${
-                    institucion.url_sitio_web
-                        ? `<a href="${institucion.url_sitio_web}" target="_blank" style="display: inline-block; margin-top: 8px; padding: 6px 12px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-size: 13px;">Visitar sitio web</a>`
                         : ""
                 }
             </div>
@@ -238,36 +317,76 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
 
     const crearPopupResidencia = (residencia, institucion) => {
         return `
-            <div style="font-family: system-ui; max-width: 350px;">
+            <div style="font-family: system-ui; max-width: 320px;">
                 ${
                     residencia.foto_portada
-                        ? `<img src="/storage/${residencia.foto_portada}" alt="${residencia.nombre}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" />`
+                        ? `<img src="/storage/${residencia.foto_portada}" alt="${residencia.nombre}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 16px;" />`
                         : ""
                 }
-                <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1f2937;">${
-                    residencia.nombre
-                }</h3>
-                <p style="margin: 4px 0; font-size: 12px; color: #7c3aed; font-weight: 500;">🏛️ ${
-                    institucion.nombre
-                }</p>
+
+            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">
+                ${residencia.nombre}
+            </h3>
+
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+                <img src="/svg/mapa/school-sharp.svg" style="width:16px; height:16px;" />
+                <span style="font-size:13px; color:#7c3aed; font-weight:500;">
+                    ${institucion.nombre}
+                </span>
+
+                <a href="/instituciones/${institucion.id}"
+                   style=" color:#2563eb; text-decoration:underline; font-size:13px; font-weight:500; white-space:nowrap;">
+                    Perfil →
+                </a>
+            </div>
+                
                 ${
                     residencia.direccion
-                        ? `<p style="margin: 4px 0; font-size: 13px; color: #6b7280;"><strong>📍 Dirección:</strong> ${residencia.direccion}</p>`
+                        ? `
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <img src="/svg/mapa/location-sharp.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">${residencia.direccion}</p>
+                </div>
+                `
                         : ""
                 }
+                
                 ${
                     residencia.contacto
-                        ? `<p style="margin: 4px 0; font-size: 13px; color: #6b7280;"><strong>📞 Contacto:</strong> ${residencia.contacto}</p>`
+                        ? `
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <img src="/svg/mapa/call.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">${residencia.contacto}</p>
+                </div>
+                `
                         : ""
                 }
+                
                 ${
                     residencia.capacidad
-                        ? `<p style="margin: 4px 0; font-size: 13px; color: #6b7280;"><strong>👥 Capacidad:</strong> ${residencia.capacidad} personas</p>`
+                        ? `
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <img src="/svg/mapa/accessibility-sharp.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
+                    <p style="margin: 0; font-size: 14px; color: #6b7280;">Capacidad para ${residencia.capacidad} personas</p>
+                </div>
+                `
                         : ""
                 }
+                
                 ${
                     residencia.info_adicional
-                        ? `<p style="margin: 8px 0 4px 0; font-size: 13px; color: #374151;">${residencia.info_adicional}</p>`
+                        ? `<p style="margin: 12px 0 0 0; font-size: 14px; color: #374151; line-height: 1.5;">${
+                              residencia.info_adicional
+                          }
+                            ${
+                                residencia.info_adicional.length > 100
+                                    ? residencia.info_adicional.substring(
+                                          0,
+                                          100
+                                      ) + "..."
+                                    : residencia.info_adicional
+                            }
+                        </p>`
                         : ""
                 }
             </div>
@@ -275,7 +394,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
     };
 
     const calcularDistancia = (lat1, lon1, lat2, lon2) => {
-        const R = 6371; // Radio de la Tierra en km
+        const R = 6371;
         const dLat = ((lat2 - lat1) * Math.PI) / 180;
         const dLon = ((lon2 - lon1) * Math.PI) / 180;
         const a =
@@ -291,14 +410,12 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
     const aplicarFiltros = () => {
         let resultado = [...instituciones];
 
-        // Filtro por tipo de institución
         if (filtros.tipoInstitucion) {
             resultado = resultado.filter(
                 (inst) => inst.tipo_institucion === filtros.tipoInstitucion
             );
         }
 
-        // Filtro por área de estudio
         if (filtros.areaEstudio) {
             resultado = resultado.filter(
                 (inst) =>
@@ -311,12 +428,11 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
             );
         }
 
-        // Filtro por distancia
-        if (ubicacionUsuario && filtros.rangoDistancia < 50) {
+        if (userLocation && filtros.rangoDistancia < 50) {
             resultado = resultado.filter((inst) => {
                 const distancia = calcularDistancia(
-                    ubicacionUsuario[0],
-                    ubicacionUsuario[1],
+                    userLocation.lat,
+                    userLocation.lng,
                     inst.latitud,
                     inst.longitud
                 );
@@ -326,6 +442,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
 
         setInstitucionesFiltradas(resultado);
         setMostrarFiltros(false);
+        toast.success(`Mostrando ${resultado.length} instituciones`);
     };
 
     const limpiarFiltros = () => {
@@ -335,6 +452,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
             rangoDistancia: 50,
         });
         setInstitucionesFiltradas(instituciones);
+        toast.success("Filtros limpiados");
     };
 
     const centrarMapa = (coords) => {
@@ -354,42 +472,65 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
         setMostrarResultados(false);
     };
 
+    const handleMiUbicacion = () => {
+        if (!watching) {
+            getCurrentPosition();
+            if (userLocation) {
+                centrarMapa([userLocation.lat, userLocation.lng]);
+            }
+        } else {
+            if (userLocation) {
+                centrarMapa([userLocation.lat, userLocation.lng]);
+            }
+        }
+    };
+
+    const toggleSeguimiento = () => {
+        if (watching) {
+            stopWatching();
+        } else {
+            startWatching();
+        }
+    };
+
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Mapa" />
 
-            <div className="relative w-full h-[calc(100vh-64px)] bg-gray-50 overflow-hidden">
+            <div className="relative w-full h-[88vh] bg-gray-50 overflow-hidden">
                 <div
                     ref={mapRef}
-                    className="absolute inset-0 w-full h-full"
+                    className="absolute inset-0 w-full h-[88vh]"
                     style={{ zIndex: 0 }}
                 />
 
-                {/* Barra de búsqueda - Responsive */}
-                <div className="absolute top-2 sm:top-4 left-2 sm:left-1/2 sm:transform sm:-translate-x-1/2 right-2 sm:right-auto w-auto sm:w-full sm:max-w-md z-[10] px-0 sm:px-4">
-                    <div className="relative">
+                {/* Barra de búsqueda */}
+                <div
+                    className="
+                        absolute top-2 sm:top-4 left-0 right-0 z-[10]
+                        px-4
+                        flex flex-col sm:flex-row
+                        items-end sm:items-center
+                        justify-end sm:justify-center
+                        gap-2
+                    "
+                >
+                    <div className="relative flex-1 max-w-md order-1 sm:order-none">
+                        <img
+                            src="/svg/mapa/search-circle-sharp.svg"
+                            alt="Buscar"
+                            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none"
+                        />
+
                         <input
                             type="text"
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             placeholder="Buscar institución..."
-                            className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-10 bg-white rounded-full shadow-lg border border-gray-200 focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm sm:text-base"
+                            className="w-full pl-11 pr-4 py-2 sm:py-2.5 bg-white rounded-full shadow-lg border border-gray-200 focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
                         />
-                        <svg
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                        </svg>
 
-                        {/* Resultados de búsqueda */}
+                        {/* Resultados */}
                         {mostrarResultados && resultadosBusqueda.length > 0 && (
                             <div className="absolute w-full mt-2 bg-white rounded-lg shadow-2xl border border-gray-200 max-h-60 sm:max-h-96 overflow-y-auto">
                                 {resultadosBusqueda.map((resultado, index) => (
@@ -398,10 +539,10 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                         onClick={() =>
                                             handleResultadoClick(resultado)
                                         }
-                                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0 flex items-start gap-2 sm:gap-3"
+                                        className="w-full px-4 py-2 sm:py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0 flex items-start gap-3"
                                     >
                                         <div
-                                            className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-md flex items-center justify-center ${
+                                            className={`flex-shrink-0 w-10 h-10 rounded-md flex items-center justify-center ${
                                                 resultado.tipo === "institucion"
                                                     ? "bg-blue-100 text-blue-600"
                                                     : "bg-purple-100 text-purple-600"
@@ -440,7 +581,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                         </div>
 
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                                            <p className="text-sm font-medium text-gray-900 truncate">
                                                 {resultado.nombre}
                                             </p>
                                             <p className="text-xs text-gray-500 truncate">
@@ -449,7 +590,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                         </div>
 
                                         <svg
-                                            className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 text-gray-400"
+                                            className="w-5 h-5 text-gray-400"
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
@@ -465,65 +606,97 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                 ))}
                             </div>
                         )}
+                    </div>
 
-                        {/* Sin resultados */}
-                        {mostrarResultados &&
-                            resultadosBusqueda.length === 0 &&
-                            busqueda.length >= 2 && (
-                                <div className="absolute w-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-4 sm:py-6 text-center">
-                                    <svg
-                                        className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-2"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                    </svg>
-                                    <p className="text-xs sm:text-sm text-gray-500">
-                                        No se encontraron resultados para "
-                                        {busqueda}"
-                                    </p>
-                                </div>
-                            )}
+                    {/* --- BOTONES (filtros + ubicación + seguimiento) --- */}
+                    <div
+                        className="
+        flex flex-col sm:flex-row
+        items-end sm:items-center
+        gap-2
+        order-2 sm:order-none
+    "
+                    >
+                        {/* Filtros */}
+                        <button
+                            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                            className="bg-white rounded-full shadow-lg p-2 hover:bg-gray-50 transition"
+                            title="Filtros"
+                        >
+                            <img
+                                src="/svg/mapa/filter-circle.svg"
+                                alt="Filtros"
+                                className="w-6 h-6"
+                            />
+                        </button>
+
+                        {/* Ubicación */}
+                        <button
+                            onClick={handleMiUbicacion}
+                            className="bg-white rounded-lg shadow-lg p-2 hover:bg-gray-50 transition"
+                            title="Mi ubicación"
+                        >
+                            <svg
+                                className="w-5 h-5 text-blue-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                            </svg>
+                        </button>
+
+                        {/* Seguimiento */}
+                        <button
+                            onClick={toggleSeguimiento}
+                            className={`rounded-lg shadow-lg p-2 transition ${
+                                watching
+                                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                                    : "bg-white text-gray-700 hover:bg-gray-50"
+                            }`}
+                            title={
+                                watching
+                                    ? "Desactivar seguimiento"
+                                    : "Activar seguimiento"
+                            }
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                                />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
-                {/* Botón de filtros - Responsive */}
-                <button
-                    onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                    className="absolute top-2 sm:top-4 right-2 sm:right-4 z-[10] bg-white rounded-lg shadow-lg px-3 sm:px-4 py-2 flex items-center gap-2 hover:bg-gray-50 transition text-sm sm:text-base"
-                >
-                    <svg
-                        className="w-4 h-4 sm:w-5 sm:h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                        />
-                    </svg>
-                    <span className="hidden sm:inline">Filtros</span>
-                </button>
-
-                {/* Panel de filtros - Responsive */}
+                {/* Panel de filtros */}
                 {mostrarFiltros && (
                     <>
-                        {/* Overlay para móvil */}
                         <div
                             className="fixed inset-0 bg-black bg-opacity-50 z-[450] md:hidden"
                             onClick={() => setMostrarFiltros(false)}
                         />
 
-                        <div className="fixed md:absolute inset-x-0 bottom-0 md:inset-auto md:top-4 md:right-4 z-[500] bg-white rounded-t-2xl md:rounded-lg shadow-2xl p-4 sm:p-6 w-full md:w-80 max-h-[80vh] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
+                        <div className="fixed md:absolute inset-x-0 bottom-0 md:inset-auto md:top-16 md:right-4 z-[500] bg-white rounded-t-2xl md:rounded-lg shadow-2xl p-4 sm:p-6 w-full md:w-80 max-h-[80vh] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                                     Filtros
@@ -549,15 +722,10 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                             </div>
 
                             <div className="space-y-4">
-                                {/* Tipo de institución */}
                                 <div>
                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                                         Por tipo de institución:
                                     </label>
-                                    <p className="text-xs text-gray-500 mb-2">
-                                        Buscar universidades, terciarios y
-                                        centro de formación en la Provincia
-                                    </p>
                                     <select
                                         value={filtros.tipoInstitucion}
                                         onChange={(e) =>
@@ -579,15 +747,10 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                     </select>
                                 </div>
 
-                                {/* Área de estudio */}
                                 <div>
                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                                         Por área de estudio:
                                     </label>
-                                    <p className="text-xs text-gray-500 mb-2">
-                                        Filtra las instituciones según la
-                                        disciplina que quieres estudiar.
-                                    </p>
                                     <input
                                         type="text"
                                         value={filtros.areaEstudio}
@@ -602,15 +765,10 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                     />
                                 </div>
 
-                                {/* Rango de distancia */}
                                 <div>
                                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                                         Por rango de distancia:
                                     </label>
-                                    <p className="text-xs text-gray-500 mb-2">
-                                        Muestra instituciones dentro de un radio
-                                        determinado desde tu ubicación.
-                                    </p>
                                     <div className="space-y-2">
                                         <input
                                             type="range"
@@ -626,6 +784,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                                 })
                                             }
                                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-edu-dark"
+                                            disabled={!userLocation}
                                         />
                                         <div className="flex justify-between text-xs text-gray-500">
                                             <span>Mínimo</span>
@@ -635,10 +794,15 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                                     : "Máximo"}
                                             </span>
                                         </div>
+                                        {!userLocation && (
+                                            <p className="text-xs text-amber-600">
+                                                Activa tu ubicación para usar
+                                                este filtro
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Botones */}
                                 <div className="flex gap-2 pt-2">
                                     <button
                                         onClick={aplicarFiltros}
@@ -654,7 +818,6 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                                     </button>
                                 </div>
 
-                                {/* Resultados */}
                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                     <p className="text-xs sm:text-sm text-gray-600">
                                         Mostrando{" "}
@@ -669,7 +832,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                     </>
                 )}
 
-                {/* Leyenda - Responsive */}
+                {/* Leyenda */}
                 <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 z-[10] bg-white rounded-lg shadow-lg p-3 sm:p-4">
                     <div className="space-y-1.5 sm:space-y-2">
                         <div className="flex items-center gap-2">
@@ -682,6 +845,14 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                             <div className="w-5 h-5 sm:w-6 sm:h-6 bg-purple-500 rounded-full flex-shrink-0"></div>
                             <span className="text-xs sm:text-sm text-gray-700">
                                 Residencia
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-900 rounded-full flex-shrink-0 relative">
+                                <div className="absolute inset-0 bg-blue-900 rounded-full animate-ping opacity-75"></div>
+                            </div>
+                            <span className="text-xs sm:text-sm text-gray-700">
+                                Tu ubicación
                             </span>
                         </div>
                     </div>

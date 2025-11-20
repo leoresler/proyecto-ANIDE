@@ -29,16 +29,6 @@ export default function Header({ onToggleSidebar }) {
                             />
                         </NavLink>
                         <NavLink
-                            href={route("videos.index")}
-                            active={route().current("videos.index")}
-                        >
-                            <img
-                                src="/svg/header/video.svg"
-                                alt="Videos"
-                                className="h-6 w-6"
-                            />
-                        </NavLink>
-                        <NavLink
                             href={route("mapa.index")}
                             active={route().current("mapa.index")}
                         >

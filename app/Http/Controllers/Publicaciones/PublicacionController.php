@@ -28,6 +28,8 @@ class PublicacionController extends Controller
             'titulo' => 'required|string|max:255',
             'contenido' => 'required|string',
             'publicado' => 'nullable',
+            'categorias' => 'required|array|min:1|max:5',
+            'categorias.*' => 'string|max:255',
         ]);
 
         // Crear la publicación
@@ -36,8 +38,8 @@ class PublicacionController extends Controller
             'titulo' => $validated['titulo'],
             'contenido' => $validated['contenido'],
             'publicado' => $request->input('publicado') == '1' || $request->input('publicado') == 1 || $request->input('publicado') === true,
+            'categorias' => $validated['categorias'],
         ]);
-
 
         // Procesar archivos multimedia
         $mediaCount = 0;
@@ -56,7 +58,6 @@ class PublicacionController extends Controller
 
                 // Guardar el archivo
                 $path = $file->store('publicaciones', 'public');
-
 
                 // Crear el registro en la base de datos
                 $media = PublicacionMedia::create([
@@ -80,7 +81,7 @@ class PublicacionController extends Controller
     }
 
     /**
-     * Muestra el feed principal con todas las publicaciones
+     * Muestra el feed principal filtrado por intereses del usuario
      */
     public function index()
     {
@@ -93,7 +94,26 @@ class PublicacionController extends Controller
             abort(500, 'Perfil de institución no encontrado');
         }
 
-        $publicaciones = Publicacion::with([
+        // Obtener intereses del usuario
+        $perfil = $user->tipo_usuario === 'persona' ? $user->persona : $user->institucion;
+
+        // Asegurar que los intereses sean un array
+        $interesesUsuario = [];
+        if ($perfil && $perfil->interests) {
+            // Gracias al accessor, interests ya es un array
+            $interesesUsuario = is_array($perfil->interests) ? $perfil->interests : [];
+        }
+
+        // Log para debug (opcional, puedes comentar después)
+        \Log::info('Intereses del usuario', [
+            'user_id' => $user->id,
+            'tipo' => $user->tipo_usuario,
+            'intereses' => $interesesUsuario,
+            'is_array' => is_array($interesesUsuario)
+        ]);
+
+        // Construir query base
+        $query = Publicacion::with([
             'institucion.user',
             'media' => function ($query) {
                 $query->orderBy('orden', 'asc');
@@ -103,17 +123,53 @@ class PublicacionController extends Controller
             'favoritos' => function ($query) use ($user) {
                 if ($user->tipo_usuario === 'persona') {
                     $query->where('perf_persona_id', $user->persona->id);
+                } else {
+                    $query->where('perf_institucion_id', $user->institucion->id);
                 }
             }
         ])
-            ->where('publicado', true)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->where('publicado', true);
 
-        $publicaciones->getCollection()->transform(function ($publicacion) use ($user) {
+        // FILTRAR POR INTERESES si el usuario tiene intereses configurados
+        if (!empty($interesesUsuario) && is_array($interesesUsuario)) {
+            $query->where(function ($q) use ($interesesUsuario) {
+                foreach ($interesesUsuario as $interes) {
+                    // Escapar caracteres especiales para LIKE
+                    $interesSafe = addslashes($interes);
+                    $q->orWhere('categorias', 'LIKE', '%"' . $interesSafe . '"%');
+                }
+            });
+        }
+
+        // Ordenar por fecha más reciente
+        $query->orderBy('created_at', 'desc');
+
+        $publicaciones = $query->paginate(10);
+
+        // Calcular relevancia y agregar información adicional
+        $publicaciones->getCollection()->transform(function ($publicacion) use ($user, $interesesUsuario) {
+            // Calcular relevancia si hay intereses
+            if (!empty($interesesUsuario)) {
+                $categorias = is_array($publicacion->categorias)
+                    ? $publicacion->categorias
+                    : json_decode($publicacion->categorias, true);
+
+                if (is_array($categorias)) {
+                    $publicacion->relevance_score = collect($categorias)
+                        ->intersect($interesesUsuario)
+                        ->count();
+                } else {
+                    $publicacion->relevance_score = 0;
+                }
+            } else {
+                $publicacion->relevance_score = 0;
+            }
+
+            // Agregar contadores
             $publicacion->likes_count = $publicacion->likes->count();
             $publicacion->comentarios_count = $publicacion->comentarios->count();
 
+            // Verificar si el usuario dio like
             if ($user->tipo_usuario === 'persona') {
                 $publicacion->user_has_liked = $publicacion->likes->contains(function ($like) use ($user) {
                     return $like->perf_persona_id === $user->persona->id;
@@ -124,15 +180,27 @@ class PublicacionController extends Controller
                 });
             }
 
+            // Verificar si está en favoritos
             if ($user->tipo_usuario === 'persona') {
                 $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
             } else {
-                $publicacion->is_favorite = false;
+                $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
             }
-
 
             return $publicacion;
         });
+
+        // Reordenar por relevancia si hay intereses
+        if (!empty($interesesUsuario)) {
+            $sorted = $publicaciones->getCollection()
+                ->sortByDesc(function ($pub) {
+                    // Ordenar por relevancia primero, luego por fecha
+                    return [$pub->relevance_score, $pub->created_at->timestamp];
+                })
+                ->values();
+
+            $publicaciones->setCollection($sorted);
+        }
 
         return Inertia::render('Inicio', [
             'publicaciones' => $publicaciones,
@@ -176,6 +244,8 @@ class PublicacionController extends Controller
             'favoritos' => function ($query) use ($user) {
                 if ($user->tipo_usuario === 'persona') {
                     $query->where('perf_persona_id', $user->persona->id);
+                } else {
+                    $query->where('perf_institucion_id', $user->institucion->id);
                 }
             }
         ])->findOrFail($id);
@@ -196,11 +266,8 @@ class PublicacionController extends Controller
         if ($user->tipo_usuario === 'persona') {
             $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
         } else {
-            $publicacion->is_favorite = false;
+            $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
         }
-
-        // DEBUG
-        Log::info("Show publicacion {$id} con " . $publicacion->media->count() . " archivos media");
 
         return Inertia::render('Publicaciones/Show', [
             'publicacion' => $publicacion,
@@ -285,6 +352,7 @@ class PublicacionController extends Controller
         }
 
         if ($publicacion->publicado) {
+            // Solo actualizar contenido si está publicada
             $validated = $request->validate([
                 'contenido' => 'required|string',
             ]);
@@ -293,18 +361,23 @@ class PublicacionController extends Controller
                 'contenido' => $validated['contenido'],
             ]);
         } else {
+            // Actualizar todo si es borrador
             $validated = $request->validate([
                 'titulo' => 'required|string|max:255',
                 'contenido' => 'required|string',
                 'publicado' => 'nullable',
+                'categorias' => 'required|array|min:1|max:5',
+                'categorias.*' => 'string|max:255',
             ]);
 
             $publicacion->update([
                 'titulo' => $validated['titulo'],
                 'contenido' => $validated['contenido'],
                 'publicado' => $request->input('publicado') == '1' || $request->input('publicado') == 1,
+                'categorias' => $validated['categorias'],
             ]);
 
+            // Eliminar media marcada
             if ($request->has('deleted_media')) {
                 $deletedMedia = $request->input('deleted_media');
                 if (is_array($deletedMedia)) {
@@ -318,6 +391,7 @@ class PublicacionController extends Controller
                 }
             }
 
+            // Agregar nueva media
             $currentMaxOrder = $publicacion->media()->max('orden') ?? -1;
             $index = 0;
 

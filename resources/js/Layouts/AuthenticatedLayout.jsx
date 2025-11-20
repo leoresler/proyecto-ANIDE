@@ -4,6 +4,7 @@ import Header from "@/Components/Header/Header";
 import Sidebar from "@/Components/Sidebard/Sidebard";
 // import Footer from "@/Components/Footer";
 import { Toaster } from "react-hot-toast";
+import BackButton from "@/Components/BackButton";
 
 export default function AuthenticatedLayout({ header, children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -11,6 +12,8 @@ export default function AuthenticatedLayout({ header, children }) {
     return (
         <div className="min-h-screen bg-white flex flex-col">
             <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+
+            <BackButton />
 
             <div className="flex flex-1">
                 <Sidebar

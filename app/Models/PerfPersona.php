@@ -25,6 +25,33 @@ class PerfPersona extends Model
 
     public function chats()
     {
-    return $this->hasMany(Chat::class, 'persona_id');
+        return $this->hasMany(Chat::class, 'persona_id');
+    }
+
+    // Accessor: Convierte JSON string a array al leer
+    public function getInterestsAttribute($value)
+    {
+        if (is_null($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    // Mutator: Convierte array a JSON string al guardar
+    public function setInterestsAttribute($value)
+    {
+        if (is_null($value)) {
+            $this->attributes['interests'] = json_encode([]);
+        } elseif (is_array($value)) {
+            $this->attributes['interests'] = json_encode($value);
+        } else {
+            $this->attributes['interests'] = $value;
+        }
     }
 }

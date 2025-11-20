@@ -158,6 +158,11 @@ return [
 
     'domain' => env('SESSION_DOMAIN'),
 
+    /* para ver web en movil */
+    // 'domain' => null,
+    // 'same_site' => 'lax',
+
+
     /*
     |--------------------------------------------------------------------------
     | HTTPS Only Cookies

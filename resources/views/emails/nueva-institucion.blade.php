@@ -74,16 +74,13 @@
             <p><strong>Nombre:</strong> {{ $user->nombre }}</p>
             <p><strong>Email:</strong> {{ $user->email }}</p>
             <p><strong>Teléfono:</strong> {{ $user->telefono }}</p>
-            <p><strong>Ciudad:</strong> {{ $user->ciudad }}, {{ $user->provincia }}</p>
-
             @if ($user->institucion)
+                <p><strong>Tipo de documento:</strong> {{ $user->institucion->tipo_documento }}</p>
+                <p><strong>Documento:</strong> {{ $user->institucion->doc_identificador }}</p>
                 <p><strong>Tipo:</strong> {{ $user->institucion->tipo_institucion }}</p>
                 <p><strong>Dirección:</strong> {{ $user->institucion->direccion }}</p>
-                @if ($user->institucion->sitio_web)
-                    <p><strong>Sitio web:</strong> <a href="{{ $user->institucion->sitio_web }}"
-                            target="_blank">{{ $user->institucion->sitio_web }}</a></p>
-                @endif
             @endif
+            <p><strong>Ciudad:</strong> {{ $user->ciudad }}, {{ $user->provincia }}</p>
         </div>
 
         <p><strong>Fecha de registro:</strong> {{ $user->created_at->format('d/m/Y H:i') }}</p>

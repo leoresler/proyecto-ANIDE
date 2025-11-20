@@ -24,6 +24,9 @@ class PerfInstitucion extends Model
         'longitud',
         'verificado',
         'ano_fundacion',
+        'interests',
+        'doc_identificador',
+        'tipo_documento',
     ];
 
     protected $casts = [
@@ -31,6 +34,8 @@ class PerfInstitucion extends Model
         'cantidad_seguidores' => 'integer',
         'latitud' => 'decimal:7',
         'longitud' => 'decimal:7',
+        'interests' => 'array',
+        'ano_fundacion' => 'integer',
     ];
 
     public function user()
@@ -41,6 +46,11 @@ class PerfInstitucion extends Model
     public function residencias()
     {
         return $this->hasMany(Residencia::class, 'perf_institucion_id');
+    }
+
+    public function institucion_material()
+    {
+        return $this->hasMany(InstitucionMaterial::class);
     }
 
     // metodos GET
@@ -69,6 +79,11 @@ class PerfInstitucion extends Model
         return $this->user?->email;
     }
 
+    public function publicaciones()
+    {
+        return $this->hasMany(Publicacion::class, 'perf_institucion_id');
+    }
+
     protected static function booted()
     {
         static::creating(function ($institucion) {
@@ -82,6 +97,33 @@ class PerfInstitucion extends Model
 
     public function chats()
     {
-    return $this->hasMany(Chat::class, 'institucion_id');
+        return $this->hasMany(Chat::class, 'institucion_id');
+    }
+
+    // Accessor: Convierte JSON string a array al leer
+    public function getInterestsAttribute($value)
+    {
+        if (is_null($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    // Mutator: Convierte array a JSON string al guardar
+    public function setInterestsAttribute($value)
+    {
+        if (is_null($value)) {
+            $this->attributes['interests'] = json_encode([]);
+        } elseif (is_array($value)) {
+            $this->attributes['interests'] = json_encode($value);
+        } else {
+            $this->attributes['interests'] = $value;
+        }
     }
 }

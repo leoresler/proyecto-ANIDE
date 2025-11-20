@@ -1,7 +1,7 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
-import PrimaryButton from "@/Components/PrimaryButton";
-import TextInput from "@/Components/TextInput";
+import RoundedButton from "@/Components/RoundedButton";
+import RoundedInputText from "@/Components/RoundedInputText";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { useState } from "react";
@@ -112,7 +112,7 @@ export default function Register() {
                 <div className="mt-4">
                     <InputLabel htmlFor="email" value="Correo electronico" />
 
-                    <TextInput
+                    <RoundedInputText
                         id="email"
                         type="email"
                         name="email"
@@ -127,7 +127,7 @@ export default function Register() {
                 <div className="mt-4">
                     <InputLabel htmlFor="password" value="Contraseña" />
 
-                    <TextInput
+                    <RoundedInputText
                         id="password"
                         type="password"
                         name="password"
@@ -145,7 +145,7 @@ export default function Register() {
                         value="Confirmar Contraseña"
                     />
 
-                    <TextInput
+                    <RoundedInputText
                         id="password_confirmation"
                         type="password"
                         name="password_confirmation"
@@ -209,12 +209,12 @@ export default function Register() {
                         ¿Ya estas registrado?
                     </Link>
 
-                    <PrimaryButton
+                    <RoundedButton
                         className="w-full sm:w-auto justify-center"
                         disabled={processing || !isFormValid}
                     >
                         Registrarse
-                    </PrimaryButton>
+                    </RoundedButton>
                 </div>
             </form>
         </GuestLayout>

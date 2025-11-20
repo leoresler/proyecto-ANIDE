@@ -1,19 +1,65 @@
 import { Head, Link, router } from "@inertiajs/react";
+import { useState, useEffect } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import PublicacionCard from "@/Components/Publicacion/PublicacionCard";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll.js";
 
 export default function BusquedaIndex({
     auth,
     query,
-    publicaciones,
-    instituciones,
+    publicaciones: publicacionesInitial,
+    instituciones: institucionesInitial,
     userType,
 }) {
-    const publicacionesData = publicaciones?.data || [];
-    const publicacionesLinks = publicaciones?.links || [];
+    // Estado para acumular resultados
+    const [publicacionesData, setPublicacionesData] = useState(
+        publicacionesInitial?.data || []
+    );
+    const [institucionesData, setInstitucionesData] = useState(
+        institucionesInitial?.data || []
+    );
 
-    const institucionesData = instituciones?.data || [];
-    const institucionesLinks = instituciones?.links || [];
+    // Actualizar cuando cambien los props (por ejemplo, nueva búsqueda)
+    useEffect(() => {
+        setPublicacionesData(publicacionesInitial?.data || []);
+        setInstitucionesData(institucionesInitial?.data || []);
+    }, [query]);
+
+    // Hook para scroll infinito de publicaciones
+    const { loaderRef: pubLoaderRef, isLoading: isLoadingPub } =
+        useInfiniteScroll({
+            nextPageUrl: publicacionesInitial?.next_page_url,
+            onLoadMore: () => {
+                // Agregar nuevas publicaciones sin duplicar
+                if (publicacionesInitial?.data) {
+                    setPublicacionesData((prev) => {
+                        const newItems = publicacionesInitial.data.filter(
+                            (newItem) =>
+                                !prev.some((item) => item.id === newItem.id)
+                        );
+                        return [...prev, ...newItems];
+                    });
+                }
+            },
+        });
+
+    // Hook para scroll infinito de instituciones
+    const { loaderRef: instLoaderRef, isLoading: isLoadingInst } =
+        useInfiniteScroll({
+            nextPageUrl: institucionesInitial?.next_page_url,
+            onLoadMore: () => {
+                // Agregar nuevas instituciones sin duplicar
+                if (institucionesInitial?.data) {
+                    setInstitucionesData((prev) => {
+                        const newItems = institucionesInitial.data.filter(
+                            (newItem) =>
+                                !prev.some((item) => item.id === newItem.id)
+                        );
+                        return [...prev, ...newItems];
+                    });
+                }
+            },
+        });
 
     const handleLike = (publicacionId) => {
         router.post(
@@ -44,7 +90,7 @@ export default function BusquedaIndex({
 
             <div className="py-8 bg-white min-h-screen">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Encabezado mejorado */}
+                    {/* Encabezado */}
                     <div className="mb-8 bg-white border-b-2 p-6">
                         <div className="flex items-center gap-3 mb-2">
                             <svg
@@ -178,32 +224,40 @@ export default function BusquedaIndex({
                                         )}
                                     </div>
 
-                                    {/* Paginación publicaciones */}
-                                    {publicacionesLinks.length > 3 && (
-                                        <div className="mt-6 flex justify-center">
-                                            <nav className="flex items-center gap-2">
-                                                {publicacionesLinks.map(
-                                                    (link, index) => (
-                                                        <Link
-                                                            key={index}
-                                                            href={
-                                                                link.url || "#"
-                                                            }
-                                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                                link.active
-                                                                    ? "bg-blue-600 text-white shadow-sm"
-                                                                    : link.url
-                                                                    ? "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                                                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                            }`}
-                                                            disabled={!link.url}
-                                                            dangerouslySetInnerHTML={{
-                                                                __html: link.label,
-                                                            }}
-                                                        />
-                                                    )
-                                                )}
-                                            </nav>
+                                    {/* Loader para scroll infinito de publicaciones */}
+                                    {publicacionesInitial?.next_page_url && (
+                                        <div
+                                            ref={pubLoaderRef}
+                                            className="flex justify-center py-8"
+                                        >
+                                            {isLoadingPub && (
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <svg
+                                                        className="animate-spin h-8 w-8 text-blue-600"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <circle
+                                                            className="opacity-25"
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="10"
+                                                            stroke="currentColor"
+                                                            strokeWidth="4"
+                                                        ></circle>
+                                                        <path
+                                                            className="opacity-75"
+                                                            fill="currentColor"
+                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                        ></path>
+                                                    </svg>
+                                                    <p className="text-sm text-gray-600">
+                                                        Cargando más
+                                                        publicaciones...
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -240,7 +294,7 @@ export default function BusquedaIndex({
                                             (institucion) => (
                                                 <Link
                                                     key={institucion.id}
-                                                    href={`/institucion/${institucion.id}`}
+                                                    href={`/instituciones/${institucion.id}`}
                                                     className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-gray-400 group"
                                                 >
                                                     <div className="flex items-center gap-4">
@@ -306,32 +360,40 @@ export default function BusquedaIndex({
                                         )}
                                     </div>
 
-                                    {/* Paginación instituciones */}
-                                    {institucionesLinks.length > 3 && (
-                                        <div className="mt-6 flex justify-center">
-                                            <nav className="flex items-center gap-2">
-                                                {institucionesLinks.map(
-                                                    (link, index) => (
-                                                        <Link
-                                                            key={index}
-                                                            href={
-                                                                link.url || "#"
-                                                            }
-                                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                                link.active
-                                                                    ? "bg-green-600 text-white shadow-sm"
-                                                                    : link.url
-                                                                    ? "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                                                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                                            }`}
-                                                            disabled={!link.url}
-                                                            dangerouslySetInnerHTML={{
-                                                                __html: link.label,
-                                                            }}
-                                                        />
-                                                    )
-                                                )}
-                                            </nav>
+                                    {/* Loader para scroll infinito de instituciones */}
+                                    {institucionesInitial?.next_page_url && (
+                                        <div
+                                            ref={instLoaderRef}
+                                            className="flex justify-center py-8"
+                                        >
+                                            {isLoadingInst && (
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <svg
+                                                        className="animate-spin h-8 w-8 text-blue-600"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <circle
+                                                            className="opacity-25"
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="10"
+                                                            stroke="currentColor"
+                                                            strokeWidth="4"
+                                                        ></circle>
+                                                        <path
+                                                            className="opacity-75"
+                                                            fill="currentColor"
+                                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                        ></path>
+                                                    </svg>
+                                                    <p className="text-sm text-gray-600">
+                                                        Cargando más
+                                                        instituciones...
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
