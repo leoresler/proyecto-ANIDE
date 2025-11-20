@@ -1,11 +1,6 @@
 <?php
 
-use App\Models\Publicacion;
-use App\Models\PerfInstitucion;
-
 use App\Http\Controllers\MapaController;
-use App\Http\Controllers\UsuariosController;
-use App\Http\Controllers\VideosController;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\InstitucionAprobacionController;
@@ -17,10 +12,9 @@ use App\Http\Controllers\Publicaciones\FavoritoController;
 use App\Http\Controllers\Publicaciones\ComentarioController;
 use App\Http\Controllers\Chats\ChatController;
 use App\Http\Controllers\InstitucionController;
-
+use App\Http\Controllers\InstitucionMaterialController;
+use App\Http\Controllers\BusquedaController;
 use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -55,6 +49,11 @@ Route::post('/completar-datos', [ProfileController::class, 'completarPerfil'])
     ->name('completar.datos.store');
 
 
+// busqueda API
+Route::get('/api/buscar', [BusquedaController::class, 'buscarApi'])
+    ->middleware(['auth'])
+    ->withoutMiddleware([\App\Http\Middleware\EnsureProfileIsComplete::class])
+    ->name('busqueda.api');
 
 // rutas protegidas - requieren autenticacion, verificacion y completar datos
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -67,10 +66,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile/photo', [ProfileController::class, 'destroyPhoto'])->name('profile.photo.destroy');
     Route::post('/profile/interests', [ProfileController::class, 'updateInterests'])->name('profile.interests.update');
 
-    // Feed principal (inicio)
+    // actualizar perfil persona
+    Route::patch('/profile/persona', [ProfileController::class, 'updatePersona'])
+        ->middleware(['auth'])
+        ->name('profile.persona.update');
+
+    // actualizar perfil institucion
+    Route::patch('/profile/institucion', [ProfileController::class, 'updateInstitucion'])
+        ->middleware(['auth'])
+        ->name('profile.institucion.update');
+
+    // feed principal (inicio)
     Route::get('/inicio', [PublicacionController::class, 'index'])->name('inicio');
 
-    // Rutas solo para instituciones
+    // rutas solo para instituciones
     Route::middleware(['check.institucion'])->group(function () {
         Route::get('/publicaciones/create', [PublicacionController::class, 'create'])
             ->name('publicaciones.create');
@@ -86,133 +95,60 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('publicaciones.destroy');
     });
 
+    // ver perf instituciones
+    Route::get('/instituciones/{id}', [InstitucionController::class, 'show'])->name('instituciones.show');
+
     // publicaciones
     Route::get('/publicaciones/{id}', [PublicacionController::class, 'show'])->name('publicaciones.show');
 
     // likes
     Route::post('/likes/toggle', [LikeController::class, 'toggle'])->name('likes.toggle');
+    Route::get('/likes', [ProfileController::class, 'likes'])->name('profile.likes');
 
     // comentarios
     Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
     Route::delete('/comentarios/{id}', [ComentarioController::class, 'destroy'])
         ->name('comentarios.destroy');
 
+    // favoritos
     Route::post('/favoritos/toggle', [FavoritoController::class, 'toggle'])->name('favoritos.toggle');
     Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
 
+    // mapa
+    Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chats/{id}', [ChatController::class, 'show'])->name('chat.show');
+    Route::post('/chats/iniciar', [ChatController::class, 'iniciarChat'])->name('chat.iniciar');
+    Route::post('/chats/{id}/mensaje', [ChatController::class, 'enviarMensaje'])->name('chat.enviar');
+
     // residencias
     Route::resource('residencias', ResidenciaController::class);
+
+    // material (cursos y carreras) - solo para instituciones
+    Route::middleware(['check.institucion'])->group(function () {
+        Route::get('/material', [InstitucionMaterialController::class, 'index'])
+            ->name('material.index');
+        Route::get('/material/create', [InstitucionMaterialController::class, 'create'])
+            ->name('material.create');
+        Route::post('/material', [InstitucionMaterialController::class, 'store'])
+            ->name('material.store');
+        Route::get('/material/{id}/edit', [InstitucionMaterialController::class, 'edit'])
+            ->name('material.edit');
+        Route::put('/material/{id}', [InstitucionMaterialController::class, 'update'])
+            ->name('material.update');
+        Route::delete('/material/{id}', [InstitucionMaterialController::class, 'destroy'])
+            ->name('material.destroy');
+    });
+
+    // API de recomendaciones (disponible para todos los usuarios autenticados)
+    Route::get('/api/recomendaciones', [InstitucionMaterialController::class, 'recomendaciones'])
+        ->name('api.recomendaciones');
 
     // mapa
     Route::get('/mapa', [MapaController::class, 'index'])->name('mapa.index');
     Route::post('/mapa/filtrar', [MapaController::class, 'filtrar'])->name('mapa.filtrar');
 
-    // videos
-    Route::get('/videos', [VideosController::class, 'index'])->name('videos.index');
-
-    // busqueda en web para no crear controlador
-    Route::get('/api/buscar', function () {
-        $query = request()->input('q', '');
-
-        if (strlen($query) < 2) {
-            return response()->json([
-                'publicaciones' => [],
-                'instituciones' => []
-            ]);
-        }
-
-        // Buscar publicaciones
-        $publicaciones = Publicacion::query()
-            ->where(function ($q) use ($query) {
-                $q->where('titulo', 'LIKE', "%{$query}%")
-                    ->orWhere('contenido', 'LIKE', "%{$query}%");
-            })
-            ->where('publicado', true)
-            ->with(['institucion.user'])
-            ->select('id', 'titulo', 'contenido', 'perf_institucion_id', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(15)
-            ->get();
-
-        // Buscar instituciones
-        $instituciones = PerfInstitucion::query()
-            ->whereHas('user', function ($q) use ($query) {
-                $q->where('nombre', 'LIKE', "%{$query}%")
-                    ->where('tipo_usuario', 'institucion')
-                    ->where('estado', 'activo');
-            })
-            ->where('verificado', true)
-            ->with('user:id,nombre,email,telefono,ciudad,provincia')
-            ->select('id', 'user_id', 'descripcion', 'foto_perfil', 'tipo_institucion', 'direccion')
-            ->limit(15)
-            ->get()
-            ->map(function ($institucion) {
-                return [
-                    'id' => $institucion->id,
-                    'user_id' => $institucion->user_id,
-                    'nombre' => $institucion->user->nombre ?? 'Sin nombre',
-                    'descripcion' => $institucion->descripcion,
-                    'foto_perfil' => $institucion->foto_perfil,
-                    'tipo_institucion' => $institucion->tipo_institucion,
-                    'direccion' => $institucion->direccion,
-                    'ciudad' => $institucion->user->ciudad ?? null,
-                    'provincia' => $institucion->user->provincia ?? null,
-                ];
-            });
-
-        return response()->json([
-            'publicaciones' => $publicaciones,
-            'instituciones' => $instituciones
-        ]);
-    })->name('busqueda.api');
-
-    Route::get('/busqueda', function () {
-        $query = request()->input('q', '');
-
-        $publicaciones = [];
-        $instituciones = [];
-
-        if (strlen($query) >= 2) {
-            $publicaciones = Publicacion::query()
-                ->where(function ($q) use ($query) {
-                    $q->where('titulo', 'LIKE', "%{$query}%")
-                        ->orWhere('contenido', 'LIKE', "%{$query}%");
-                })
-                ->where('publicado', true)
-                ->with(['institucion.user', 'media', 'likes', 'comentarios', 'favoritos'])
-                ->withCount(['likes', 'comentarios'])
-                ->latest()
-                ->paginate(10)
-                ->withQueryString();
-
-            $institucionesQuery = PerfInstitucion::query()
-                ->whereHas('user', function ($q) use ($query) {
-                    $q->where('nombre', 'LIKE', "%{$query}%")
-                        ->where('tipo_usuario', 'institucion')
-                        ->where('estado', 'activo');
-                })
-                ->where('verificado', true)
-                ->with('user:id,nombre,email,telefono,ciudad,provincia')
-                ->paginate(10)
-                ->withQueryString();
-
-            $institucionesQuery->getCollection()->transform(function ($institucion) {
-                $institucion->nombre = $institucion->user->nombre ?? 'Sin nombre';
-                $institucion->ciudad = $institucion->user->ciudad ?? null;
-                $institucion->provincia = $institucion->user->provincia ?? null;
-                return $institucion;
-            });
-
-            $instituciones = $institucionesQuery;
-        }
-
-        return Inertia::render('Busqueda/Index', [
-            'query' => $query,
-            'publicaciones' => $publicaciones,
-            'instituciones' => $instituciones,
-            'userType' => Auth::user()
-        ]);
-    })->name('busqueda.index');
+    // pagina de busqueda
+    Route::get('/busqueda', [BusquedaController::class, 'index'])->name('busqueda.index');
 });
 
 
@@ -233,27 +169,14 @@ Route::get('/api/residencias/institucion/{institucionId}', [ResidenciaController
     ->name('residencias.by.institucion');
 
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
-    Route::get('/chats/{id}', [ChatController::class, 'show'])->name('chat.show');
-    Route::post('/chats/iniciar', [ChatController::class, 'iniciarChat'])->name('chat.iniciar');
-    Route::post('/chats/{id}/mensaje', [ChatController::class, 'enviarMensaje'])->name('chat.enviar');
-});
 
 Route::post('/chats/{chatId}/escribiendo', [ChatController::class, 'escribiendo'])
     ->middleware('auth');
 
- 
+
 Route::put('/profile/interests', [ProfileController::class, 'updateInterests'])
     ->name('profile.interests.update');
 
-Route::patch('/profile/institucion', [ProfileController::class, 'updateInstitucion'])
-    ->middleware(['auth'])
-    ->name('profile.institucion.update');
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/instituciones/{id}', [InstitucionController::class, 'show'])
-        ->name('instituciones.show');
-});
 
 require __DIR__ . '/auth.php';

@@ -57,26 +57,25 @@ class ResidenciaController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|min:3|max:255',
             'contacto' => 'required|string|max:255',
-            'capacidad' => 'required|integer|min:1',
+            'capacidad' => 'nullable|integer|min:1',
             'ciudad' => 'required|string|max:100',
             'provincia' => 'required|string|max:100',
             'direccion' => 'required|string|min:5|max:255',
             'latitud' => 'required|numeric|between:-90,90',
             'longitud' => 'required|numeric|between:-180,180',
             'info_adicional' => 'nullable|string|max:1000',
-            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
+            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'nombre.min' => 'El nombre debe tener al menos 3 caracteres',
             'contacto.required' => 'El contacto es obligatorio',
-            'capacidad.required' => 'La capacidad es obligatoria',
             'capacidad.min' => 'La capacidad debe ser al menos 1',
             'direccion.required' => 'La dirección es obligatoria',
             'direccion.min' => 'La dirección debe tener al menos 5 caracteres',
             'latitud.required' => 'La latitud es obligatoria',
             'longitud.required' => 'La longitud es obligatoria',
             'foto_portada.image' => 'El archivo debe ser una imagen',
-            'foto_portada.max' => 'La imagen no puede superar los 2MB',
+            'foto_portada.max' => 'La imagen no puede superar los 4MB',
         ]);
 
         // Construir la dirección completa
@@ -87,7 +86,7 @@ class ResidenciaController extends Controller
             'nombre' => $validated['nombre'],
             'direccion' => $direccionCompleta,
             'contacto' => $validated['contacto'],
-            'capacidad' => $validated['capacidad'],
+            'capacidad' => $validated['capacidad'] ?? null,
             'latitud' => $validated['latitud'],
             'longitud' => $validated['longitud'],
             'info_adicional' => $validated['info_adicional'] ?? null,
@@ -134,14 +133,14 @@ class ResidenciaController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|min:3|max:255',
             'contacto' => 'required|string|max:255',
-            'capacidad' => 'required|integer|min:1',
+            'capacidad' => 'nullable|integer|min:1',
             'ciudad' => 'required|string|max:100',
             'provincia' => 'required|string|max:100',
             'direccion' => 'required|string|min:5|max:255',
             'latitud' => 'required|numeric|between:-90,90',
             'longitud' => 'required|numeric|between:-180,180',
             'info_adicional' => 'nullable|string|max:1000',
-            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
+            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
         ]);
 
         // Construir la dirección completa
@@ -151,7 +150,7 @@ class ResidenciaController extends Controller
             'nombre' => $validated['nombre'],
             'direccion' => $direccionCompleta,
             'contacto' => $validated['contacto'],
-            'capacidad' => $validated['capacidad'],
+            'capacidad' => $validated['capacidad'] ?? null,
             'latitud' => $validated['latitud'],
             'longitud' => $validated['longitud'],
             'info_adicional' => $validated['info_adicional'] ?? null,

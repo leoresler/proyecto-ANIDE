@@ -1,11 +1,10 @@
-import { Link } from "@inertiajs/react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useState } from "react";
 import BotonSidebar from "./botonSidebard";
 import ChatPage from "@/Pages/Chat/ChatPage";
 
 export default function Sidebar({ isOpen, onClose }) {
-    const [showMore, setShowMore] = useState(false); // 👈 nuevo estado
+    const [showMore, setShowMore] = useState(false);
 
     return (
         <>
@@ -21,16 +20,6 @@ export default function Sidebar({ isOpen, onClose }) {
                         label="Carreras"
                     />
                     <BotonSidebar
-                        href="/favoritos"
-                        icon="/svg/sidebar/bookmark.svg"
-                        label="Elementos Guardados"
-                    />
-                    <BotonSidebar
-                        href="#"
-                        icon="/svg/sidebar/location.svg"
-                        label="Ubicaciones Guardadas"
-                    />
-                    <BotonSidebar
                         href="#"
                         icon="/svg/sidebar/courses.svg"
                         label="Cursos"
@@ -39,6 +28,16 @@ export default function Sidebar({ isOpen, onClose }) {
                         href="#"
                         icon="/svg/sidebar/clock.svg"
                         label="Actividad"
+                    />
+                    <BotonSidebar
+                        href="#"
+                        icon="/svg/sidebar/location.svg"
+                        label="Ubicaciones Guardadas"
+                    />
+                    <BotonSidebar
+                        href="/favoritos"
+                        icon="/svg/sidebar/bookmark.svg"
+                        label="Elementos Guardados"
                     />
                     <BotonSidebar
                                 href="/chats"

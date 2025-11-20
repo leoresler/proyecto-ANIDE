@@ -11,25 +11,23 @@ import {
     validarCoordenadasNeuquen,
     ciudadesNeuquen,
 } from "@/utils/geocodingUtils";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
+import { CATEGORIAS, MAX_INTERESES_USUARIO } from "@/utils/categoriasConfig";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function CompletarDatosUser() {
     const { props } = usePage();
     const { type } = props;
-
-    const allOptions = [
-        "Tecnología",
-        "Derecho",
-        "Medicina",
-        "Arte",
-        "Deportes",
-    ];
 
     const photoInput = useRef();
     const { validateField } = useValidation();
     const [clientErrors, setClientErrors] = useState({});
     const [validandoDireccion, setValidandoDireccion] = useState(false);
     const [direccionValida, setDireccionValida] = useState(null);
+
+    const [photoPreview, setPhotoPreview] = useState(null);
+
+    const [mostrarIntereses, setMostrarIntereses] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
         profile_photo_path: null,
@@ -43,7 +41,7 @@ export default function CompletarDatosUser() {
         longitud: type === "institucion" ? null : undefined,
         fecha_nac: type === "persona" ? "" : undefined,
         biografia: type === "persona" ? "" : undefined,
-        interests: type === "persona" ? [] : undefined,
+        interests: [],
         tipo_institucion: type === "institucion" ? "" : undefined,
         url_sitio_web: type === "institucion" ? "" : undefined,
         descripcion: type === "institucion" ? "" : undefined,
@@ -61,11 +59,20 @@ export default function CompletarDatosUser() {
 
     const toggleInterest = (interest) => {
         if (data.interests.includes(interest)) {
+            // Remover interés
             setData(
                 "interests",
                 data.interests.filter((i) => i !== interest)
             );
         } else {
+            // Verificar límite
+            if (data.interests.length >= MAX_INTERESES_USUARIO) {
+                toast.error(
+                    `Podés seleccionar hasta ${MAX_INTERESES_USUARIO} intereses como máximo`
+                );
+                return;
+            }
+            // Agregar interés
             setData("interests", [...data.interests, interest]);
         }
     };
@@ -164,7 +171,6 @@ export default function CompletarDatosUser() {
             fieldsToValidate.push(
                 "apellido",
                 "fecha_nac",
-                "biografia",
                 "interests",
                 "ciudad",
                 "provincia"
@@ -174,6 +180,9 @@ export default function CompletarDatosUser() {
                 name: "doc_identificador",
                 params: data.tipo_documento,
             });
+            if (data.tipo_institucion === "Otro") {
+                fieldsToValidate.push("tipo_institucion_otro");
+            }
         }
 
         if (data.profile_photo_path) {
@@ -249,22 +258,81 @@ export default function CompletarDatosUser() {
                         <InputLabel className="block font-medium mb-2">
                             Foto de perfil:
                         </InputLabel>
-                        <TextInput
-                            ref={photoInput}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                                const file = e.target.files[0];
-                                setData("profile_photo_path", file);
-                                if (file) {
-                                    handleFieldValidation(
-                                        "profile_photo",
-                                        file
-                                    );
-                                }
-                            }}
-                            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
-                        />
+
+                        {/* Contenedor flex para input y preview */}
+                        <div className="flex items-center gap-4">
+                            {/* Preview circular con botón X */}
+                            {photoPreview && (
+                                <div className="flex-shrink-0 relative">
+                                    <img
+                                        src={photoPreview}
+                                        alt="Vista previa"
+                                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-300 shadow-sm"
+                                    />
+                                    {/* Botón X para eliminar */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPhotoPreview(null);
+                                            setData("profile_photo_path", null);
+                                            if (photoInput.current) {
+                                                photoInput.current.value = null;
+                                            }
+                                            clearFieldError(
+                                                "profile_photo_path"
+                                            );
+                                        }}
+                                        className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md transition-colors"
+                                        title="Eliminar foto"
+                                    >
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M6 18L18 6M6 6l12 12"
+                                            />
+                                        </svg>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Input de archivo */}
+                            <div className="flex-1">
+                                <TextInput
+                                    ref={photoInput}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        setData("profile_photo_path", file);
+
+                                        // Crear preview de la imagen
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setPhotoPreview(reader.result);
+                                            };
+                                            reader.readAsDataURL(file);
+
+                                            handleFieldValidation(
+                                                "profile_photo",
+                                                file
+                                            );
+                                        } else {
+                                            setPhotoPreview(null);
+                                        }
+                                    }}
+                                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+                                />
+                            </div>
+                        </div>
+
                         {(clientErrors.profile_photo_path ||
                             errors.profile_photo_path) && (
                             <InputError
@@ -297,7 +365,7 @@ export default function CompletarDatosUser() {
                                             e.target.value
                                         )
                                     }
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                 />
                                 {(clientErrors.nombre || errors.nombre) && (
                                     <InputError
@@ -313,8 +381,7 @@ export default function CompletarDatosUser() {
                                 <InputLabel className="block font-medium mb-1">
                                     Tipo de institución *
                                 </InputLabel>
-                                <TextInput
-                                    type="text"
+                                <select
                                     value={data.tipo_institucion}
                                     onChange={(e) => {
                                         setData(
@@ -329,9 +396,23 @@ export default function CompletarDatosUser() {
                                             e.target.value
                                         )
                                     }
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
-                                    placeholder="Ej: Universidad, Terciario, etc."
-                                />
+                                    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
+                                >
+                                    <option value="">
+                                        Seleccionar tipo...
+                                    </option>
+                                    <option value="Universidad">
+                                        Universidad
+                                    </option>
+                                    <option value="Instituto Universitario">
+                                        Instituto Universitario
+                                    </option>
+                                    <option value="Terciario">Terciario</option>
+                                    <option value="Establecimiento de educación superior">
+                                        Establecimiento de educación superior
+                                    </option>
+                                    <option value="Otro">Otro</option>
+                                </select>
                                 {(clientErrors.tipo_institucion ||
                                     errors.tipo_institucion) && (
                                     <InputError
@@ -341,6 +422,48 @@ export default function CompletarDatosUser() {
                                         }
                                         className="mt-1"
                                     />
+                                )}
+
+                                {/* Campo de texto que aparece si selecciona "Otro" */}
+                                {data.tipo_institucion === "Otro" && (
+                                    <div className="mt-3">
+                                        <InputLabel className="block font-medium mb-1">
+                                            Especificar tipo de institución *
+                                        </InputLabel>
+                                        <TextInput
+                                            type="text"
+                                            value={
+                                                data.tipo_institucion_otro || ""
+                                            }
+                                            onChange={(e) => {
+                                                setData(
+                                                    "tipo_institucion_otro",
+                                                    e.target.value
+                                                );
+                                                clearFieldError(
+                                                    "tipo_institucion_otro"
+                                                );
+                                            }}
+                                            onBlur={(e) =>
+                                                handleFieldValidation(
+                                                    "tipo_institucion_otro",
+                                                    e.target.value
+                                                )
+                                            }
+                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
+                                            placeholder="Ej: Instituto técnico, Centro de formación..."
+                                        />
+                                        {(clientErrors.tipo_institucion_otro ||
+                                            errors.tipo_institucion_otro) && (
+                                            <InputError
+                                                message={
+                                                    clientErrors.tipo_institucion_otro ||
+                                                    errors.tipo_institucion_otro
+                                                }
+                                                className="mt-1"
+                                            />
+                                        )}
+                                    </div>
                                 )}
                             </div>
 
@@ -362,7 +485,7 @@ export default function CompletarDatosUser() {
                                         )
                                     }
                                     placeholder="Ej: 299 123 4567"
-                                    className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                 />
                                 {(clientErrors.telefono || errors.telefono) && (
                                     <InputError
@@ -376,7 +499,7 @@ export default function CompletarDatosUser() {
                             </div>
 
                             {/* Documento Identificador */}
-                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div className="bg-blue-50 p-4 rounded-lg border border-gray-200">
                                 <h3 className="font-semibold mb-3">
                                     Documento Identificador *
                                 </h3>
@@ -400,7 +523,7 @@ export default function CompletarDatosUser() {
                                                     "doc_identificador"
                                                 );
                                             }}
-                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                         >
                                             <option value="CUIT">CUIT</option>
                                             <option value="CUIL">CUIL</option>
@@ -433,7 +556,7 @@ export default function CompletarDatosUser() {
                                                     data.tipo_documento
                                                 )
                                             }
-                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                             placeholder={
                                                 data.tipo_documento === "DNI"
                                                     ? "Ej: 12345678"
@@ -455,7 +578,7 @@ export default function CompletarDatosUser() {
                             </div>
 
                             {/* Dirección */}
-                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <div className="bg-blue-50 p-4 rounded-lg border border-gray-200">
                                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                                     <svg
                                         className="w-5 h-5 text-blue-600"
@@ -488,7 +611,7 @@ export default function CompletarDatosUser() {
                                             type="text"
                                             value="Neuquén"
                                             disabled
-                                            className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 cursor-not-allowed"
+                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-100 cursor-not-allowed"
                                         />
                                     </div>
 
@@ -505,7 +628,7 @@ export default function CompletarDatosUser() {
                                                 );
                                                 setDireccionValida(null);
                                             }}
-                                            className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                            className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                         >
                                             {ciudadesNeuquen.map((ciudad) => (
                                                 <option
@@ -540,7 +663,7 @@ export default function CompletarDatosUser() {
                                             clearFieldError("direccion");
                                         }}
                                         placeholder="Ej: Buenos Aires 1400"
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.direccion ||
                                         errors.direccion) && (
@@ -567,7 +690,7 @@ export default function CompletarDatosUser() {
                                             ? "bg-green-600 text-white"
                                             : direccionValida === false
                                             ? "bg-red-600 text-white"
-                                            : "bg-blue-600 text-white hover:bg-blue-700"
+                                            : "bg-edu-dark text-white hover:bg-gray-800"
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     {validandoDireccion ? (
@@ -672,7 +795,7 @@ export default function CompletarDatosUser() {
                                                 e.target.value
                                             )
                                         }
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.nombre || errors.nombre) && (
                                         <InputError
@@ -702,7 +825,7 @@ export default function CompletarDatosUser() {
                                                 e.target.value
                                             )
                                         }
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.apellido ||
                                         errors.apellido) && (
@@ -734,7 +857,7 @@ export default function CompletarDatosUser() {
                                             )
                                         }
                                         placeholder="Ej: 299 123 4567"
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.telefono ||
                                         errors.telefono) && (
@@ -765,7 +888,7 @@ export default function CompletarDatosUser() {
                                                 e.target.value
                                             )
                                         }
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.ciudad || errors.ciudad) && (
                                         <InputError
@@ -798,7 +921,7 @@ export default function CompletarDatosUser() {
                                                 e.target.value
                                             )
                                         }
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.provincia ||
                                         errors.provincia) && (
@@ -832,7 +955,7 @@ export default function CompletarDatosUser() {
                                                 e.target.value
                                             )
                                         }
-                                        className="w-full border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-gray-500"
+                                        className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500"
                                     />
                                     {(clientErrors.fecha_nac ||
                                         errors.fecha_nac) && (
@@ -846,50 +969,123 @@ export default function CompletarDatosUser() {
                                     )}
                                 </div>
                             </div>
-
-                            <div>
-                                <p className="font-medium mb-2">
-                                    Seleccioná tus intereses: *
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {allOptions.map((option) => (
-                                        <button
-                                            key={option}
-                                            type="button"
-                                            onClick={() => {
-                                                toggleInterest(option);
-                                                clearFieldError("interests");
-                                            }}
-                                            className={`px-4 py-2 rounded-full border transition-colors ${
-                                                data.interests.includes(option)
-                                                    ? "bg-gray-600 text-white border-gray-600"
-                                                    : "bg-white text-black border-gray-300 hover:border-gray-400"
-                                            }`}
-                                        >
-                                            {option}
-                                        </button>
-                                    ))}
-                                </div>
-                                {(clientErrors.interests ||
-                                    errors.interests) && (
-                                    <InputError
-                                        message={
-                                            clientErrors.interests ||
-                                            errors.interests
-                                        }
-                                        className="mt-1"
-                                    />
-                                )}
-                            </div>
                         </>
                     )}
 
                     {/* Error general */}
                     {errors.error && (
-                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                             {errors.error}
                         </div>
                     )}
+
+                    {/* SECCIÓN DE INTERESES */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <p className="font-bold text-lg text-gray-900">
+                                    Seleccioná tus intereses *
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Elegí hasta {MAX_INTERESES_USUARIO}{" "}
+                                    categorías que te interesen
+                                </p>
+                            </div>
+                            <div className="text-right">
+                                <span
+                                    className={`text-lg font-bold ${
+                                        data.interests.length >=
+                                        MAX_INTERESES_USUARIO
+                                            ? "text-red-600"
+                                            : "text-blue-600"
+                                    }`}
+                                >
+                                    {data.interests.length}/
+                                    {MAX_INTERESES_USUARIO}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Categorías disponibles para seleccionar */}
+                        <div className="mb-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">
+                                Categorías disponibles:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {CATEGORIAS.filter(
+                                    (cat) => !data.interests.includes(cat)
+                                ).map((cat) => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => {
+                                            toggleInterest(cat);
+                                            clearFieldError("interests");
+                                        }}
+                                        disabled={
+                                            data.interests.length >=
+                                            MAX_INTERESES_USUARIO
+                                        }
+                                        className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        + {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Intereses seleccionados */}
+                        {data.interests.length > 0 && (
+                            <div>
+                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                    Tus intereses seleccionados:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {data.interests.map((interest) => (
+                                        <span
+                                            key={interest}
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-full text-sm shadow-md"
+                                        >
+                                            {interest}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    toggleInterest(interest);
+                                                    clearFieldError(
+                                                        "interests"
+                                                    );
+                                                }}
+                                                className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                                            >
+                                                <svg
+                                                    className="w-3.5 h-3.5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M6 18L18 6M6 6l12 12"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {(clientErrors.interests || errors.interests) && (
+                            <InputError
+                                message={
+                                    clientErrors.interests || errors.interests
+                                }
+                                className="mt-2"
+                            />
+                        )}
+                    </div>
 
                     {/* Botón de envío */}
                     <div className="pt-4">
@@ -899,7 +1095,7 @@ export default function CompletarDatosUser() {
                                 processing ||
                                 (type === "institucion" && !direccionValida)
                             }
-                            className="w-full px-6 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-edu-dark hover:bg-black"
+                            className="w-full px-6 py-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors bg-edu-dark hover:bg-gray-800"
                         >
                             {processing
                                 ? "Creando cuenta..."

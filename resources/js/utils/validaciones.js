@@ -94,6 +94,13 @@ export const validationRules = {
         return null;
     },
 
+    tipo_institucion_otro: (value) => {
+        if (!value?.trim()) return "El tipo de institución es obligatorio";
+        if (value.trim().length < 3) 
+            return "El tipo de institución debe tener al menos 3 caracteres";
+        return null;
+    },
+
     direccion: (value) => {
         if (!value?.trim()) return "La dirección es obligatoria";
         if (value.trim().length < 5) 

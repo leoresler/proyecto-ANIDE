@@ -3,11 +3,20 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import PublicacionCard from "@/Components/Publicacion/PublicacionCard";
 import BarraBusqueda from "@/Components/BarraBusqueda/BarraBusqueda";
 import { useState } from "react";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import LoadingSpinner from "@/Components/LoadingSpinner";
 
 export default function Favoritos({ auth, favoritos, userType }) {
     const favoritosData = favoritos?.data || [];
     const favoritosLinks = favoritos?.links || [];
     const [publicacionesFiltradas, setPublicacionesFiltradas] = useState(null);
+
+    const nextPageUrl = favoritosLinks.find(
+        (link) => link.label === "&raquo;"
+    )?.url;
+    const { loaderRef, isLoading } = useInfiniteScroll({
+        nextPageUrl: publicacionesFiltradas === null ? nextPageUrl : null, // Deshabilitar si hay filtro
+    });
 
     const handleLike = (publicacionId) => {
         router.post(
@@ -137,7 +146,7 @@ export default function Favoritos({ auth, favoritos, userType }) {
                                 </p>
                                 <Link
                                     href="/inicio"
-                                    className="mt-3 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                                    className="mt-3 inline-block px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 font-medium transition-colors"
                                 >
                                     Explorar publicaciones
                                 </Link>
@@ -181,30 +190,12 @@ export default function Favoritos({ auth, favoritos, userType }) {
                         )}
                     </div>
 
-                    {/* Paginación - solo si no hay filtro activo */}
-                    {publicacionesFiltradas === null &&
-                        favoritosLinks.length > 3 && (
-                            <div className="mt-6 flex justify-center space-x-2">
-                                {favoritosLinks.map((link, index) => (
-                                    <Link
-                                        key={index}
-                                        href={link.url || "#"}
-                                        className={`px-4 py-2 rounded ${
-                                            link.active
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-white text-gray-700 hover:bg-gray-100"
-                                        } ${
-                                            !link.url
-                                                ? "opacity-50 cursor-not-allowed"
-                                                : ""
-                                        }`}
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                    {/* Loader para scroll infinito - solo si no hay filtro activo */}
+                    {publicacionesFiltradas === null && nextPageUrl && (
+                        <div ref={loaderRef}>
+                            {isLoading && <LoadingSpinner />}
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

@@ -1,0 +1,116 @@
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link } from "@inertiajs/react";
+import { User, Heart, FileText, UserPlus } from "lucide-react";
+import PublicacionCard from "@/Components/Publicacion/PublicacionCard";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import LoadingSpinner from "@/Components/LoadingSpinner";
+
+export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
+    const esInstitucion = auth.user?.tipo_usuario === "institucion";
+
+    const nextPageUrl = links?.find((link) => link.label === "&raquo;")?.url;
+    const { loaderRef, isLoading } = useInfiniteScroll({ nextPageUrl });
+
+    const NavButton = ({ href, icon: Icon, label, isActive }) => (
+        <Link
+            href={href}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                isActive
+                    ? "bg-edu-dark text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+        >
+            <Icon className="w-5 h-5" />
+            <span className="hidden sm:inline">{label}</span>
+        </Link>
+    );
+
+    return (
+        <AuthenticatedLayout
+            user={auth.user}
+            header={
+                <div className="space-y-3">
+                    <div className="flex gap-2 overflow-x-auto pb-2 px-1">
+                        <NavButton
+                            href="/profile"
+                            icon={User}
+                            label="Mi Perfil"
+                            isActive={false}
+                        />
+                        <NavButton
+                            href="/likes"
+                            icon={Heart}
+                            label="Me Gusta"
+                            isActive={true}
+                        />
+                        <NavButton
+                            href="/seguidos"
+                            icon={UserPlus}
+                            label="Seguidos"
+                            isActive={false}
+                        />
+                        {esInstitucion && (
+                            <Link
+                                href="/publicaciones/misPublicaciones"
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                <FileText className="w-4 h-4" />
+                                <span className="hidden sm:inline">
+                                    Mis Publicaciones
+                                </span>
+                            </Link>
+                        )}
+                    </div>
+                </div>
+            }
+        >
+            <Head title="Me Gusta" />
+
+            <div className="py-8">
+                <div className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8">
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Heart className="w-6 h-6 text-edu-dark" />
+                            <h3 className="text-xl font-bold text-gray-900">
+                                Publicaciones que te gustaron
+                            </h3>
+                        </div>
+
+                        {likedPublicaciones.length > 0 ? (
+                            <>
+                                <div className="space-y-6">
+                                    {likedPublicaciones.map((publicacion) => (
+                                        <PublicacionCard
+                                            key={publicacion.id}
+                                            publicacion={publicacion}
+                                            userType={auth.user.tipo_usuario}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* Loader para scroll infinito */}
+                                {nextPageUrl && (
+                                    <div ref={loaderRef}>
+                                        {isLoading && <LoadingSpinner />}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="text-center py-12">
+                                <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p className="text-gray-500 text-lg">
+                                    Aún no has dado "Me gusta" a ninguna
+                                    publicación
+                                </p>
+                                <p className="text-gray-400 text-sm mt-2">
+                                    Explora el feed y marca tus publicaciones
+                                    favoritas
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}

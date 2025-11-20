@@ -1,22 +1,40 @@
 import { useState, useEffect } from "react";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import PublicacionActions from "./PublicacionActions";
+import PublicacionModal from "./PublicacionModal";
+import MediaFullscreenMobile from "./MediaFullscreenMobile";
 import { FileText } from "lucide-react";
 
 /**
  * Componente principal para mostrar una tarjeta de publicación
  * Diseño: Nombre institución -> Contenido -> Título sobre imagen -> Acciones
  */
-export default function PublicacionCard({ publicacion, userType }) {
+export default function PublicacionCard({ publicacion, userType, auth }) {
     const [isLiked, setIsLiked] = useState(publicacion.user_has_liked);
-    const [likesCount, setLikesCount] = useState(Number(publicacion.likes_count) || 0);
+    const [likesCount, setLikesCount] = useState(
+        Number(publicacion.likes_count) || 0
+    );
     const [isFavorite, setIsFavorite] = useState(publicacion.is_favorite);
+    const [showModal, setShowModal] = useState(false);
+    const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         setIsLiked(publicacion.user_has_liked);
         setLikesCount(publicacion.likes_count);
         setIsFavorite(publicacion.is_favorite);
     }, [publicacion.id]);
+
+    useEffect(() => {
+        // Detectar si es móvil
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint de Tailwind
+        };
+
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
 
     const handleLike = async (e) => {
         e.preventDefault();
@@ -49,15 +67,7 @@ export default function PublicacionCard({ publicacion, userType }) {
         e.preventDefault();
         e.stopPropagation();
 
-        // Si no es persona, no hacemos nada
-        if (userType !== "persona") {
-            // opcional: mostrar mensaje con toast si querés
-            return;
-        }
-
         const prevFav = isFavorite;
-
-        // Cambio visual instantáneo (optimistic UI)
         setIsFavorite(!isFavorite);
 
         try {
@@ -65,20 +75,43 @@ export default function PublicacionCard({ publicacion, userType }) {
                 publicacion_id: publicacion.id,
             });
 
-            // Si backend responde success=false, revertimos
             if (!res.data.success) {
                 setIsFavorite(prevFav);
             }
-            // NO llamamos a onFavorite(...) para evitar que el padre recargue props
         } catch (error) {
-            // Revertimos en caso de error
             setIsFavorite(prevFav);
             console.error("Error al togglear favorito:", error);
         }
     };
 
+    const handleMediaClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isMobile) {
+            setShowMobileFullscreen(true);
+        } else {
+            setShowModal(true);
+        }
+    };
+
+    const handleContentClick = (e) => {
+        // Si el click es en botones de acción o enlaces, no hacer nada
+        if (
+            e.target.closest("button") ||
+            e.target.closest("a[href^='/instituciones']")
+        ) {
+            return;
+        }
+
+        // Si el click NO es en la media, ir a la página de la publicación
+        if (!e.target.closest(".media-container")) {
+            router.visit(`/publicaciones/${publicacion.id}`);
+        }
+    };
+
     const canLike = true;
-    const canFavorite = userType === "persona";
+    const canFavorite = true;
 
     // Obtener la primera media para mostrar como destacada
     const primeraMedia =
@@ -87,39 +120,48 @@ export default function PublicacionCard({ publicacion, userType }) {
             : null;
 
     return (
-        <div className="bg-white rounded-3xl border shadow-lg transition-shadow overflow-hidden">
-            {/* Header - Nombre de la institución */}
-            <Link href={`/instituciones/${publicacion.institucion.user.id}`}>
-                <div className="p-4 flex items-center space-x-3">
-                <img
-                    src={
-                        publicacion.institucion?.user?.profile_photo_url ||
-                        "/images/default-avatar.png"
-                    }
-                    alt={publicacion.institucion?.user?.nombre || "Institución"}
-                    className="w-12 h-12 rounded-full object-cover"
-                />
-                <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-base">
-                        {publicacion.institucion?.user?.nombre || "Institución"}
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                        {new Date(publicacion.created_at).toLocaleDateString(
-                            "es-AR",
-                            {
-                                day: "numeric",
-                                month: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
+        <>
+            <div
+                onClick={handleContentClick}
+                className="bg-white rounded-3xl border shadow-md transition-shadow overflow-hidden cursor-pointer hover:shadow-lg"
+            >
+                {/* Header - Nombre de la institución */}
+                <Link
+                    href={`/instituciones/${publicacion.institucion.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="p-4 flex items-center space-x-3 hover:bg-gray-50 transition">
+                        <img
+                            src={
+                                publicacion.institucion?.user
+                                    ?.profile_photo_url ||
+                                "/images/default-avatar.png"
                             }
-                        )}
-                    </p>
-                </div>
-            </div>
-            </Link>
-            
+                            alt={
+                                publicacion.institucion?.user?.nombre ||
+                                "Institución"
+                            }
+                            className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 text-base">
+                                {publicacion.institucion?.user?.nombre ||
+                                    "Institución"}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                                {new Date(
+                                    publicacion.created_at
+                                ).toLocaleDateString("es-AR", {
+                                    day: "numeric",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                })}
+                            </p>
+                        </div>
+                    </div>
+                </Link>
 
-            <Link href={`/publicaciones/${publicacion.id}`}>
                 {/* Contenido de texto */}
                 <div className="px-4 pb-3">
                     <p className="text-gray-700 text-sm leading-relaxed">
@@ -131,7 +173,10 @@ export default function PublicacionCard({ publicacion, userType }) {
 
                 {/* Imagen destacada con título superpuesto */}
                 {primeraMedia && (
-                    <div className="relative w-full h-80 bg-gray-900">
+                    <div
+                        className="media-container relative w-full h-80 bg-gray-900 cursor-zoom-in"
+                        onClick={handleMediaClick}
+                    >
                         {/* Imagen o video de fondo */}
                         {primeraMedia.tipo === "imagen" && (
                             <img
@@ -156,10 +201,10 @@ export default function PublicacionCard({ publicacion, userType }) {
                         )}
 
                         {/* Overlay con gradiente */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
 
                         {/* Título superpuesto */}
-                        <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <div className="absolute bottom-0 left-0 right-0 p-6 pointer-events-none">
                             <h2 className="text-white text-2xl font-bold leading-tight drop-shadow-lg">
                                 {publicacion.titulo}
                             </h2>
@@ -167,7 +212,7 @@ export default function PublicacionCard({ publicacion, userType }) {
 
                         {/* Indicador de más imágenes */}
                         {publicacion.media.length > 1 && (
-                            <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm font-medium pointer-events-none">
                                 +{publicacion.media.length - 1}
                             </div>
                         )}
@@ -182,25 +227,46 @@ export default function PublicacionCard({ publicacion, userType }) {
                         </h2>
                     </div>
                 )}
-            </Link>
 
-            {/* Acciones */}
-            <div className="px-4 py-3 border-t">
-                <PublicacionActions
-                    isLiked={isLiked}
-                    likesCount={likesCount}
-                    onLike={handleLike}
-                    canLike={canLike}
-                    comentariosCount={publicacion.comentarios_count}
-                    commentHref={`/publicaciones/${publicacion.id}`}
-                    isFavorite={isFavorite}
-                    onFavorite={handleFavorite}
-                    canFavorite={canFavorite}
-                    publicacionId={publicacion.id}
-                    layout="spaced"
-                    size="default"
-                />
+                {/* Acciones */}
+                <div
+                    className="px-4 py-3 border-t"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <PublicacionActions
+                        isLiked={isLiked}
+                        likesCount={likesCount}
+                        onLike={handleLike}
+                        canLike={canLike}
+                        comentariosCount={publicacion.comentarios_count}
+                        commentHref={`/publicaciones/${publicacion.id}`}
+                        isFavorite={isFavorite}
+                        onFavorite={handleFavorite}
+                        canFavorite={canFavorite}
+                        publicacionId={publicacion.id}
+                        layout="spaced"
+                        size="default"
+                    />
+                </div>
             </div>
-        </div>
+
+            {/* Modal Desktop */}
+            {showModal && !isMobile && (
+                <PublicacionModal
+                    publicacion={publicacion}
+                    userType={userType}
+                    auth={auth}
+                    onClose={() => setShowModal(false)}
+                />
+            )}
+
+            {/* Fullscreen Mobile */}
+            {showMobileFullscreen && isMobile && (
+                <MediaFullscreenMobile
+                    publicacion={publicacion}
+                    onClose={() => setShowMobileFullscreen(false)}
+                />
+            )}
+        </>
     );
 }

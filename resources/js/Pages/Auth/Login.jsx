@@ -1,6 +1,6 @@
 import InputError from "@/Components/InputError";
-import PrimaryButton from "@/Components/PrimaryButton";
-import TextInput from "@/Components/TextInput";
+import RoundedButton from "@/Components/RoundedButton";
+import RoundedInputText from "@/Components/RoundedInputText";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 import { useState } from "react";
@@ -99,7 +99,7 @@ export default function Login({ status, canResetPassword }) {
                                 className="h-6 w-6"
                             />
                         </div>
-                        <TextInput
+                        <RoundedInputText
                             id="email"
                             type="email"
                             name="email"
@@ -129,7 +129,7 @@ export default function Login({ status, canResetPassword }) {
                                 onClick={togglePasswordVisibility}
                             />
                         </div>
-                        <TextInput
+                        <RoundedInputText
                             id="password"
                             type={showPassword ? "text" : "password"}
                             name="password"
@@ -178,12 +178,12 @@ export default function Login({ status, canResetPassword }) {
                     )}
 
                     <div className="flex flex-col items-center justify-center mt-8 gap-4">
-                        <PrimaryButton
+                        <RoundedButton
                             className=""
                             disabled={processing || !isFormValid}
                         >
                             Iniciar sesión
-                        </PrimaryButton>
+                        </RoundedButton>
                     </div>
                 </form>
             </div>

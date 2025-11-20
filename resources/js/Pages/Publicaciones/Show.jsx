@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import {
@@ -186,18 +186,18 @@ export default function Show({ auth, publicacion, userType }) {
                                         <>
                                             <button
                                                 onClick={prevMedia}
-                                                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
+                                                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition z-10"
                                             >
                                                 <ChevronLeft className="w-6 h-6" />
                                             </button>
                                             <button
                                                 onClick={nextMedia}
-                                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition z-10"
                                             >
                                                 <ChevronRight className="w-6 h-6" />
                                             </button>
 
-                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2">
+                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
                                                 {media.map((_, index) => (
                                                     <button
                                                         key={index}
@@ -216,7 +216,7 @@ export default function Show({ auth, publicacion, userType }) {
                                                 ))}
                                             </div>
 
-                                            <div className="absolute top-3 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs">
+                                            <div className="absolute top-3 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs z-10">
                                                 {currentMediaIndex + 1} /{" "}
                                                 {media.length}
                                             </div>
@@ -274,16 +274,6 @@ export default function Show({ auth, publicacion, userType }) {
                                         className="w-10 h-10 rounded-full flex-shrink-0"
                                     />
                                     <div className="flex-1">
-                                        {/* Alerta de error inline */}
-                                        {/* {errorMessage && (
-                                            <div className="mb-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start space-x-2">
-                                                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                                                <p className="text-sm text-red-700">
-                                                    {errorMessage}
-                                                </p>
-                                            </div>
-                                        )} */}
-
                                         <textarea
                                             value={comentarioText}
                                             onChange={(e) => {
@@ -361,7 +351,8 @@ export default function Show({ auth, publicacion, userType }) {
             {/* MODAL FULLSCREEN */}
             {showFullscreen && media[currentMediaIndex] && (
                 <FullscreenModal
-                    media={media[currentMediaIndex]}
+                    allMedia={media}
+                    initialIndex={currentMediaIndex}
                     onClose={() => setShowFullscreen(false)}
                 />
             )}
@@ -451,15 +442,26 @@ function MediaSlide({ media, onFullscreen }) {
     if (media.tipo === "video")
         return (
             <div
-                className="w-full h-full flex items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
+                className="w-full h-full flex items-center justify-center cursor-pointer"
+                onClick={onFullscreen}
             >
                 <video
                     src={media.url_publica}
-                    controls
-                    controlsList="nodownload"
                     className="w-full h-full object-contain"
+                    preload="metadata"
                 />
+                {/* Indicador de video */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="bg-black bg-opacity-50 rounded-full p-4">
+                        <svg
+                            className="w-12 h-12 text-white"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                    </div>
+                </div>
             </div>
         );
 
@@ -488,26 +490,298 @@ function MediaSlide({ media, onFullscreen }) {
     return null;
 }
 
-function FullscreenModal({ media, onClose }) {
-    if (media.tipo !== "imagen") return null;
+function FullscreenModal({ allMedia, initialIndex, onClose }) {
+    const [currentIndex, setCurrentIndex] = useState(initialIndex);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+    const videoRef = useRef(null);
+
+    const currentMedia = allMedia[currentIndex];
+    const hasMultiple = allMedia.length > 1;
+
+    // Manejar tecla ESC
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                onClose();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [onClose]);
+
+    const handlePrevious = (e) => {
+        e.stopPropagation();
+        setCurrentIndex((prev) => (prev > 0 ? prev - 1 : allMedia.length - 1));
+        setCurrentTime(0);
+        setIsPlaying(true);
+    };
+
+    const handleNext = (e) => {
+        e.stopPropagation();
+        setCurrentIndex((prev) => (prev < allMedia.length - 1 ? prev + 1 : 0));
+        setCurrentTime(0);
+        setIsPlaying(true);
+    };
+
+    const togglePlayPause = (e) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play();
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            setCurrentTime(videoRef.current.currentTime);
+        }
+    };
+
+    const handleLoadedMetadata = () => {
+        if (videoRef.current) {
+            setDuration(videoRef.current.duration);
+        }
+    };
+
+    const handleSeek = (e) => {
+        if (!videoRef.current || !duration) return;
+
+        const progressBar = e.currentTarget;
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        const newTime = Math.max(0, Math.min(pos * duration, duration));
+
+        videoRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+    };
+
+    const toggleMute = (e) => {
+        e.stopPropagation();
+        if (videoRef.current) {
+            videoRef.current.muted = !isMuted;
+            setIsMuted(!isMuted);
+        }
+    };
+
+    const handleVolumeChange = (e) => {
+        e.stopPropagation();
+        const newVolume = parseFloat(e.target.value);
+        if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+            setVolume(newVolume);
+            setIsMuted(newVolume === 0);
+        }
+    };
+
+    const formatTime = (time) => {
+        if (!time || isNaN(time)) return "0:00";
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    };
 
     return (
-        <div
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
-            onClick={onClose}
-        >
-            <button
-                onClick={onClose}
-                className="absolute top-4 right-4 text-white hover:text-gray-300 transition"
-            >
-                <X className="w-10 h-10" />
-            </button>
-            <img
-                src={media.url_publica}
-                alt="Vista completa"
-                className="max-w-full max-h-full object-contain"
-                onClick={(e) => e.stopPropagation()}
-            />
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+            {/* Header con controles superiores */}
+            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-4 z-20">
+                <div className="flex items-center justify-between">
+                    {/* Botones de navegación */}
+                    <div className="flex items-center space-x-2">
+                        {hasMultiple && (
+                            <>
+                                <button
+                                    className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition backdrop-blur-sm"
+                                    onClick={handlePrevious}
+                                    aria-label="Anterior"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </button>
+                                <button
+                                    className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition backdrop-blur-sm"
+                                    onClick={handleNext}
+                                    aria-label="Siguiente"
+                                >
+                                    <ChevronRight className="w-6 h-6" />
+                                </button>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Contador central */}
+                    {hasMultiple && (
+                        <div className="bg-white/10 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+                            {currentIndex + 1} / {allMedia.length}
+                        </div>
+                    )}
+
+                    {/* Botón cerrar */}
+                    <button
+                        className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition backdrop-blur-sm"
+                        onClick={onClose}
+                        aria-label="Cerrar"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Contenido principal */}
+            <div className="flex-1 flex items-center justify-center p-4 pt-20 pb-24">
+                {currentMedia.tipo === "imagen" && (
+                    <img
+                        src={currentMedia.url_publica}
+                        alt="Vista completa"
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                    />
+                )}
+
+                {currentMedia.tipo === "video" && (
+                    <div className="relative max-w-full max-h-full">
+                        <video
+                            key={currentMedia.id || currentIndex}
+                            ref={videoRef}
+                            src={currentMedia.url_publica}
+                            autoPlay
+                            className="max-w-full max-h-[calc(100vh-200px)] object-contain rounded-lg shadow-2xl"
+                            onPlay={() => setIsPlaying(true)}
+                            onPause={() => setIsPlaying(false)}
+                            onTimeUpdate={handleTimeUpdate}
+                            onLoadedMetadata={handleLoadedMetadata}
+                        >
+                            Tu navegador no soporta el elemento de video.
+                        </video>
+                    </div>
+                )}
+
+                {currentMedia.tipo === "documento" && (
+                    <div className="bg-gray-900 rounded-lg p-12 text-center">
+                        <FileText className="w-32 h-32 text-gray-400 mx-auto mb-6" />
+                        <p className="text-white text-xl mb-6">
+                            {currentMedia.url?.split("/").pop() || "Documento"}
+                        </p>
+                        <a
+                            href={currentMedia.url_publica}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg"
+                        >
+                            <Download className="w-6 h-6 mr-3" />
+                            Descargar documento
+                        </a>
+                    </div>
+                )}
+            </div>
+
+            {/* Controles de video personalizados - solo para videos */}
+            {currentMedia.tipo === "video" && (
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 z-20">
+                    {/* Barra de progreso */}
+                    <div
+                        className="w-full h-1 bg-white/20 rounded-full mb-3 cursor-pointer group"
+                        onClick={handleSeek}
+                    >
+                        <div
+                            className="h-full bg-blue-500 rounded-full relative group-hover:bg-blue-400 transition"
+                            style={{
+                                width: `${
+                                    duration
+                                        ? (currentTime / duration) * 100
+                                        : 0
+                                }%`,
+                            }}
+                        >
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 transition"></div>
+                        </div>
+                    </div>
+
+                    {/* Controles inferiores */}
+                    <div className="flex items-center justify-between text-white">
+                        <div className="flex items-center space-x-3">
+                            {/* Play/Pause */}
+                            <button
+                                className="hover:bg-white/10 p-2 rounded-full transition"
+                                onClick={togglePlayPause}
+                            >
+                                {isPlaying ? (
+                                    <svg
+                                        className="w-6 h-6"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                                    </svg>
+                                ) : (
+                                    <svg
+                                        className="w-6 h-6"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                )}
+                            </button>
+
+                            {/* Tiempo */}
+                            <div className="text-sm">
+                                {formatTime(currentTime)} /{" "}
+                                {formatTime(duration)}
+                            </div>
+                        </div>
+
+                        {/* Volumen */}
+                        <div className="flex items-center space-x-2">
+                            <button
+                                className="hover:bg-white/10 p-2 rounded-full transition"
+                                onClick={toggleMute}
+                            >
+                                {isMuted || volume === 0 ? (
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                                    </svg>
+                                ) : (
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+                                    </svg>
+                                )}
+                            </button>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={volume}
+                                onChange={handleVolumeChange}
+                                className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer"
+                                style={{
+                                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${
+                                        volume * 100
+                                    }%, rgba(255,255,255,0.2) ${
+                                        volume * 100
+                                    }%, rgba(255,255,255,0.2) 100%)`,
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

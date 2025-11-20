@@ -16,7 +16,13 @@ class Publicacion extends Model
         'perf_institucion_id',
         'titulo',
         'contenido',
-        'publicado'
+        'publicado',
+        'categorias'
+    ];
+
+    protected $casts = [
+        'categorias' => 'array',
+        'publicado' => 'boolean',
     ];
 
     public function institucion()
@@ -60,5 +66,63 @@ class Publicacion extends Model
     public function scopeRecientes($query)
     {
         return $query->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Scope para filtrar publicaciones por intereses del usuario
+     * Calcula un score de relevancia basado en coincidencias de categorías
+     */
+    // public function scopePorIntereses($query, array $interesesUsuario)
+    // {
+    //     if (empty($interesesUsuario)) {
+    //         return $query;
+    //     }
+
+    //     return $query->whereNotNull('categorias')
+    //         ->where(function ($q) use ($interesesUsuario) {
+    //             foreach ($interesesUsuario as $interes) {
+    //                 $q->orWhereJsonContains('categorias', $interes);
+    //             }
+    //         });
+    // }
+    public function scopePorIntereses($query, array $interesesUsuario)
+    {
+        if (empty($interesesUsuario)) {
+            return $query;
+        }
+
+        return $query->whereNotNull('categorias')
+            ->where(function ($q) use ($interesesUsuario) {
+                foreach ($interesesUsuario as $interes) {
+                    $q->orWhere('categorias', 'LIKE', '%' . $interes . '%');
+                }
+            });
+    }
+
+    // Accessor: Convierte JSON string a array al leer
+    public function getCategoriasAttribute($value)
+    {
+        if (is_null($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    // Mutator: Convierte array a JSON string al guardar
+    public function setCategoriasAttribute($value)
+    {
+        if (is_null($value)) {
+            $this->attributes['categorias'] = json_encode([]);
+        } elseif (is_array($value)) {
+            $this->attributes['categorias'] = json_encode($value);
+        } else {
+            $this->attributes['categorias'] = $value;
+        }
     }
 }

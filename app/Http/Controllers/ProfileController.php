@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\PerfPersona;
 use App\Models\PerfInstitucion;
-use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,12 +13,10 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Auth\Events\Registered;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\NuevaInstitucionRegistrada;
 use Illuminate\Support\Facades\Log;
+use App\Models\Like;
+use App\Models\Publicacion;
 
 class ProfileController extends Controller
 {
@@ -41,21 +38,17 @@ class ProfileController extends Controller
             }
         }
 
-
         $persona = $user->persona;
         $institucion = $user->institucion;
 
-        // Determinar qué perfil usar para los intereses
+        // que perfil usa los intereses
         $perfil = $persona ?? $institucion;
 
-        // Convertir los intereses a array si existen
         $interests = [];
-        if ($perfil && $perfil->interests) {
-            $interests = is_string($perfil->interests)
-                ? json_decode($perfil->interests, true)
-                : $perfil->interests;
+        if ($perfil) {
+            $interests = $perfil->interests;
         }
-        
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
@@ -63,14 +56,11 @@ class ProfileController extends Controller
                 'user' => $request->user(),
             ],
             'residencias' => $residencias,
-            'auth' => ['user' => $user],
             'persona' => $persona,
             'institucion' => $institucion,
-            'currentInterests' => $interests, // ✅ se envía al frontend
+            'currentInterests' => $interests,
         ]);
     }
-
-
 
     /**
      * Update the user's profile information.
@@ -88,7 +78,7 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit');
     }
 
-    
+
     /**
      * Delete the user's account.
      */
@@ -216,6 +206,8 @@ class ProfileController extends Controller
                 'max:20',
                 'regex:/^[\d\s\-\+\(\)]+$/'
             ],
+            'interests' => 'required|array|min:1',
+            'interests.*' => 'string|max:255',
         ];
 
         if ($tipoUsuario === 'persona') {
@@ -228,12 +220,11 @@ class ProfileController extends Controller
             ];
             $rules['fecha_nac'] = 'required|date|before:today|after:' . now()->subYears(120)->format('Y-m-d');
             $rules['biografia'] = 'nullable|string|max:500';
-            $rules['interests'] = 'required|array|min:1';
-            $rules['interests.*'] = 'string|max:255';
             $rules['ciudad'] = 'required|string|min:2|max:100';
             $rules['provincia'] = 'required|string|min:2|max:100';
         } else {
             $rules['tipo_institucion'] = 'required|string|min:3|max:100';
+            $rules['tipo_institucion_otro'] = 'required_if:tipo_institucion,Otro|string|min:3|max:100';
             $rules['ciudad'] = 'required|string|min:2|max:100';
             $rules['provincia'] = 'required|string|min:2|max:100';
             $rules['direccion'] = 'required|string|min:5|max:255';
@@ -241,6 +232,7 @@ class ProfileController extends Controller
             $rules['longitud'] = 'required|numeric|between:-180,180';
             $rules['url_sitio_web'] = 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/';
             $rules['descripcion'] = 'nullable|string|max:1000';
+            $rules['ano_fundacion'] = 'nullable|integer|min:1800|max:' . date('Y');
             $rules['tipo_documento'] = 'required|in:CUIT,CUIL,DNI';
             $rules['doc_identificador'] = 'required|string|max:20';
         }
@@ -266,6 +258,8 @@ class ProfileController extends Controller
             'interests.min' => 'Debes seleccionar al menos un interés',
             'tipo_institucion.required' => 'El tipo de institución es obligatorio',
             'tipo_institucion.min' => 'El tipo de institución debe tener al menos 3 caracteres',
+            'tipo_institucion_otro.required_if' => 'Debe especificar el tipo de institución',
+            'tipo_institucion_otro.min' => 'El tipo de institución debe tener al menos 3 caracteres',
             'direccion.required' => 'La dirección es obligatoria',
             'direccion.min' => 'La dirección debe tener al menos 5 caracteres',
             'latitud.required' => 'Debes validar la dirección primero',
@@ -273,6 +267,9 @@ class ProfileController extends Controller
             'url_sitio_web.url' => 'Ingresa una URL válida',
             'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://',
             'descripcion.max' => 'La descripción no puede exceder 1000 caracteres',
+            'ano_fundacion.integer' => 'El año de fundación debe ser un número',
+            'ano_fundacion.min' => 'El año de fundación no puede ser anterior a 1800',
+            'ano_fundacion.max' => 'El año de fundación no puede ser futuro',
             'doc_identificador.required' => 'El documento identificador es obligatorio',
             'tipo_documento.required' => 'El tipo de documento es obligatorio',
             'tipo_documento.in' => 'El tipo de documento no es válido',
@@ -324,7 +321,7 @@ class ProfileController extends Controller
                 [
                     'apellido' => $validated['apellido'],
                     'fecha_nac' => $validated['fecha_nac'],
-                    'interests' => $validated['interests'] ?? [],
+                    'interests' => $validated['interests'],
                     'biografia' => $validated['biografia'] ?? null,
                 ]
             );
@@ -342,15 +339,25 @@ class ProfileController extends Controller
             // Construir dirección completa
             $direccionCompleta = "{$validated['direccion']}, {$validated['ciudad']}, {$validated['provincia']}";
 
+            // Determinar el tipo de institución final
+            $tipoInstitucionFinal = $validated['tipo_institucion'];
+            if ($tipoInstitucionFinal === 'Otro' && !empty($validated['tipo_institucion_otro'])) {
+                $tipoInstitucionFinal = $validated['tipo_institucion_otro'];
+            }
+
             PerfInstitucion::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'tipo_institucion' => $validated['tipo_institucion'],
+                    'tipo_institucion' => $tipoInstitucionFinal,
                     'direccion' => $direccionCompleta,
+                    'cuidad' => $validated['ciudad'],
+                    'provincia' => $validated['provincia'],
                     'latitud' => $validated['latitud'],
                     'longitud' => $validated['longitud'],
                     'url_sitio_web' => $validated['url_sitio_web'] ?? null,
                     'descripcion' => $validated['descripcion'] ?? null,
+                    'ano_fundacion' => $validated['ano_fundacion'] ?? null,
+                    'interests' => $validated['interests'],
                     'doc_identificador' => $documentoLimpio,
                     'tipo_documento' => $validated['tipo_documento'],
                     'verificado' => 0,
@@ -391,11 +398,17 @@ class ProfileController extends Controller
             'tipo_institucion' => 'required|string|min:3|max:100',
             'direccion' => 'required|string|min:5|max:255',
             'url_sitio_web' => 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/',
+            'descripcion' => 'nullable|string|max:1000',
+            'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
         ], [
             'tipo_institucion.required' => 'El tipo de institución es obligatorio.',
             'direccion.required' => 'La dirección es obligatoria.',
             'url_sitio_web.url' => 'Ingresá una URL válida.',
             'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://.',
+            'descripcion.max' => 'La descripción no puede exceder 1000 caracteres.',
+            'ano_fundacion.integer' => 'El año de fundación debe ser un número.',
+            'ano_fundacion.min' => 'El año de fundación no puede ser anterior a 1800.',
+            'ano_fundacion.max' => 'El año de fundación no puede ser futuro.',
         ]);
 
         // Buscar el perfil existente
@@ -407,5 +420,106 @@ class ProfileController extends Controller
         return back()->with('status', 'Perfil institucional actualizado correctamente.');
     }
 
+    public function updatePersona(Request $request)
+    {
+        $user = $request->user();
 
+        // Asegurar que el usuario sea de tipo persona
+        if ($user->tipo_usuario !== 'persona') {
+            return back()->withErrors(['general' => 'Solo las personas pueden modificar estos datos.']);
+        }
+
+        $validated = $request->validate([
+            'nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+                'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$/'
+            ],
+            'apellido' => [
+                'required',
+                'string',
+                'min:2',
+                'max:255',
+                'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/'
+            ],
+            'biografia' => 'nullable|string|max:500',
+        ], [
+            'apellido.required' => 'El apellido es obligatorio.',
+            'apellido.min' => 'El apellido debe tener al menos 2 caracteres.',
+            'apellido.regex' => 'El apellido solo puede contener letras.',
+            'biografia.max' => 'La biografía no puede exceder 500 caracteres.',
+        ]);
+
+        $user->update([
+            'nombre' => $validated['nombre'],
+        ]);
+
+        // Buscar el perfil existente
+        $persona = PerfPersona::where('user_id', $user->id)->firstOrFail();
+
+        $persona->update([
+            'apellido' => $validated['apellido'],
+            'biografia' => $validated['biografia'] ?? null,
+        ]);
+
+        return back()->with('status', 'Perfil personal actualizado correctamente.');
+    }
+
+
+    /**
+     * Ver publicaciones a las que le dio like el usuario
+     */
+    public function likes(Request $request)
+    {
+        $user = $request->user();
+
+        // Obtener el perfil según el tipo de usuario
+        if ($user->tipo_usuario === 'persona') {
+            $perfId = $user->persona->id;
+            $perfKey = 'perf_persona_id';
+        } else {
+            $perfId = $user->institucion->id;
+            $perfKey = 'perf_institucion_id';
+        }
+
+        // Obtener los IDs de publicaciones con like
+        $likedIds = Like::where($perfKey, $perfId)
+            ->where('target_tipo', 'publicacion')
+            ->pluck('target_id');
+
+        // Obtener las publicaciones completas
+        $likedPublicaciones = Publicacion::whereIn('id', $likedIds)
+            ->with([
+                'institucion.user',
+                'media',
+                'likes',
+                'comentarios',
+                'favoritos'
+            ])
+            ->withCount(['likes', 'comentarios'])
+            ->latest()
+            ->get()
+            ->map(function ($publicacion) use ($user, $perfKey, $perfId) {
+                // Agregar información de si el usuario actual dio like
+                $publicacion->user_has_liked = true; // Sabemos que dio like
+
+                // Agregar información de favorito (solo para personas)
+                if ($user->tipo_usuario === 'persona') {
+                    $publicacion->is_favorite = $publicacion->favoritos->contains('perf_persona_id', $perfId);
+                } else {
+                    $publicacion->is_favorite = false;
+                }
+
+                return $publicacion;
+            });
+
+        return Inertia::render('Profile/Likes', [
+            'auth' => [
+                'user' => $user,
+            ],
+            'likedPublicaciones' => $likedPublicaciones,
+        ]);
+    }
 }

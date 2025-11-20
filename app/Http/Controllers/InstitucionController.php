@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\PerfInstitucion;
-use App\Models\Publicacion;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class InstitucionController extends Controller
@@ -26,7 +24,7 @@ class InstitucionController extends Controller
 
         return Inertia::render('Instituciones/Show', [
             'institucion' => $institucion,
-            'publicaciones' => $institucion->publicaciones, // 👈 ya viene con todo
+            'publicaciones' => $institucion->publicaciones,
             'auth' => [
                 'user' => auth()->user(),
             ],

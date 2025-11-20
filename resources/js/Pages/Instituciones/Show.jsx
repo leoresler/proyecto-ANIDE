@@ -1,7 +1,7 @@
-import React from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Heart, MessageCircle } from 'lucide-react';
+import React from "react";
+import { Head, Link, router } from "@inertiajs/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Heart, MessageCircle } from "lucide-react";
 
 export default function Show({ institucion, publicaciones = [], auth }) {
     return (
@@ -20,14 +20,15 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                 <div className="text-center mb-10">
                     <img
                         src={
-                            institucion.profile_photo_url
-                                ? institucion.profile_photo_url
-                                : '/storage/profile-photos/default.png'
+                            institucion.user.profile_photo_url ||
+                            "/images/default-avatar.png"
                         }
                         alt={`Foto de perfil de ${institucion.nombre}`}
                         className="w-40 h-40 object-cover rounded-full shadow-lg border-4 border-white mx-auto"
                     />
-                    <p className="text-gray-700 mt-4 max-w-2xl mx-auto">{institucion.descripcion}</p>
+                    <p className="text-gray-700 mt-4 max-w-2xl mx-auto">
+                        {institucion.descripcion}
+                    </p>
                 </div>
 
                 {/* 🔹 Botón para iniciar chat */}
@@ -35,7 +36,7 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                     <div className="text-center mt-6">
                         <button
                             onClick={() => {
-                                router.post(route('chat.iniciar'), {
+                                router.post(route("chat.iniciar"), {
                                     institucion_id: institucion.id,
                                 });
                             }}
@@ -49,13 +50,15 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                 {/* 🔹 Información */}
                 <div className="text-gray-700 mb-8 text-center space-y-2">
                     <p>
-                        <strong>Tipo:</strong> {institucion.tipo_institucion || 'Sin especificar'}
+                        <strong>Tipo:</strong>{" "}
+                        {institucion.tipo_institucion || "Sin especificar"}
                     </p>
                     <p>
-                        <strong>Dirección:</strong> {institucion.direccion || 'No indicada'}
+                        <strong>Dirección:</strong>{" "}
+                        {institucion.direccion || "No indicada"}
                     </p>
                     <p>
-                        <strong>Sitio web:</strong>{' '}
+                        <strong>Sitio web:</strong>{" "}
                         {institucion.url_sitio_web ? (
                             <a
                                 href={institucion.url_sitio_web}
@@ -66,7 +69,7 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                                 {institucion.url_sitio_web}
                             </a>
                         ) : (
-                            'No disponible'
+                            "No disponible"
                         )}
                     </p>
                 </div>
@@ -111,7 +114,10 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                                             </span>
                                         </div>
                                         <Link
-                                            href={route('publicaciones.show', pub.id)}
+                                            href={route(
+                                                "publicaciones.show",
+                                                pub.id
+                                            )}
                                             className="text-edu-dark font-medium hover:underline"
                                         >
                                             Ver más →
@@ -131,7 +137,8 @@ export default function Show({ institucion, publicaciones = [], auth }) {
 
                     {institucion.residencias?.length === 0 ? (
                         <p className="text-gray-500 text-center">
-                            Esta institución aún no tiene residencias registradas.
+                            Esta institución aún no tiene residencias
+                            registradas.
                         </p>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -144,7 +151,7 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                                         src={
                                             res.foto_portada
                                                 ? `/storage/${res.foto_portada}`
-                                                : '/images/residencia-default.jpg'
+                                                : "/images/residencia-default.jpg"
                                         }
                                         alt={res.nombre}
                                         className="w-full h-40 object-cover"
@@ -155,19 +162,25 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                                             {res.nombre}
                                         </h4>
                                         <p className="text-sm text-gray-600 mb-2">
-                                            {res.direccion || 'Dirección no especificada'}
+                                            {res.direccion ||
+                                                "Dirección no especificada"}
                                         </p>
                                         <p className="text-sm text-gray-600 mb-2">
-                                            <strong>Capacidad:</strong> {res.capacidad || 'N/A'}
+                                            <strong>Capacidad:</strong>{" "}
+                                            {res.capacidad || "N/A"}
                                         </p>
                                         {res.contacto && (
                                             <p className="text-sm text-gray-600 mb-2">
-                                                <strong>Contacto:</strong> {res.contacto}
+                                                <strong>Contacto:</strong>{" "}
+                                                {res.contacto}
                                             </p>
                                         )}
                                         <p className="text-sm text-gray-600 mb-2">
-                                            <strong>Información adicional: </strong> 
-                                            {res.info_adicional || 'Sin información adicional'}
+                                            <strong>
+                                                Información adicional:{" "}
+                                            </strong>
+                                            {res.info_adicional ||
+                                                "Sin información adicional"}
                                         </p>
                                     </div>
                                 </div>
@@ -176,10 +189,9 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                     )}
                 </div>
 
-
                 <div className="mt-10 text-center">
                     <Link
-                        href={route('inicio')}
+                        href={route("inicio")}
                         className="text-sm text-gray-600 underline"
                     >
                         Volver
