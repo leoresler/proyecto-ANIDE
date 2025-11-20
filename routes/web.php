@@ -179,4 +179,7 @@ Route::put('/profile/interests', [ProfileController::class, 'updateInterests'])
 
 
 
+Route::post('/chats/{chat}/marcar-leidos', [ChatController::class, 'marcarLeidos']);
+
+
 require __DIR__ . '/auth.php';

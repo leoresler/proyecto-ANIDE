@@ -15,3 +15,8 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
 
     return false;
 });
+
+
+Broadcast::channel('user.{id}', function ($user, $id) {
+    return intval($user->id) === intval($id);
+});

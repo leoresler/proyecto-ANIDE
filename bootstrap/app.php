@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.persona' => \App\Http\Middleware\CheckPersona::class,
             'check.institucion' => \App\Http\Middleware\CheckInstitucion::class,
         ]);
+        $middleware->use([
+        \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

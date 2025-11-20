@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Events\MensajeEnviado;
 use App\Events\UsuarioEscribiendo;
 
+
+
 class ChatController extends Controller
 {
     public function index()
@@ -36,6 +38,7 @@ class ChatController extends Controller
         return inertia('Chat/ChatPage', [
             'auth' => ['user' => $user],
             'chats' => $chats,
+            'chatIds' => $chats->pluck('id'),
         ]);
     }
 
@@ -44,9 +47,21 @@ class ChatController extends Controller
         $chat = Chat::with(['mensajes.emisor', 'persona.user', 'institucion.user'])
                     ->findOrFail($id);
 
+        // Marcar como leídos los mensajes que no fueron enviados por el usuario actual
+        \App\Models\Mensaje::where('chat_id', $id)
+        ->where('emisor_id', '!=', auth()->id())
+        ->where('leido', false)
+        ->update([
+            'leido' => true,
+            'leido_en' => now(),
+        ]);
+
+        broadcast(new \App\Events\MensajeLeido($id, auth()->id()))->toOthers();
+    
         return inertia('Chat/ChatDetalle', [
             'chat' => $chat,
             'mensajes' => $chat->mensajes,
+            'auth' => ['user' => auth()->user()],
         ]);
     }
 
@@ -107,4 +122,17 @@ class ChatController extends Controller
         broadcast(new UsuarioEscribiendo($chatId, $request->user()))->toOthers();
         return response()->json(['status' => 'ok']);
     }
+
+    public function marcarLeidos(Chat $chat)
+    {
+        $userId = auth()->id();
+
+        Mensaje::where('chat_id', $chat->id)
+            ->where('emisor_id', '!=', $userId)
+            ->update(['leido' => true]);
+
+        return response()->json(['ok' => true]);
+    }
+
+
 }

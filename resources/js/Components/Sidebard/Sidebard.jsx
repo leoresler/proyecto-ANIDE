@@ -1,10 +1,51 @@
+import { Link, router } from "@inertiajs/react";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BotonSidebar from "./botonSidebard";
-import ChatPage from "@/Pages/Chat/ChatPage";
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, onClose, unreadCount }) {
+
+    const [count, setCount] = useState(unreadCount);
     const [showMore, setShowMore] = useState(false);
+
+    // Actualiza cuando Laravel manda nuevo unreadCount
+    useEffect(() => {
+        setCount(unreadCount);
+    }, [unreadCount]);
+
+    // Cuando llega un mensaje → recargar unreadCount desde backend
+    useEffect(() => {
+        const actualizar = () => {
+            console.log("🔄 Recalculando unread...");
+            router.reload({ only: ["unreadCount"] });
+        };
+
+        window.addEventListener("mensaje-recibido", actualizar);
+
+        return () => {
+            window.removeEventListener("mensaje-recibido", actualizar);
+        };
+    }, []);
+
+    // Cuando llega un mensaje REAL-TIME desde Echo → recargar unreadCount
+    useEffect(() => {
+        const actualizar = () => {
+            console.log("🔄 Recalculando unread...");
+            router.reload({ only: ["unreadCount"] });
+        };
+
+        // 🔥 Evento que vos ya usabas
+        window.addEventListener("mensaje-recibido", actualizar);
+
+        // 🔥 Evento que faltaba para actualizaciones en tiempo real
+        window.addEventListener("nuevo-mensaje", actualizar);
+
+        return () => {
+            window.removeEventListener("mensaje-recibido", actualizar);
+            window.removeEventListener("nuevo-mensaje", actualizar);
+        };
+    }, []);
+
 
     return (
         <>
@@ -14,37 +55,20 @@ export default function Sidebar({ isOpen, onClose }) {
                     <BotonSidebar href="/profile" label="Perfil" />
                     <hr className="bg-black" />
 
+                    <BotonSidebar href="#" icon="/svg/sidebar/book.svg" label="Carreras" />
+                    <BotonSidebar href="/favoritos" icon="/svg/sidebar/bookmark.svg" label="Elementos Guardados" />
+                    <BotonSidebar href="#" icon="/svg/sidebar/location.svg" label="Ubicaciones Guardadas" />
+                    <BotonSidebar href="#" icon="/svg/sidebar/courses.svg" label="Cursos" />
+                    <BotonSidebar href="#" icon="/svg/sidebar/clock.svg" label="Actividad" />
+
                     <BotonSidebar
-                        href="#"
-                        icon="/svg/sidebar/book.svg"
-                        label="Carreras"
+                        href="/chats"
+                        icon="/svg/sidebar/chat.svg"
+                        label="Chat"
+                        unreadCount={count}
                     />
-                    <BotonSidebar
-                        href="#"
-                        icon="/svg/sidebar/courses.svg"
-                        label="Cursos"
-                    />
-                    <BotonSidebar
-                        href="#"
-                        icon="/svg/sidebar/clock.svg"
-                        label="Actividad"
-                    />
-                    <BotonSidebar
-                        href="#"
-                        icon="/svg/sidebar/location.svg"
-                        label="Ubicaciones Guardadas"
-                    />
-                    <BotonSidebar
-                        href="/favoritos"
-                        icon="/svg/sidebar/bookmark.svg"
-                        label="Elementos Guardados"
-                    />
-                    <BotonSidebar
-                                href="/chats"
-                                icon="/svg/sidebar/chat.svg"
-                                label="Chat"
-                    />
-                    <hr className="bg-black" />
+
+                    <hr className="bg-black mt-3" />
 
                     <button
                         onClick={() => setShowMore(!showMore)}
@@ -66,13 +90,11 @@ export default function Sidebar({ isOpen, onClose }) {
             {/* sidebar móvil */}
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex">
-                    {/* Fondo oscuro */}
                     <div
                         className="fixed inset-0 bg-black bg-opacity-50"
                         onClick={onClose}
                     ></div>
 
-                    {/* Panel lateral */}
                     <aside className="relative w-64 bg-white h-full shadow-xl z-50 p-4 overflow-y-auto">
                         <button
                             onClick={onClose}
@@ -82,39 +104,22 @@ export default function Sidebar({ isOpen, onClose }) {
                         </button>
 
                         <nav className="space-y-2 mt-8">
-                            <BotonSidebar href="#" label="Perfil" />
+                            <BotonSidebar href="/profile" label="Perfil" />
                             <hr className="bg-black" />
 
-                            <BotonSidebar
-                                href="#"
-                                icon="/svg/sidebar/book.svg"
-                                label="Carreras"
-                            />
-                            <BotonSidebar
-                                href="#"
-                                icon="/svg/sidebar/bookmark.svg"
-                                label="Elementos Guardados"
-                            />
-                            <BotonSidebar
-                                href="#"
-                                icon="/svg/sidebar/location.svg"
-                                label="Ubicaciones Guardadas"
-                            />
-                            <BotonSidebar
-                                href="#"
-                                icon="/svg/sidebar/courses.svg"
-                                label="Cursos"
-                            />
-                            <BotonSidebar
-                                href="#"
-                                icon="/svg/sidebar/clock.svg"
-                                label="Actividad"
-                            />
+                            <BotonSidebar href="#" icon="/svg/sidebar/book.svg" label="Carreras" />
+                            <BotonSidebar href="/favoritos" icon="/svg/sidebar/bookmark.svg" label="Elementos Guardados" />
+                            <BotonSidebar href="#" icon="/svg/sidebar/location.svg" label="Ubicaciones Guardadas" />
+                            <BotonSidebar href="#" icon="/svg/sidebar/courses.svg" label="Cursos" />
+                            <BotonSidebar href="#" icon="/svg/sidebar/clock.svg" label="Actividad" />
+
                             <BotonSidebar
                                 href="/chats"
                                 icon="/svg/sidebar/chat.svg"
                                 label="Chat"
+                                unreadCount={count}
                             />
+
                             <hr className="bg-black" />
 
                             <button
@@ -123,13 +128,11 @@ export default function Sidebar({ isOpen, onClose }) {
                             >
                                 {showMore ? (
                                     <>
-                                        <ChevronUp size={18} />{" "}
-                                        <span>Ver menos</span>
+                                        <ChevronUp size={18} /> <span>Ver menos</span>
                                     </>
                                 ) : (
                                     <>
-                                        <ChevronDown size={18} />{" "}
-                                        <span>Ver más</span>
+                                        <ChevronDown size={18} /> <span>Ver más</span>
                                     </>
                                 )}
                             </button>
