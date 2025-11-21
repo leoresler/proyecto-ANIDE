@@ -4,6 +4,8 @@ import { Head } from '@inertiajs/react';
 import axios from "axios";
 import "../../echo.js";
 import { throttle } from 'lodash';
+import { router } from '@inertiajs/react';
+
 
 export default function ChatDetalle({ chat, mensajes, auth }) {
     const [contenido, setContenido] = useState("");
@@ -16,18 +18,32 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
     const mountedRef = useRef(false);
     const userId = auth.user.id;
 
-    // Determinar el otro usuario del chat
-    const personaUser = chat.persona?.user;
-    const institucionUser = chat.institucion?.user;
+    // Siempre persona ↔ institución
+    const personaUser = chat.persona?.user || null;
+    const institucionUser = chat.institucion?.user || null;
 
     let otraParte = null;
-    if (personaUser?.id === userId) otraParte = institucionUser;
-    else if (institucionUser?.id === userId) otraParte = personaUser;
-    else otraParte = personaUser || institucionUser;
+
+    // Si soy la persona → la otra parte es la institución
+    if (personaUser && personaUser.id === userId) {
+        otraParte = institucionUser;
+    }
+    // Si soy la institución → la otra parte es la persona
+    else if (institucionUser && institucionUser.id === userId) {
+        otraParte = personaUser;
+    }
+    // Caso fallback (extra seguridad)
+    else {
+        otraParte = institucionUser || personaUser;
+    }
+
 
     //resetar contador cuando abre mensaje
     useEffect(() => {
-        window.dispatchEvent(new CustomEvent("chat-abierto"));
+        window.dispatchEvent(
+        new CustomEvent("chat-abierto", { detail: { chatId: chat.id } })
+        );
+
     }, []);
 
     // Mantener el chatId actualizado para que la función throttled use siempre el chat actual
@@ -171,6 +187,21 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
         return () => channel.stopListening(".MensajeEnviado");
     }, [chat.id]);
 
+    const handleBorrarChat = () => {
+        router.post(route("chat.archivar", chat.id), {
+            onSuccess: () => {
+                // 🔥 Enviar evento global para ChatPage.jsx
+                window.dispatchEvent(new CustomEvent("chat-borrado", {
+                    detail: { chatId: chat.id }
+                }));
+
+                // Opcional: redirigir fuera del chat
+                router.visit(route("chat.index"));
+            }
+        });
+    };
+
+
 
     return (
         <AuthenticatedLayout
@@ -261,6 +292,12 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
                         Enviar
                     </button>
                 </form>
+                <button
+                    onClick={handleBorrarChat}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                    Borrar chat
+                </button>
             </div>
         </AuthenticatedLayout>
     );

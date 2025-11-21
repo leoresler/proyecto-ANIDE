@@ -178,8 +178,19 @@ Route::put('/profile/interests', [ProfileController::class, 'updateInterests'])
     ->name('profile.interests.update');
 
 
-
 Route::post('/chats/{chat}/marcar-leidos', [ChatController::class, 'marcarLeidos']);
 
+Route::post('/chats/{chat}/archivar', [ChatController::class, 'archivar'])
+     ->name('chat.archivar');
+
+Route::post('/chats/{chat}/recibir', [\App\Http\Controllers\Chats\ChatController::class, 'recibir'])
+    ->name('chat.recibir');
+
+Route::get('/api/chat/{id}', [ChatController::class, 'apiShow'])
+    ->name('chat.api.show');
+
+    Route::get('/api/chats', [ChatController::class, 'apiIndex'])
+    ->middleware('auth')
+    ->name('chat.api.index');
 
 require __DIR__ . '/auth.php';

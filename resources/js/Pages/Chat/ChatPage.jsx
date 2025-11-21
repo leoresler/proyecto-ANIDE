@@ -1,6 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import React, { useEffect, useState } from "react";
+import axios from "axios";
+
 
 export default function ChatPage({ auth, chats = [] }) {
     const userId = auth.user.id;
@@ -28,6 +30,70 @@ export default function ChatPage({ auth, chats = [] }) {
         window.addEventListener("mensaje-nuevo-chatpage", handler);
         return () => window.removeEventListener("mensaje-nuevo-chatpage", handler);
     }, []);
+
+    useEffect(() => {
+        if (!auth?.user?.id) return;
+
+        const channel = window.Echo.private(`user.${auth.user.id}`);
+
+        const listener = (data) => {
+        const mensaje = data.mensaje;
+        const chatId = mensaje.chat_id;
+
+        axios.post(route('chat.recibir', chatId))
+            .then(async (res) => {
+
+                // 🔥 Si el chat se revivió, refrescamos la lista COMPLETA
+                if (res.data.revived) {
+                    try {
+                        const lista = await axios.get(route('chat.index.api')); 
+                        setListaChats(lista.data.chats);
+                    } catch (e) {
+                        console.error("Error refrescando lista de chats:", e);
+                    }
+                }
+
+                // ⬇️ Ahora SÍ pedimos el chat completo
+                axios.get(route('chat.api.show', chatId))
+                    .then(res2 => {
+                        const chatCompleto = res2.data.chat;
+
+                        setListaChats(prev => {
+                            const existe = prev.some(c => c.id === chatId);
+                            if (existe) {
+                                return prev.map(c =>
+                                    c.id === chatId
+                                        ? { ...c, mensajes: [...c.mensajes, mensaje] }
+                                        : c
+                                );
+                            }
+                            return [chatCompleto, ...prev];
+                        });
+                    })
+                    .catch(err => {
+                        console.error("Error cargando chat desde backend:", err);
+                    });
+            })
+            .catch(err => {
+                console.error("Error marcando chat como recibido:", err);
+            });
+    };
+
+
+        channel.listen('.MensajeEnviado', listener);
+
+        return () => {
+            try {
+                channel.stopListening('.MensajeEnviado');
+                window.Echo.leave(`user.${auth.user.id}`);
+            } catch (e) {
+                // ignore
+            }
+        };
+    }, [auth?.user?.id]);
+
+
+
 
     // ----------------------------------------------
     // 2) ESCUCHAR CUANDO EL USUARIO ABRE UN CHAT
@@ -57,6 +123,23 @@ export default function ChatPage({ auth, chats = [] }) {
     }, []);
 
     // ----------------------------------------------
+    // 3) ESCUCHAR CUANDO SE BORRA UN CHAT
+    //    → QUITARLO INSTANTÁNEAMENTE DE LA LISTA
+    // ----------------------------------------------
+    useEffect(() => {
+        const handler = (e) => {
+            const { chatId } = e.detail;
+
+            setListaChats(prev =>
+                prev.filter(chat => chat.id !== chatId)
+            );
+        };
+
+        window.addEventListener("chat-borrado", handler);
+        return () => window.removeEventListener("chat-borrado", handler);
+    }, []);
+
+    // ----------------------------------------------
     // RENDER
     // ----------------------------------------------
     return (
@@ -76,13 +159,30 @@ export default function ChatPage({ auth, chats = [] }) {
                         <div className="space-y-4">
                             {listaChats.map((chat) => {
 
-                                const personaUser = chat.persona?.user;
-                                const institucionUser = chat.institucion?.user;
+                                // Información desde el backend
+                                const personaUser = chat.persona?.user || null;
+                                const institucionUser = chat.institucion?.user || null;
+
+                                let otroUser = null;
+
+                                // Si soy la persona
+                                if (personaUser && personaUser.id === userId) {
+                                    otroUser = institucionUser;
+                                }
+                                // Si soy la institución
+                                else if (institucionUser && institucionUser.id === userId) {
+                                    otroUser = personaUser;
+                                }
+                                // fallback por seguridad
+                                else {
+                                    otroUser = institucionUser || personaUser;
+                                }
+
 
                                 const soyPersona = personaUser?.id === userId;
                                 const soyInstitucion = institucionUser?.id === userId;
 
-                                let otroUser = null;
+                               
                                 if (soyPersona) otroUser = institucionUser;
                                 else if (soyInstitucion) otroUser = personaUser;
                                 else otroUser = personaUser || institucionUser;
