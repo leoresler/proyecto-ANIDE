@@ -10,6 +10,7 @@ import { router } from '@inertiajs/react';
 export default function ChatDetalle({ chat, mensajes, auth }) {
     const [contenido, setContenido] = useState("");
     const [mensajesState, setMensajes] = useState(mensajes || []);
+    const [confirmarBorrado, setConfirmarBorrado] = useState(false);
 
     const [usuarioEscribiendo, setUsuarioEscribiendo] = useState(null);
     const timeoutRef = useRef(null);
@@ -187,19 +188,24 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
         return () => channel.stopListening(".MensajeEnviado");
     }, [chat.id]);
 
-    const handleBorrarChat = () => {
-        router.post(route("chat.archivar", chat.id), {
-            onSuccess: () => {
-                // 🔥 Enviar evento global para ChatPage.jsx
-                window.dispatchEvent(new CustomEvent("chat-borrado", {
+    const handleBorrarChat = async () => {
+        try {
+       
+            await axios.post(route("chat.archivar", chat.id));
+     
+            window.dispatchEvent(
+                new CustomEvent("chat-borrado", {
                     detail: { chatId: chat.id }
-                }));
+                })
+            );
 
-                // Opcional: redirigir fuera del chat
-                router.visit(route("chat.index"));
-            }
-        });
+            router.visit(route("chat.index"));
+
+        } catch (error) {
+            console.error("Error al borrar chat:", error);
+        }
     };
+
 
 
 
@@ -293,12 +299,49 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
                     </button>
                 </form>
                 <button
-                    onClick={handleBorrarChat}
+                    onClick={() => setConfirmarBorrado(true)}
                     className="text-sm text-gray-500 hover:text-gray-700"
                 >
                     Borrar chat
                 </button>
+
             </div>
+
+            {confirmarBorrado && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                        ¿Deseas borrar este chat?
+                    </h2>
+
+                    <p className="text-gray-600 mb-6">
+                        Esta acción eliminará este chat de tu bandeja.  
+                        El otro usuario seguirá viendo los mensajes.
+                    </p>
+
+                    <div className="flex justify-end gap-3">
+                        <button
+                            onClick={() => setConfirmarBorrado(false)}
+                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                        >
+                            No
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setConfirmarBorrado(false);
+                                handleBorrarChat();   // 🔥 ahora sí borra
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                            Sí, borrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
         </AuthenticatedLayout>
     );
 }

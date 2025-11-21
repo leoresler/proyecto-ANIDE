@@ -139,6 +139,14 @@ export default function ChatPage({ auth, chats = [] }) {
         return () => window.removeEventListener("chat-borrado", handler);
     }, []);
 
+        useEffect(() => {
+        setListaChats(prev =>
+            prev.length === 0
+                ? chats // primera carga
+                : prev.filter(ch => chats.some(c => c.id === ch.id)) // limpiar eliminados
+        );
+    }, [chats]);
+
     // ----------------------------------------------
     // RENDER
     // ----------------------------------------------

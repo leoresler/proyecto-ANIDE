@@ -189,8 +189,10 @@ Route::post('/chats/{chat}/recibir', [\App\Http\Controllers\Chats\ChatController
 Route::get('/api/chat/{id}', [ChatController::class, 'apiShow'])
     ->name('chat.api.show');
 
-    Route::get('/api/chats', [ChatController::class, 'apiIndex'])
+Route::get('/api/chats', [ChatController::class, 'apiIndex'])
     ->middleware('auth')
     ->name('chat.api.index');
+    
+Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
 
 require __DIR__ . '/auth.php';

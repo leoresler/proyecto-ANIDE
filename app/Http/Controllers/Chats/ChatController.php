@@ -18,6 +18,8 @@ class ChatController extends Controller
 {
     public function index()
     {
+        session()->forget('revived_chats');
+
         $user = Auth::user();
 
         $persona = PerfPersona::where('user_id', $user->id)->first();
@@ -192,7 +194,7 @@ class ChatController extends Controller
             $chat->update(['institucion_deleted_at' => now()]);
         }
 
-        return response()->json(['status' => 'ok']);
+        return redirect()->route('chat.index');
     }
 
     public function apiShow($id)
