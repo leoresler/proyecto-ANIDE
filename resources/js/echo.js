@@ -17,9 +17,6 @@ window.Echo = new Echo({
     enabledTransports: ['ws'], // 🔥 solo WebSockets reales
 });
 
-
-
-
 // Debug opcional
 window.Echo.connector.pusher.connection.bind('connected', () => {
     console.log('📡 Conectado a Pusher');

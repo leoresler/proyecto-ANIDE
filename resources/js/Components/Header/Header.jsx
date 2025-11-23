@@ -1,9 +1,49 @@
 import Dropdown from "@/Components/Dropdown";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
 import BarraBusqueda from "../BarraBusqueda/BarraBusqueda";
 import NavLink from "../NavLink";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import "../../echo";
 
 export default function Header({ onToggleSidebar }) {
+    const { auth, notificacionesIniciales = [], notificacionesNoLeidasCount = 0 } = usePage().props;
+    const user = auth?.user;
+
+    const [notificaciones, setNotificaciones] = useState(notificacionesIniciales);
+    const [dropdownAbierto, setDropdownAbierto] = useState(false);
+    const [contadorRojo, setContadorRojo] = useState(notificacionesNoLeidasCount);
+
+    // Abrir dropdown y marcar notificaciones como leídas
+    const abrirDropdown = async () => {
+        setDropdownAbierto(true);
+
+        if (contadorRojo > 0) {
+            try {
+                await axios.post(route('notificaciones.marcar-leidas'));
+                setContadorRojo(0); // desaparecer punto rojo
+            } catch (e) {
+                console.error('Error al marcar notificaciones como leídas', e);
+            }
+        }
+    };
+
+    // Escucha nuevas notificaciones en tiempo real
+    useEffect(() => {
+        if (!user || !window.Echo) return;
+
+        const canal = window.Echo.private(`user.${user.id}`);
+
+        canal.listen('.ComentarioCreado', (data) => {
+            setNotificaciones(prev => [data.comentario, ...prev]);
+            setContadorRojo(prev => prev + 1); // actualizar contador rojo
+        });
+
+        return () => {
+            window.Echo.leave(`user.${user.id}`);
+        };
+    }, [user]);
+
     return (
         <header className="bg-[#243746] text-white sticky top-0 z-50">
             <nav className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
@@ -16,27 +56,13 @@ export default function Header({ onToggleSidebar }) {
                         />
                     </Link>
 
-                    {/* links para desktop*/}
+                    {/* Links desktop */}
                     <div className="hidden md:flex items-center space-x-8 gap-2">
-                        <NavLink
-                            href={route("inicio")}
-                            active={route().current("inicio")}
-                        >
-                            <img
-                                src="/svg/header/home1.svg"
-                                alt="Inicio"
-                                className="h-6 w-6"
-                            />
+                        <NavLink href={route("inicio")} active={route().current("inicio")}>
+                            <img src="/svg/header/home1.svg" alt="Inicio" className="h-6 w-6"/>
                         </NavLink>
-                        <NavLink
-                            href={route("mapa.index")}
-                            active={route().current("mapa.index")}
-                        >
-                            <img
-                                src="/svg/header/Map.svg"
-                                alt="Mapa"
-                                className="h-6 w-6"
-                            />
+                        <NavLink href={route("mapa.index")} active={route().current("mapa.index")}>
+                            <img src="/svg/header/Map.svg" alt="Mapa" className="h-6 w-6"/>
                         </NavLink>
                     </div>
 
@@ -44,54 +70,81 @@ export default function Header({ onToggleSidebar }) {
                         <div className="hidden md:flex mx-6">
                             <BarraBusqueda variant="global" />
                         </div>
-                        
+
                         <Dropdown>
                             <Dropdown.Trigger>
-                                <button className="inline-flex items-center rounded-full p-2 ">
-                                    <img
-                                        src="/svg/header/Vector.svg"
-                                        alt="Notificaciones"
-                                        className="h-6 w-6"
-                                    />
+                                <button
+                                    className="relative inline-flex items-center rounded-full p-2"
+                                    onClick={abrirDropdown}
+                                >
+                                    <img src="/svg/header/Vector.svg" alt="Notificaciones" className="h-6 w-6" />
+                                    {contadorRojo > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                                            {contadorRojo}
+                                        </span>
+                                    )}
                                 </button>
                             </Dropdown.Trigger>
-                            <Dropdown.Content>
-                                <Dropdown.Link href={route("profile.edit")}>
-                                    Perfil
-                                </Dropdown.Link>
-                                <Dropdown.Link
-                                    href={route("logout")}
-                                    method="post"
-                                    as="button"
-                                >
+
+                            <Dropdown.Content className="w-80 max-h-96 overflow-y-auto">
+                                <Dropdown.Link href={route("profile.edit")}>Perfil</Dropdown.Link>
+                                <Dropdown.Link href={route("logout")} method="post" as="button">
                                     Cerrar sesión
                                 </Dropdown.Link>
-                                <br /> <hr className="border border-blue-500" />{" "}
-                                <Dropdown.Link href={route("profile.edit")}>
-                                    mostrar notificaciones debajo
-                                </Dropdown.Link>
+                                <hr className="my-2 border-gray-300" />
+
+                                {notificaciones.length === 0 ? (
+                                    <p className="px-4 py-2 text-gray-500">Sin notificaciones</p>
+                                ) : (
+                                    notificaciones.map(notif => {
+                                        return (
+                                            <Link
+                                                key={notif.id || Math.random()}
+                                                href={`/publicaciones/${notif.data?.publicacion_id}`}
+
+                                                className="block px-4 py-2 border-b last:border-b-0 hover:bg-gray-100"
+                                            >
+                                                <p className="text-gray-900 font-semibold text-sm">
+                                                    {notif.data?.usuario 
+                                                    ?? notif.usuario?.name 
+                                                    ?? 'Usuario desconocido'
+                                                } comentó tu publicación
+                                                </p>
+                                                <p className="text-gray-700 text-sm truncate">
+                                                    {notif.data?.contenido    // viene de DB
+                                                        ?? notif.contenido    // viene desde Pusher
+                                                        ?? "Sin contenido"}
+                                                </p>
+
+                                                <p className="text-gray-400 text-xs">
+                                                    {notif.created_at
+                                                        ? new Date(notif.created_at).toLocaleString()
+                                                        : new Date().toLocaleString()}
+                                                </p>
+                                            </Link>
+                                        );
+                                    })
+                                )}
+
+
                             </Dropdown.Content>
                         </Dropdown>
                     </div>
 
-                    {/* busqueda en movil */}
+                    {/* Busqueda movil */}
                     <div className="flex-1 px-4 md:hidden">
                         <div className="max-w-xs mx-auto">
                             <BarraBusqueda variant="global" />
                         </div>
                     </div>
 
-                    {/* boton para abrir menu en movil */}
+                    {/* Botón menú móvil */}
                     <div className="md:hidden">
                         <button
                             onClick={onToggleSidebar}
                             className="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-white/10"
                         >
-                            <img
-                                src="/svg/header/Group.svg"
-                                alt="Menu"
-                                className="h-6 w-6"
-                            />
+                            <img src="/svg/header/Group.svg" alt="Menu" className="h-6 w-6"/>
                         </button>
                     </div>
                 </div>

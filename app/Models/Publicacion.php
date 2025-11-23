@@ -125,4 +125,25 @@ class Publicacion extends Model
             $this->attributes['categorias'] = $value;
         }
     }
+
+    public function user()
+    {
+        // Si la publicación pertenece a una institución
+        if ($this->perf_institucion_id) {
+            return $this->institucion?->user;
+        }
+
+        // Si en el futuro agregás publicaciones de personas:
+        if ($this->perf_persona_id ?? false) {
+            return $this->persona?->user;
+        }
+
+        return null;
+    }
+    public function ownerUser()
+    {
+        return $this->institucion?->user ?? null;
+    }
+
+
 }

@@ -8,6 +8,7 @@ use App\Services\OpenAIModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Events\ComentarioCreado;
 
 class ComentarioController extends Controller
 {
@@ -68,6 +69,9 @@ class ComentarioController extends Controller
 
         $comentario = ComentPublicacion::create($comentarioData);
 
+        // Disparar evento para tiempo real
+        event(new ComentarioCreado($comentario));
+        
         // Cargar relaciones para devolver el comentario completo
         $comentario = ComentPublicacion::with([
             'persona.user',

@@ -14,6 +14,7 @@ use App\Http\Controllers\Chats\ChatController;
 use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\InstitucionMaterialController;
 use App\Http\Controllers\BusquedaController;
+use App\Http\Controllers\NotificacionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -194,5 +195,9 @@ Route::get('/api/chats', [ChatController::class, 'apiIndex'])
     ->name('chat.api.index');
     
 Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
+
+Route::post('/notificaciones/marcar-leidas', [NotificacionController::class, 'marcarLeidas'])
+    ->name('notificaciones.marcar-leidas')
+    ->middleware('auth');
 
 require __DIR__ . '/auth.php';
