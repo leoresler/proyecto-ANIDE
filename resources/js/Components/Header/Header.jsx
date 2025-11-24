@@ -38,6 +38,11 @@ export default function Header({ onToggleSidebar }) {
             setNotificaciones(prev => [data.comentario, ...prev]);
             setContadorRojo(prev => prev + 1); // actualizar contador rojo
         });
+        canal.listen('.LikeCreado', (data) => {
+            console.log("📌 LIKE RECIBIDO:", data);
+            setNotificaciones(prev => [data.like, ...prev]);
+            setContadorRojo(prev => prev + 1);
+        });
 
         return () => {
             window.Echo.leave(`user.${user.id}`);
@@ -93,40 +98,47 @@ export default function Header({ onToggleSidebar }) {
                                 </Dropdown.Link>
                                 <hr className="my-2 border-gray-300" />
 
-                                {notificaciones.length === 0 ? (
-                                    <p className="px-4 py-2 text-gray-500">Sin notificaciones</p>
-                                ) : (
+                                <div className="max-h-96 overflow-y-auto">
+                                    {notificaciones.length === 0 ? (
+                                        <p className="px-4 py-2 text-gray-500">Sin notificaciones</p>
+                                    ) : (
+                                        // Mapear notificaciones
                                     notificaciones.map(notif => {
+                                        // Detectar si es comentario o like
+                                        const esComentario = notif.type?.includes("ComentarioCreadoNotification");
+                                        const esLike = notif.type?.includes("LikeCreadoNotification");
+
+                                        // Datos de usuario
+                                        const usuarioNombre = notif.data?.usuario_nombre ?? notif.data?.name ?? 'Usuario desconocido';
+                                        const usuarioFoto = notif.data?.usuario_foto ?? '/images/default-avatar.png';
+
+                                        // Mensaje
+                                        const mensaje = esComentario ? "comentó tu publicación" : esLike ? "le gusta tu publicación" : "";
+
                                         return (
                                             <Link
-                                                key={notif.id || Math.random()}
-                                                href={`/publicaciones/${notif.data?.publicacion_id}`}
-
+                                                key={notif.id}
+                                                href={`/publicaciones/${notif.data?.publicacion_id ?? notif.data?.like_id}`}
                                                 className="block px-4 py-2 border-b last:border-b-0 hover:bg-gray-100"
                                             >
-                                                <p className="text-gray-900 font-semibold text-sm">
-                                                    {notif.data?.usuario 
-                                                    ?? notif.usuario?.name 
-                                                    ?? 'Usuario desconocido'
-                                                } comentó tu publicación
-                                                </p>
-                                                <p className="text-gray-700 text-sm truncate">
-                                                    {notif.data?.contenido    // viene de DB
-                                                        ?? notif.contenido    // viene desde Pusher
-                                                        ?? "Sin contenido"}
-                                                </p>
-
-                                                <p className="text-gray-400 text-xs">
-                                                    {notif.created_at
-                                                        ? new Date(notif.created_at).toLocaleString()
-                                                        : new Date().toLocaleString()}
-                                                </p>
+                                                <div className="flex items-start gap-3">
+                                                    <img src={usuarioFoto} alt="Foto usuario" className="w-10 h-10 rounded-full object-cover"/>
+                                                    <div className="flex-1">
+                                                        <p className="text-gray-900 font-semibold text-sm">{usuarioNombre} {mensaje}</p>
+                                                        {(esComentario) && (
+                                                            <p className="text-gray-700 text-sm truncate">{notif.data?.contenido ?? "Sin contenido"}</p>
+                                                        )}
+                                                        <p className="text-gray-400 text-xs">
+                                                            {notif.created_at ? new Date(notif.created_at).toLocaleString() : new Date().toLocaleString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </Link>
                                         );
                                     })
-                                )}
 
-
+                                    )}
+                                </div>
                             </Dropdown.Content>
                         </Dropdown>
                     </div>
@@ -150,5 +162,6 @@ export default function Header({ onToggleSidebar }) {
                 </div>
             </nav>
         </header>
-    );
+);
+
 }

@@ -18,14 +18,24 @@ class ComentarioCreadoNotification extends Notification
     // Método que se llama para guardar la notificación en la base de datos
     public function toDatabase($notifiable)
     {
+        $usuario = $this->comentario->persona->user 
+            ?? $this->comentario->institucion->user 
+            ?? null;
+
         return [
             'comentario_id' => $this->comentario->id,
             'contenido' => $this->comentario->contenido,
             'publicacion_id' => $this->comentario->publicacion_id,
-            'usuario' => $this->comentario->persona ? $this->comentario->persona->user->nombre : 'Usuario desconocido',
+
+            'usuario_nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
+            'usuario_foto' => $usuario->profile_photo_path
+                ? asset('storage/' . $usuario->profile_photo_path)
+                : '/images/default-user.png',
+
             'created_at' => $this->comentario->created_at,
         ];
     }
+
 
     // Método para enviar la notificación por canales adicionales (puedes agregar más si lo necesitas)
     public function via($notifiable)

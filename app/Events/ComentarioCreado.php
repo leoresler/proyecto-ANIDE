@@ -43,20 +43,20 @@ class ComentarioCreado implements ShouldBroadcast
 
     public function broadcastWith()
     {
-        // Cargar relaciones posibles
         $this->comentario->load([
-            'persona.user',      // usuario tipo persona
-            'institucion.user',  // usuario tipo institución
+            'persona.user',
+            'institucion.user',
         ]);
 
         // Determinar el usuario que hizo el comentario
-        $usuario = null;
+        $usuario = $this->comentario->persona->user
+            ?? $this->comentario->institucion->user
+            ?? null;
 
-        if ($this->comentario->persona && $this->comentario->persona->user) {
-            $usuario = $this->comentario->persona->user;
-        } elseif ($this->comentario->institucion && $this->comentario->institucion->user) {
-            $usuario = $this->comentario->institucion->user;
-        }
+        // Foto del usuario (misma lógica que en toDatabase)
+        $usuario_foto = $usuario && $usuario->profile_photo_path
+            ? asset('storage/' . $usuario->profile_photo_path)
+            : asset('images/default-avatar.png');
 
         return [
             'comentario' => [
@@ -64,17 +64,16 @@ class ComentarioCreado implements ShouldBroadcast
                 'contenido' => $this->comentario->contenido,
                 'publicacion_id' => $this->comentario->publicacion_id,
 
-                'usuario' => $usuario ? [
-                    'id' => $usuario->id,
+                'usuario' => [
+                    'id' => $usuario->id ?? null,
                     'name' => $usuario->nombre ?? $usuario->name ?? 'Sin nombre',
-                ] : [
-                    'id' => null,
-                    'name' => 'Usuario desconocido',
+                    'foto' => $usuario_foto, 
                 ],
 
                 'created_at' => $this->comentario->created_at,
             ],
         ];
     }
+
 
 }

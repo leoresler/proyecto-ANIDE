@@ -34,64 +34,52 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        // Si NO hay usuario autenticado, devolver valores vacíos
+
         if (!$user) {
             return array_merge(parent::share($request), [
-                'auth' => [
-                    'user' => null,
-                ],
-                'notificaciones' => [],
-                'contadorNotificaciones' => 0,
+                'auth' => ['user' => null],
+                'notificacionesIniciales' => [],
+                'notificacionesNoLeidasCount' => 0,
+                'unreadCount' => 0,
             ]);
         }
 
         // 🔹 Contador de mensajes no leídos (chats)
-        $unread = 0;
-        if ($user) {
-            $unread = Mensaje::where('leido', false)
-                ->where('emisor_id', '!=', $user->id)
-                ->whereHas('chat', function ($q) use ($user) {
-                    $q->where(function($sub) use ($user) {
-                        $sub->where('persona_id', optional($user->persona)->id)
-                            ->orWhere('institucion_id', optional($user->institucion)->id);
-                    });
-                })
-                ->count();
-        }
+        $unread = Mensaje::where('leido', false)
+            ->where('emisor_id', '!=', $user->id)
+            ->whereHas('chat', function ($q) use ($user) {
+                $q->where(function($sub) use ($user) {
+                    $sub->where('persona_id', optional($user->persona)->id)
+                        ->orWhere('institucion_id', optional($user->institucion)->id);
+                });
+            })
+            ->count();
 
-        // 🔹 Notificaciones de comentarios
+        // 🔹 Traer las últimas notificaciones de cualquier tipo (comentarios y likes)
         $notificacionesIniciales = DatabaseNotification::where('notifiable_id', $user->id)
-            ->where('type', 'App\Notifications\ComentarioCreadoNotification')
             ->latest()
             ->take(20)
-            ->get(); // Últimas 20 notificaciones de comentarios (para mostrar en el dropdown)
+            ->get();
 
-        // 🔹 Notificaciones no leídas (para mostrar el contador rojo)
-        $notificacionesNoLeidas = DatabaseNotification::where('notifiable_id', $user->id)
-            ->where('type', 'App\Notifications\ComentarioCreadoNotification')
+        // 🔹 Contador de notificaciones no leídas
+        $notificacionesNoLeidasCount = DatabaseNotification::where('notifiable_id', $user->id)
             ->whereNull('read_at')
-            ->get(); // Notificaciones no leídas
-
-            \Log::info('Share props notificacionesIniciales', [
-            'user_id' => $user->id,
-            'notificaciones' => $notificacionesIniciales->toArray(),
-        ]);
+            ->count();
 
         return [
             ...parent::share($request),
-            'auth' => [
-                'user' => $user,
-            ],
+            'auth' => ['user' => $user],
             'flash' => [
-                'message' => fn () => $request->session()->get('message'),
-                'error' => fn () => $request->session()->get('error'),
+                'message' => fn() => $request->session()->get('message'),
+                'error'   => fn() => $request->session()->get('error'),
             ],
             'csrf_token' => csrf_token(),
-            'unreadCount' => $unread, // mensajes no leídos (chats)
-            'notificacionesIniciales' => $notificacionesIniciales, // últimas 20 notificaciones
-            'notificacionesNoLeidasCount' => $notificacionesNoLeidas->count(), // contador del punto rojo
+            'unreadCount' => $unread,
+            'notificacionesIniciales' => $notificacionesIniciales,
+            'notificacionesNoLeidasCount' => $notificacionesNoLeidasCount,
         ];
     }
+
 
     /**
      * Handle the incoming request.

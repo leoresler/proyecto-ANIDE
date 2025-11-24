@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+
+
 class Like extends Model
 {
     use HasFactory;
@@ -20,6 +22,19 @@ class Like extends Model
     {
         return $this->belongsTo(PerfInstitucion::class, 'perf_institucion_id');
     }
+
+    public function publicacion()
+    {
+        return $this->belongsTo(Publicacion::class, 'target_id');
+    }
+
+
+    public function comentario()
+    {
+        return $this->belongsTo(ComentPublicacion::class, 'target_id');
+    }
+
+
 
     public function target()
     {
