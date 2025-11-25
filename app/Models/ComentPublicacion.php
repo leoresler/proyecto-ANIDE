@@ -55,6 +55,12 @@ class ComentPublicacion extends Model
             ->where('target_tipo', 'comentario');
     }
 
+    public function comentPadre()
+    {
+        return $this->belongsTo(ComentPublicacion::class, 'coment_padre_id');
+    }
+
+
     // metodos GET
 
     /**

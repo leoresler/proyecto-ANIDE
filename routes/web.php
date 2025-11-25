@@ -15,6 +15,7 @@ use App\Http\Controllers\InstitucionController;
 use App\Http\Controllers\InstitucionMaterialController;
 use App\Http\Controllers\BusquedaController;
 use App\Http\Controllers\NotificacionController;
+use App\Http\Controllers\UbicacionController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -160,7 +161,9 @@ Route::get('/institucion/pendiente', function () {
 // chat
 Route::get('/chat', function () {
     return Inertia::render('Chat/ChatPage');
-})->name('chat');
+})
+    ->middleware('auth')
+    ->name('chat');
 
 // rutas publicas para ver mapa
 Route::get('/api/residencias/map/all', [ResidenciaController::class, 'getAllForMap'])
@@ -176,28 +179,52 @@ Route::post('/chats/{chatId}/escribiendo', [ChatController::class, 'escribiendo'
 
 
 Route::put('/profile/interests', [ProfileController::class, 'updateInterests'])
+    ->middleware('auth')
     ->name('profile.interests.update');
 
 
-Route::post('/chats/{chat}/marcar-leidos', [ChatController::class, 'marcarLeidos']);
+Route::post('/chats/{chat}/marcar-leidos', [ChatController::class, 'marcarLeidos'])
+->middleware('auth');
 
 Route::post('/chats/{chat}/archivar', [ChatController::class, 'archivar'])
+    ->middleware('auth')
      ->name('chat.archivar');
 
 Route::post('/chats/{chat}/recibir', [\App\Http\Controllers\Chats\ChatController::class, 'recibir'])
+    ->middleware('auth')
     ->name('chat.recibir');
 
 Route::get('/api/chat/{id}', [ChatController::class, 'apiShow'])
+    ->middleware('auth')
     ->name('chat.api.show');
 
 Route::get('/api/chats', [ChatController::class, 'apiIndex'])
     ->middleware('auth')
     ->name('chat.api.index');
     
-Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
+Route::get('/chats', [ChatController::class, 'index'])
+->middleware('auth') ->name('chat.index');
 
 Route::post('/notificaciones/marcar-leidas', [NotificacionController::class, 'marcarLeidas'])
     ->name('notificaciones.marcar-leidas')
     ->middleware('auth');
+
+    //ubicaciones guardadas
+    Route::post('/ubicaciones/toggle', [UbicacionController::class, 'toggle'])
+    ->middleware(['auth'])
+    ->name('ubicaciones.toggle');
+
+    Route::get('/ubicaciones', [UbicacionController::class, 'index'])
+        ->middleware(['auth'])
+        ->name('ubicaciones.index');
+
+    Route::get('/ubicaciones', [UbicacionController::class, 'index'])->name('ubicaciones.show');
+
+    Route::post('/api/ubicaciones/toggle', [UbicacionController::class, 'toggleApi']);
+
+Broadcast::channel('user.{userId}', function ($user, $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
 
 require __DIR__ . '/auth.php';

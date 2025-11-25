@@ -13,6 +13,7 @@ export default function Header({ onToggleSidebar }) {
     const [notificaciones, setNotificaciones] = useState(notificacionesIniciales);
     const [dropdownAbierto, setDropdownAbierto] = useState(false);
     const [contadorRojo, setContadorRojo] = useState(notificacionesNoLeidasCount);
+    
 
     // Abrir dropdown y marcar notificaciones como leídas
     const abrirDropdown = async () => {
@@ -35,14 +36,63 @@ export default function Header({ onToggleSidebar }) {
         const canal = window.Echo.private(`user.${user.id}`);
 
         canal.listen('.ComentarioCreado', (data) => {
-            setNotificaciones(prev => [data.comentario, ...prev]);
+            console.log("📌 COMENTARIO RECIBIDO:", data);
+            setNotificaciones(prev => [
+            {
+                id: data.comentario.id,
+                type: "App\\Notifications\\ComentarioCreadoNotification",
+                created_at: data.comentario.created_at,
+                data: {
+                    tipo: "comentario",
+                    publicacion_id: data.comentario.publicacion_id,
+                    contenido: data.comentario.contenido,
+                    usuario: data.comentario.usuario,
+                }
+            },
+            ...prev
+        ]);
+
             setContadorRojo(prev => prev + 1); // actualizar contador rojo
         });
         canal.listen('.LikeCreado', (data) => {
-            console.log("📌 LIKE RECIBIDO:", data);
-            setNotificaciones(prev => [data.like, ...prev]);
+            setNotificaciones(prev => [
+            {
+                id: data.like.id,
+                type: "App\\Notifications\\LikeCreadoNotification",
+                created_at: data.like.created_at,
+                data: {
+                    tipo: "like",
+                    publicacion_id: data.like.publicacion_id,
+                    usuario: data.like.usuario,
+                }
+            },
+            ...prev
+        ]);
+
             setContadorRojo(prev => prev + 1);
         });
+        canal.listen('.RespuestaComentario', (data) => {
+        console.log("📌 RESPUESTA RECIBIDA:", data);
+        
+        setNotificaciones(prev => [
+            {
+                id: data.comentario.id, // el ID del comentario hijo
+                type: "App\\Notifications\\RespuestaComentarioNotification",
+                created_at: data.comentario.created_at,
+                data: {
+                    tipo: "respuesta",
+                    publicacion_id: data.comentario.publicacion_id,
+                    contenido: data.comentario.contenido,
+                    usuario: data.comentario.usuario,
+                    coment_padre_id: data.comentario.coment_padre_id
+                }
+            },
+            ...prev
+        ]);
+
+        setContadorRojo(prev => prev + 1);
+    });
+
 
         return () => {
             window.Echo.leave(`user.${user.id}`);
@@ -103,39 +153,52 @@ export default function Header({ onToggleSidebar }) {
                                         <p className="px-4 py-2 text-gray-500">Sin notificaciones</p>
                                     ) : (
                                         // Mapear notificaciones
-                                    notificaciones.map(notif => {
-                                        // Detectar si es comentario o like
-                                        const esComentario = notif.type?.includes("ComentarioCreadoNotification");
-                                        const esLike = notif.type?.includes("LikeCreadoNotification");
+                                   notificaciones.map(notif => {
+                                    // Determinar tipo de notificación
+                                    let tipo = notif.data?.tipo ?? null;
+                                    if (!tipo && notif.type) {
+                                        if (notif.type.includes("LikeCreadoNotification")) tipo = "like";
+                                        else if (notif.type.includes("ComentarioCreadoNotification")) tipo = "comentario";
+                                        else if (notif.type.includes("RespuestaComentarioNotification")) tipo = "respuesta";
+                                    }
 
-                                        // Datos de usuario
-                                        const usuarioNombre = notif.data?.usuario_nombre ?? notif.data?.name ?? 'Usuario desconocido';
-                                        const usuarioFoto = notif.data?.usuario_foto ?? '/images/default-avatar.png';
+                                    const esLike = tipo === "like";
+                                    const esComentario = tipo === "comentario";
+                                    const esRespuesta = tipo === "respuesta";
 
-                                        // Mensaje
-                                        const mensaje = esComentario ? "comentó tu publicación" : esLike ? "le gusta tu publicación" : "";
+                                    const usuario = notif.data?.usuario ?? {};
+                                    const usuarioNombre = usuario.nombre ?? usuario.name ?? "Usuario desconocido";
+                                    const usuarioFoto = usuario.foto ?? "/images/default-avatar.png";
 
-                                        return (
-                                            <Link
-                                                key={notif.id}
-                                                href={`/publicaciones/${notif.data?.publicacion_id ?? notif.data?.like_id}`}
-                                                className="block px-4 py-2 border-b last:border-b-0 hover:bg-gray-100"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <img src={usuarioFoto} alt="Foto usuario" className="w-10 h-10 rounded-full object-cover"/>
-                                                    <div className="flex-1">
-                                                        <p className="text-gray-900 font-semibold text-sm">{usuarioNombre} {mensaje}</p>
-                                                        {(esComentario) && (
-                                                            <p className="text-gray-700 text-sm truncate">{notif.data?.contenido ?? "Sin contenido"}</p>
-                                                        )}
-                                                        <p className="text-gray-400 text-xs">
-                                                            {notif.created_at ? new Date(notif.created_at).toLocaleString() : new Date().toLocaleString()}
-                                                        </p>
-                                                    </div>
+                                    // Mensaje según tipo
+                                    let mensaje = "";
+                                    if (esComentario) mensaje = "comentó tu publicación";
+                                    else if (esLike) mensaje = "le gusta tu publicación";
+                                    else if (esRespuesta) mensaje = "respondió a tu comentario";
+
+                                    return (
+                                        <Link
+                                            key={notif.id}
+                                            href={`/publicaciones/${notif.data?.publicacion_id ?? notif.data?.like_id}`}
+                                            className="block px-4 py-2 border-b last:border-b-0 hover:bg-gray-100"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <img src={usuarioFoto} alt="Foto usuario" className="w-10 h-10 rounded-full object-cover"/>
+                                                <div className="flex-1">
+                                                    <p className="text-gray-900 font-semibold text-sm">{usuarioNombre} {mensaje}</p>
+                                                    {(esComentario || esRespuesta) && (
+                                                        <p className="text-gray-700 text-sm truncate">{notif.data?.contenido ?? "Sin contenido"}</p>
+                                                    )}
+                                                    <p className="text-gray-400 text-xs">
+                                                        {notif.created_at ? new Date(notif.created_at).toLocaleString() : new Date().toLocaleString()}
+                                                    </p>
                                                 </div>
-                                            </Link>
-                                        );
-                                    })
+                                            </div>
+                                        </Link>
+                                    );
+                                })
+
+
 
                                     )}
                                 </div>

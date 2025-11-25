@@ -43,7 +43,7 @@ export default function ChatPage({ auth, chats = [] }) {
         axios.post(route('chat.recibir', chatId))
             .then(async (res) => {
 
-                // 🔥 Si el chat se revivió, refrescamos la lista COMPLETA
+                //  Si el chat se revivió, refrescamos la lista COMPLETA
                 if (res.data.revived) {
                     try {
                         const lista = await axios.get(route('chat.index.api')); 
@@ -53,7 +53,7 @@ export default function ChatPage({ auth, chats = [] }) {
                     }
                 }
 
-                // ⬇️ Ahora SÍ pedimos el chat completo
+                //  Ahora SÍ pedimos el chat completo
                 axios.get(route('chat.api.show', chatId))
                     .then(res2 => {
                         const chatCompleto = res2.data.chat;
@@ -70,6 +70,7 @@ export default function ChatPage({ auth, chats = [] }) {
                             return [chatCompleto, ...prev];
                         });
                     })
+                    
                     .catch(err => {
                         console.error("Error cargando chat desde backend:", err);
                     });
@@ -139,13 +140,7 @@ export default function ChatPage({ auth, chats = [] }) {
         return () => window.removeEventListener("chat-borrado", handler);
     }, []);
 
-        useEffect(() => {
-        setListaChats(prev =>
-            prev.length === 0
-                ? chats // primera carga
-                : prev.filter(ch => chats.some(c => c.id === ch.id)) // limpiar eliminados
-        );
-    }, [chats]);
+
 
     // ----------------------------------------------
     // RENDER

@@ -18,33 +18,25 @@ class ChatController extends Controller
 {
     public function index()
     {
-        session()->forget('revived_chats');
-
         $user = Auth::user();
 
         $persona = PerfPersona::where('user_id', $user->id)->first();
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
 
-        $revived = session('revived_chats', []);
-
         if ($persona) {
+            // SOLO ocultar si ESTA persona lo borró
             $chats = Chat::where('persona_id', $persona->id)
-                        ->where(function($q) use ($revived) {
-                            $q->whereNull('persona_deleted_at')
-                            ->orWhereIn('id', $revived);
-                        })
-                        ->with(['institucion.user', 'mensajes.emisor'])
-                        ->get();
-        } 
-        elseif ($institucion) {
-            $chats = Chat::where('institucion_id', $institucion->id)
-                        ->where(function($q) use ($revived) {
-                            $q->whereNull('institucion_deleted_at')
-                            ->orWhereIn('id', $revived);
-                        })
-                        ->with(['persona.user', 'mensajes.emisor'])
-                        ->get();
+                ->whereNull('persona_deleted_at')
+                ->with(['institucion.user', 'mensajes.emisor'])
+                ->get();
         }
+        elseif ($institucion) {
+            // SOLO ocultar si ESTA institución lo borró
+            $chats = Chat::where('institucion_id', $institucion->id)
+                ->whereNull('institucion_deleted_at')
+                ->with(['persona.user', 'mensajes.emisor'])
+                ->get();
+        } 
         else {
             $chats = collect();
         }
@@ -57,6 +49,8 @@ class ChatController extends Controller
     }
 
 
+
+
     public function show($id)
     {
         $user = auth()->user();
@@ -64,32 +58,39 @@ class ChatController extends Controller
         $persona = PerfPersona::where('user_id', $user->id)->first();
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
 
-        $chat = Chat::with(['mensajes.emisor', 'persona.user', 'institucion.user'])
+        $chat = Chat::with(['persona.user', 'institucion.user'])
                     ->findOrFail($id);
 
-        // Detectamos si este usuario "borró" el chat
-        if ($persona && $chat->persona_deleted_at) {
-            $mensajes = $chat->mensajes()
-                ->where('created_at', '>', $chat->persona_deleted_at)
-                ->get();
-        } elseif ($institucion && $chat->institucion_deleted_at) {
-            $mensajes = $chat->mensajes()
-                ->where('created_at', '>', $chat->institucion_deleted_at)
-                ->get();
-        } else {
-            $mensajes = $chat->mensajes;
+        $esPersona = $persona && $chat->persona_id == $persona->id;
+        $esInstitucion = $institucion && $chat->institucion_id == $institucion->id;
+
+        if (!$esPersona && !$esInstitucion) {
+            abort(403, "No autorizado.");
         }
 
-        // Marcar como leídos los mensajes que no fueron enviados por el usuario actual
+        // FILTRAR mensajes igual que apiShow
+        $deletedAt = $chat->deletedAtFor($user->id);
+
+        $mensajes = $chat->mensajes()
+            ->when($deletedAt, function ($q) use ($deletedAt) {
+                $q->where('created_at', '>', $deletedAt);
+            })
+            ->orderBy('created_at', 'asc')
+            ->with('emisor')
+            ->get();
+
+
+
+        // leer mensajes
         Mensaje::where('chat_id', $id)
-            ->where('emisor_id', '!=', auth()->id())
+            ->where('emisor_id', '!=', $user->id)
             ->where('leido', false)
             ->update([
                 'leido' => true,
                 'leido_en' => now(),
             ]);
 
-        broadcast(new \App\Events\MensajeLeido($id, auth()->id()))->toOthers();
+        broadcast(new \App\Events\MensajeLeido($id, $user->id))->toOthers();
 
         return inertia('Chat/ChatDetalle', [
             'chat' => $chat,
@@ -97,6 +98,8 @@ class ChatController extends Controller
             'auth' => ['user' => $user],
         ]);
     }
+
+
 
 
     public function iniciarChat(Request $request)
@@ -188,6 +191,16 @@ class ChatController extends Controller
         $persona = PerfPersona::where('user_id', $user->id)->first();
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
 
+        // Seguridad: validar que el chat realmente pertenece al usuario
+        if ($persona && $chat->persona_id !== $persona->id) {
+            abort(403, 'No autorizado.');
+        }
+
+        if ($institucion && $chat->institucion_id !== $institucion->id) {
+            abort(403, 'No autorizado.');
+        }
+
+        // Marcar como borrado
         if ($persona) {
             $chat->update(['persona_deleted_at' => now()]);
         } elseif ($institucion) {
@@ -197,40 +210,44 @@ class ChatController extends Controller
         return redirect()->route('chat.index');
     }
 
+
     public function apiShow($id)
     {
+        $user = Auth::user();
+
+        // Cargar chat con relaciones
         $chat = Chat::with(['persona.user', 'institucion.user'])
                     ->findOrFail($id);
 
-        $userId = auth()->id();
+        // Verificar que el usuario es parte del chat
+        $esDueno = 
+            ($chat->persona && $chat->persona->user_id == $user->id) ||
+            ($chat->institucion && $chat->institucion->user_id == $user->id);
 
-        // Saber si el usuario actual es persona o institución
-        $esPersona = $chat->persona && $chat->persona->user_id == $userId;
-        $esInstitucion = $chat->institucion && $chat->institucion->user_id == $userId;
-
-        if (!$esPersona && !$esInstitucion) {
+        if (!$esDueno) {
             abort(403, "No tiene permiso para ver este chat.");
         }
 
-        // FILTRO: mensajes posteriores a persona_deleted_at o institucion_deleted_at
+        // Obtener fecha de borrado específica PARA ESTE usuario
+        $deletedAt = $chat->deletedAtFor($user->id);
+
+        // Filtrar mensajes dependiendo de si el usuario borró el chat
         $mensajes = $chat->mensajes()
-            ->when($esPersona && $chat->persona_deleted_at, function ($q) use ($chat) {
-                $q->where('created_at', '>', $chat->persona_deleted_at);
-            })
-            ->when($esInstitucion && $chat->institucion_deleted_at, function ($q) use ($chat) {
-                $q->where('created_at', '>', $chat->institucion_deleted_at);
+            ->when($deletedAt, function ($q) use ($deletedAt) {
+                $q->where('created_at', '>', $deletedAt);
             })
             ->orderBy('created_at', 'asc')
             ->with('emisor')
             ->get();
 
-        // Añadimos los mensajes filtrados manualmente
+        // Sobrescribir la relación mensajes en el objeto Chat
         $chat->setRelation('mensajes', $mensajes);
 
         return response()->json([
             'chat' => $chat
         ]);
     }
+
 
 
     /**
@@ -244,27 +261,48 @@ class ChatController extends Controller
         $persona = PerfPersona::where('user_id', $user->id)->first();
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
 
-        $revived = false;
+        $esPersona = $persona && $chat->persona_id == $persona->id;
+        $esInstitucion = $institucion && $chat->institucion_id == $institucion->id;
 
-        if ($persona && $chat->persona_id == $persona->id) {
-
-            // No tocamos persona_deleted_at -> mantiene el "corte"
-            session()->push('revived_chats', $chat->id);
-            $revived = true;
+        if (!$esPersona && !$esInstitucion) {
+            return response()->json([
+                'ok' => false,
+                'revived' => false,
+            ], 403);
         }
 
-        if ($institucion && $chat->institucion_id == $institucion->id) {
+        // 🔥 1. GUARDÁS EL deleted_at ANTES DE REVIVIR
+        $oldDeletedAt = $chat->deletedAtFor($user->id);
 
-            // No tocamos institucion_deleted_at -> mantiene el "corte"
-            session()->push('revived_chats', $chat->id);
-            $revived = true;
+        // 🔥 2. FILTRÁS MENSAJES ANTES DE LIMPIAR deleted_at
+        $mensajes = $chat->mensajes()
+            ->when($oldDeletedAt, fn($q) =>
+                $q->where('created_at', '>', $oldDeletedAt)
+            )
+            ->with('emisor')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // 🔥 3. REVIVÍS (pero ya guardaste la fecha para filtrar)
+        if ($esPersona) {
+            $chat->update(['persona_deleted_at' => null]);
+        }
+
+        if ($esInstitucion) {
+            $chat->update(['institucion_deleted_at' => null]);
         }
 
         return response()->json([
             'ok' => true,
-            'revived' => $revived,
+            'revived' => true,
+            'mensajes' => $mensajes,
+            'old_deleted_at' => $oldDeletedAt, // 👈 FRONT LA PUEDE USAR
         ]);
     }
+
+
+
+
 
 
 

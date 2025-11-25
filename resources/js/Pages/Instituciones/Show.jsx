@@ -1,9 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Heart, MessageCircle } from "lucide-react";
 
-export default function Show({ institucion, publicaciones = [], auth }) {
+export default function Show({ institucion, publicaciones = [], auth, guardada: initialGuardada }) {
+
+    const [guardada, setGuardada] = useState(initialGuardada);
+
+    const toggleUbicacion = async () => {
+    try {
+        const res = await axios.post(route("ubicaciones.toggle"), {
+            institucion_id: institucion.id
+        });
+        setGuardada(res.data.guardada); // Actualiza instantáneamente
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+
+    
     return (
         <AuthenticatedLayout
             user={auth.user}
@@ -46,6 +62,18 @@ export default function Show({ institucion, publicaciones = [], auth }) {
                         </button>
                     </div>
                 )}
+
+                {auth.user?.id !== institucion.user_id && (
+                    <div className="text-center mt-3">
+                        <button
+                            onClick={toggleUbicacion}
+                            className={`bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow transition`}
+                        >
+                            {guardada ? "📍 Quitar ubicación" : "📍 Guardar ubicación"}
+                        </button>
+                    </div>
+                )}
+
 
                 {/* 🔹 Información */}
                 <div className="text-gray-700 mb-8 text-center space-y-2">

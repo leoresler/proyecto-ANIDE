@@ -31,4 +31,18 @@ class Chat extends Model
     {
         return $this->hasMany(Mensaje::class);
     }
+
+    public function deletedAtFor($userId)
+    {
+        if ($this->persona && $this->persona->user_id === $userId) {
+            return $this->persona_deleted_at;
+        }
+
+        if ($this->institucion && $this->institucion->user_id === $userId) {
+            return $this->institucion_deleted_at;
+        }
+
+        return null;
+    }
+
 }

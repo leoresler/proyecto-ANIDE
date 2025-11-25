@@ -9,6 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Events\ComentarioCreado;
+use App\Events\RespuestaComentarioEvent;
+use App\Notifications\RespuestaComentarioNotification;
+
+
 
 class ComentarioController extends Controller
 {
@@ -36,13 +40,6 @@ class ComentarioController extends Controller
         // Moderar el contenido ANTES de permitir su publicación
         $moderationResult = $this->moderationService->moderate($validated['contenido']);
 
-        Log::info('Intento de comentario', [
-            'user_id' => $user->id,
-            'is_safe' => $moderationResult['is_safe'],
-            'detected_words' => $moderationResult['detected_words'] ?? [],
-        ]);
-
-        // Si el comentario NO es seguro, bloquearlo completamente
         if (!$moderationResult['is_safe']) {
             $detectedCount = count($moderationResult['detected_words'] ?? []);
 
@@ -56,11 +53,10 @@ class ComentarioController extends Controller
 
         $comentarioData = [
             'publicacion_id' => $validated['publicacion_id'],
-            'contenido' => $validated['contenido'], // Guardar texto ORIGINAL
+            'contenido' => $validated['contenido'],
             'coment_padre_id' => $validated['coment_padre_id'] ?? null,
         ];
 
-        // Agregar el ID según el tipo de usuario
         if ($user->tipo_usuario === 'persona') {
             $comentarioData['perf_persona_id'] = $user->persona->id;
         } else {
@@ -69,15 +65,46 @@ class ComentarioController extends Controller
 
         $comentario = ComentPublicacion::create($comentarioData);
 
-        // Disparar evento para tiempo real
-        event(new ComentarioCreado($comentario));
-        
-        // Cargar relaciones para devolver el comentario completo
+        Log::info('Comentario creado:', [
+            'id' => $comentario->id,
+            'contenido' => $comentario->contenido,
+            'coment_padre_id' => $comentario->coment_padre_id,
+            'user_id' => $user->id,
+        ]);
+
+        if (!$comentario->coment_padre_id) {
+            Log::info('Disparando evento ComentarioCreado para comentario normal', ['id' => $comentario->id]);
+            event(new ComentarioCreado($comentario));
+        } else {
+            $comentarioPadre = ComentPublicacion::find($comentario->coment_padre_id);
+
+            Log::info('Disparando evento RespuestaComentarioEvent para comentario hijo', [
+                'comentario_id' => $comentario->id,
+                'coment_padre_id' => $comentario->coment_padre_id,
+                'dueño_padre_persona' => $comentarioPadre->persona?->user->id,
+                'dueño_padre_institucion' => $comentarioPadre->institucion?->user->id,
+            ]);
+
+            event(new RespuestaComentarioEvent($comentario));
+
+            if ($comentarioPadre->persona?->user) {
+                $comentarioPadre->persona->user->notify(
+                    new RespuestaComentarioNotification($comentario)
+                );
+            } elseif ($comentarioPadre->institucion?->user) {
+                $comentarioPadre->institucion->user->notify(
+                    new RespuestaComentarioNotification($comentario)
+                );
+            }
+        }
+
         $comentario = ComentPublicacion::with([
             'persona.user',
             'institucion.user',
             'likes'
         ])->find($comentario->id);
+
+        Log::info('Comentario final con relaciones cargadas:', ['comentario' => $comentario]);
 
         return response()->json([
             'success' => true,
@@ -86,45 +113,46 @@ class ComentarioController extends Controller
         ]);
     }
 
-    /**
-     * Elimina un comentario (soft delete)
-     */
-    public function destroy($id)
-    {
-        $user = Auth::user();
-        $comentario = ComentPublicacion::with('publicacion')->findOrFail($id);
 
-        $puedeEliminar = false;
+        /**
+         * Elimina un comentario (soft delete)
+         */
+        public function destroy($id)
+        {
+            $user = Auth::user();
+            $comentario = ComentPublicacion::with('publicacion')->findOrFail($id);
 
-        // Verificar si es el dueño del comentario
-        if ($user->tipo_usuario === 'persona' && $comentario->perf_persona_id === $user->persona->id) {
-            $puedeEliminar = true;
-        } elseif ($user->tipo_usuario === 'institucion' && $comentario->perf_institucion_id === $user->institucion->id) {
-            $puedeEliminar = true;
-        }
+            $puedeEliminar = false;
 
-        // Verificar si es el dueño de la publicación
-        if (
-            $user->tipo_usuario === 'institucion' &&
-            $comentario->publicacion->perf_institucion_id === $user->institucion->id
-        ) {
-            $puedeEliminar = true;
-        }
+            // Verificar si es el dueño del comentario
+            if ($user->tipo_usuario === 'persona' && $comentario->perf_persona_id === $user->persona->id) {
+                $puedeEliminar = true;
+            } elseif ($user->tipo_usuario === 'institucion' && $comentario->perf_institucion_id === $user->institucion->id) {
+                $puedeEliminar = true;
+            }
 
-        if (!$puedeEliminar) {
+            // Verificar si es el dueño de la publicación
+            if (
+                $user->tipo_usuario === 'institucion' &&
+                $comentario->publicacion->perf_institucion_id === $user->institucion->id
+            ) {
+                $puedeEliminar = true;
+            }
+
+            if (!$puedeEliminar) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para eliminar este comentario',
+                ], 403);
+            }
+
+            $comentario->update([
+                'eliminado' => true,
+            ]);
+
             return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para eliminar este comentario',
-            ], 403);
+                'success' => true,
+                'message' => 'Comentario eliminado exitosamente',
+            ]);
         }
-
-        $comentario->update([
-            'eliminado' => true,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Comentario eliminado exitosamente',
-        ]);
     }
-}

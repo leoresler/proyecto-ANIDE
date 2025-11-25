@@ -176,14 +176,33 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
         channel.subscribed(() => console.log('✅ Canal suscrito correctamente'));
         channel.error((err) => console.error('❌ Error en canal:', err));
 
-        channel.listen(".MensajeEnviado", (e) => {
-            console.log("📨 Evento recibido:", e);
-            setMensajes((prev) => [...prev, e.mensaje]);
-            // Avisar al Sidebar que un chat recibió un mensaje
+        channel.listen(".MensajeEnviado", async (e) => {
+        console.log("📨 Evento recibido:", e);
+
+        try {
+            // 1️⃣ Revivir chat si corresponde (y obtener mensajes filtrados)
+            const reviveRes = await axios.post(route("chat.recibir", chat.id));
+
+            if (reviveRes.data.revived) {
+                // si revivió → usar mensajes filtrados devueltos
+                setMensajes(reviveRes.data.mensajes);
+            }
+
+            // 2️⃣ Ahora sí refrescar mensajes completos como siempre
+            const showRes = await axios.get(route("chat.api.show", chat.id));
+            setMensajes(showRes.data.chat.mensajes);
+
+        } catch (err) {
+            console.error("❌ Error refrescando mensajes filtrados", err);
+        }
+
+        // Avisar al Sidebar
         window.dispatchEvent(
             new CustomEvent("mensaje-nuevo-chatpage", { detail: { mensaje: e.mensaje } })
         );
-        });
+    });
+
+
 
         return () => channel.stopListening(".MensajeEnviado");
     }, [chat.id]);
@@ -331,7 +350,7 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
                         <button
                             onClick={() => {
                                 setConfirmarBorrado(false);
-                                handleBorrarChat();   // 🔥 ahora sí borra
+                                handleBorrarChat();
                             }}
                             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                         >

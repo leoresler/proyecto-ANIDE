@@ -28,13 +28,44 @@ class LikeCreadoNotification extends Notification
         return [
             'like_id' => $this->like->id,
             'publicacion_id' => $this->like->target_id,
-
-            'usuario_nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
-            'usuario_foto' => $usuario->profile_photo_path
-                ? asset('storage/' . $usuario->profile_photo_path)
-                : '/images/default-user.png',
-
+            'usuario' => [
+                'id' => $usuario->id ?? null,
+                'nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
+                'foto' => $usuario->profile_photo_path
+                    ? asset('storage/' . $usuario->profile_photo_path)
+                    : '/images/default-user.png',
+            ],
+            'tipo' => 'like',
             'created_at' => $this->like->created_at,
         ];
     }
+
+
+    public function toArray($notifiable)
+    {
+        $usuario = $this->like->persona->user
+            ?? $this->like->institucion->user
+            ?? null;
+
+        // Aplanar los datos del usuario para enviar a JS
+        $usuarioArray = $usuario ? [
+            'id' => $usuario->id,
+            'nombre' => $usuario->nombre ?? $usuario->name,
+            'foto' => $usuario->profile_photo_path
+                ? asset('storage/' . $usuario->profile_photo_path)
+                : '/images/default-user.png',
+        ] : [
+            'id' => null,
+            'nombre' => 'Usuario desconocido',
+            'foto' => '/images/default-user.png',
+        ];
+
+        return [
+            'like_id' => $this->like->id,
+            'publicacion_id' => $this->like->target_id,
+            'usuario' => $usuarioArray,
+            'created_at' => $this->like->created_at,
+        ];
+    }
+
 }

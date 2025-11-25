@@ -84,6 +84,13 @@ class PerfInstitucion extends Model
         return $this->hasMany(Publicacion::class, 'perf_institucion_id');
     }
 
+    public function guardadaPorUsuarios()
+    {
+        return $this->belongsToMany(PerfPersona::class, 'ubicaciones_guardadas', 'institucion_id', 'persona_id')
+                    ->with('user');
+    }
+
+
     protected static function booted()
     {
         static::creating(function ($institucion) {

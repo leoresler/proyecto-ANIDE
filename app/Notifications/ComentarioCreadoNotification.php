@@ -18,28 +18,96 @@ class ComentarioCreadoNotification extends Notification
     // Método que se llama para guardar la notificación en la base de datos
     public function toDatabase($notifiable)
     {
-        $usuario = $this->comentario->persona->user 
-            ?? $this->comentario->institucion->user 
+        $usuario = $this->comentario->persona->user
+            ?? $this->comentario->institucion->user
             ?? null;
+
+        $usuarioArray = $usuario ? [
+            'id' => $usuario->id,
+            'nombre' => $usuario->nombre ?? $usuario->name,
+            'foto' => $usuario->profile_photo_path
+                ? asset('storage/' . $usuario->profile_photo_path)
+                : '/images/default-user.png',
+        ] : [
+            'id' => null,
+            'nombre' => 'Usuario desconocido',
+            'foto' => '/images/default-user.png',
+        ];
 
         return [
             'comentario_id' => $this->comentario->id,
-            'contenido' => $this->comentario->contenido,
             'publicacion_id' => $this->comentario->publicacion_id,
-
-            'usuario_nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
-            'usuario_foto' => $usuario->profile_photo_path
-                ? asset('storage/' . $usuario->profile_photo_path)
-                : '/images/default-user.png',
-
+            'contenido' => $this->comentario->contenido,
+            'usuario' => $usuarioArray, // <<--- aquí el usuario aplanado
+            'tipo' => 'comentario',
             'created_at' => $this->comentario->created_at,
         ];
     }
 
 
+    public function toBroadcast($notifiable)
+    {
+        $usuario = $this->comentario->persona->user 
+            ?? $this->comentario->institucion->user 
+            ?? null;
+
+        \Log::info("ComentarioCreadoNotification usuario:", ['usuario' => $usuario]);
+
+        return [
+            'id' => $this->comentario->id,
+            'type' => 'App\\Notifications\\ComentarioCreadoNotification',
+            'created_at' => $this->comentario->created_at,
+
+            'data' => [
+                'comentario_id' => $this->comentario->id,
+                'contenido' => $this->comentario->contenido,
+                'publicacion_id' => $this->comentario->publicacion_id,
+                'tipo' => 'comentario',
+                'usuario' => [
+                    'nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
+                    'foto' => $usuario->profile_photo_path
+                        ? asset('storage/' . $usuario->profile_photo_path)
+                        : '/images/default-user.png',
+                ],
+            ],
+        ];
+    }
+
+    public function toArray($notifiable)
+    {
+        $usuario = $this->comentario->persona->user
+            ?? $this->comentario->institucion->user
+            ?? null;
+
+        // Aplanar datos para que frontend siempre vea notif.data.usuario
+        $usuarioArray = $usuario ? [
+            'id' => $usuario->id,
+            'nombre' => $usuario->nombre ?? $usuario->name,
+            'foto' => $usuario->profile_photo_path
+                ? asset('storage/' . $usuario->profile_photo_path)
+                : '/images/default-avatar.png',
+        ] : [
+            'id' => null,
+            'nombre' => 'Usuario desconocido',
+            'foto' => '/images/default-avatar.png',
+        ];
+
+        return [
+            'comentario_id' => $this->comentario->id,
+            'publicacion_id' => $this->comentario->publicacion_id,
+            'contenido' => $this->comentario->contenido,
+            'usuario' => $usuarioArray, // <<--- aquí va
+            'tipo' => 'comentario',
+            'created_at' => $this->comentario->created_at,
+        ];
+    }
+
+
+
+
     // Método para enviar la notificación por canales adicionales (puedes agregar más si lo necesitas)
     public function via($notifiable)
     {
-        return ['database']; // Solo la guardamos en la base de datos
+        return ['database', 'broadcast']; 
     }
 }
