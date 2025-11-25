@@ -93,6 +93,26 @@ export default function Header({ onToggleSidebar }) {
         setContadorRojo(prev => prev + 1);
     });
 
+    canal.listen('.UbicacionGuardada', (data) => {
+        console.log("📌 NUEVA PUBLICACIÓN DE INSTITUCIÓN GUARDADA:", data);
+        setNotificaciones(prev => [
+            {
+                id: data.publicacion_id, // usar id de la publicación como identificador
+                type: "App\\Notifications\\UbicacionGuardadaNotification",
+                created_at: data.created_at,
+                data: {
+                    tipo: "publicacion",
+                    publicacion_id: data.publicacion_id,
+                    institucion_id: data.institucion_id,
+                    mensaje: data.mensaje,
+                    usuario: data.usuario,
+                }
+            },
+            ...prev
+        ]);
+
+        setContadorRojo(prev => prev + 1);
+    });
 
         return () => {
             window.Echo.leave(`user.${user.id}`);
@@ -165,6 +185,7 @@ export default function Header({ onToggleSidebar }) {
                                     const esLike = tipo === "like";
                                     const esComentario = tipo === "comentario";
                                     const esRespuesta = tipo === "respuesta";
+                                    const esPublicacion = tipo === "publicacion";
 
                                     const usuario = notif.data?.usuario ?? {};
                                     const usuarioNombre = usuario.nombre ?? usuario.name ?? "Usuario desconocido";
@@ -175,7 +196,7 @@ export default function Header({ onToggleSidebar }) {
                                     if (esComentario) mensaje = "comentó tu publicación";
                                     else if (esLike) mensaje = "le gusta tu publicación";
                                     else if (esRespuesta) mensaje = "respondió a tu comentario";
-
+                                    else if (esPublicacion) mensaje = notif.data?.mensaje ?? "ha publicado algo";
                                     return (
                                         <Link
                                             key={notif.id}

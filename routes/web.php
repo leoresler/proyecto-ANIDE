@@ -222,9 +222,6 @@ Route::post('/notificaciones/marcar-leidas', [NotificacionController::class, 'ma
 
     Route::post('/api/ubicaciones/toggle', [UbicacionController::class, 'toggleApi']);
 
-Broadcast::channel('user.{userId}', function ($user, $userId) {
-    return (int) $user->id === (int) $userId;
-});
 
 
 require __DIR__ . '/auth.php';

@@ -87,8 +87,10 @@ class PerfInstitucion extends Model
     public function guardadaPorUsuarios()
     {
         return $this->belongsToMany(PerfPersona::class, 'ubicaciones_guardadas', 'institucion_id', 'persona_id')
-                    ->with('user');
+                    ->join('users', 'users.id', '=', 'perf_persona.user_id') // unir tabla users
+                    ->select('perf_persona.*', 'users.id as user_id'); // traer user_id directamente
     }
+
 
 
     protected static function booted()
