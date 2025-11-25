@@ -7,14 +7,14 @@ window.Echo = new Echo({
     broadcaster: "pusher",
     key: import.meta.env.VITE_PUSHER_APP_KEY,
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    forceTLS: false,      // ❌ NO usar en local
-    encrypted: false,     // ❌ NO usar en local
+    forceTLS: false,
+    encrypted: false,
 
     wsHost: `ws-${import.meta.env.VITE_PUSHER_APP_CLUSTER}.pusher.com`,
     wsPort: 80,
     wssPort: 443,
 
-    enabledTransports: ['ws'], // 🔥 solo WebSockets reales
+    enabledTransports: ['ws'],
 });
 
 

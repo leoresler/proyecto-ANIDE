@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Publicaciones;
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\Controller;
 use App\Models\Publicacion;
 use App\Models\PublicacionMedia;
+use App\Models\VisitaInstitucion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -97,20 +99,10 @@ class PublicacionController extends Controller
         // Obtener intereses del usuario
         $perfil = $user->tipo_usuario === 'persona' ? $user->persona : $user->institucion;
 
-        // Asegurar que los intereses sean un array
         $interesesUsuario = [];
         if ($perfil && $perfil->interests) {
-            // Gracias al accessor, interests ya es un array
             $interesesUsuario = is_array($perfil->interests) ? $perfil->interests : [];
         }
-
-        // Log para debug (opcional, puedes comentar después)
-        \Log::info('Intereses del usuario', [
-            'user_id' => $user->id,
-            'tipo' => $user->tipo_usuario,
-            'intereses' => $interesesUsuario,
-            'is_array' => is_array($interesesUsuario)
-        ]);
 
         // Construir query base
         $query = Publicacion::with([
@@ -134,77 +126,60 @@ class PublicacionController extends Controller
         if (!empty($interesesUsuario) && is_array($interesesUsuario)) {
             $query->where(function ($q) use ($interesesUsuario) {
                 foreach ($interesesUsuario as $interes) {
-                    // Escapar caracteres especiales para LIKE
                     $interesSafe = addslashes($interes);
                     $q->orWhere('categorias', 'LIKE', '%"' . $interesSafe . '"%');
                 }
             });
         }
 
-        // Ordenar por fecha más reciente
         $query->orderBy('created_at', 'desc');
-
         $publicaciones = $query->paginate(10);
 
         // Calcular relevancia y agregar información adicional
         $publicaciones->getCollection()->transform(function ($publicacion) use ($user, $interesesUsuario) {
-            // Calcular relevancia si hay intereses
             if (!empty($interesesUsuario)) {
                 $categorias = is_array($publicacion->categorias)
                     ? $publicacion->categorias
                     : json_decode($publicacion->categorias, true);
 
-                if (is_array($categorias)) {
-                    $publicacion->relevance_score = collect($categorias)
-                        ->intersect($interesesUsuario)
-                        ->count();
-                } else {
-                    $publicacion->relevance_score = 0;
-                }
+                $publicacion->relevance_score = is_array($categorias)
+                    ? collect($categorias)->intersect($interesesUsuario)->count()
+                    : 0;
             } else {
                 $publicacion->relevance_score = 0;
             }
 
-            // Agregar contadores
             $publicacion->likes_count = $publicacion->likes->count();
             $publicacion->comentarios_count = $publicacion->comentarios->count();
 
-            // Verificar si el usuario dio like
             if ($user->tipo_usuario === 'persona') {
-                $publicacion->user_has_liked = $publicacion->likes->contains(function ($like) use ($user) {
-                    return $like->perf_persona_id === $user->persona->id;
-                });
+                $publicacion->user_has_liked = $publicacion->likes->contains(fn($like) => $like->perf_persona_id === $user->persona->id);
             } else {
-                $publicacion->user_has_liked = $publicacion->likes->contains(function ($like) use ($user) {
-                    return $like->perf_institucion_id === $user->institucion->id;
-                });
+                $publicacion->user_has_liked = $publicacion->likes->contains(fn($like) => $like->perf_institucion_id === $user->institucion->id);
             }
 
-            // Verificar si está en favoritos
-            if ($user->tipo_usuario === 'persona') {
-                $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
-            } else {
-                $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
-            }
+            $publicacion->is_favorite = $publicacion->favoritos->isNotEmpty();
 
             return $publicacion;
         });
 
-        // Reordenar por relevancia si hay intereses
         if (!empty($interesesUsuario)) {
             $sorted = $publicaciones->getCollection()
-                ->sortByDesc(function ($pub) {
-                    // Ordenar por relevancia primero, luego por fecha
-                    return [$pub->relevance_score, $pub->created_at->timestamp];
-                })
+                ->sortByDesc(fn($pub) => [$pub->relevance_score, $pub->created_at->timestamp])
                 ->values();
-
             $publicaciones->setCollection($sorted);
+        }
+
+        // Obtener instituciones visitadas recientemente (solo para personas)
+        $institucionesVisitadas = [];
+        if ($user->tipo_usuario === 'persona') {
+            $institucionesVisitadas =   VisitaInstitucion::ultimasVisitadas($user->id, 5);
         }
 
         return Inertia::render('Inicio', [
             'publicaciones' => $publicaciones,
             'userType' => $user->tipo_usuario,
+            'institucionesVisitadas' => $institucionesVisitadas,
         ]);
     }
 
@@ -249,6 +224,14 @@ class PublicacionController extends Controller
                 }
             }
         ])->findOrFail($id);
+
+        ActividadController::registrar(
+            $user->id,
+            'vista',
+            'publicacion',
+            $id,
+            'Viste una publicación'
+        );
 
         $publicacion->increment('count_visualizaciones');
         $publicacion->likes_count = $publicacion->likes->count();

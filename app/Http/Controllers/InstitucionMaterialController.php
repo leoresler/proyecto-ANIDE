@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\InstitucionMaterial;
+use App\Models\MaterialGuardado;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class InstitucionMaterialController extends Controller
@@ -26,7 +28,7 @@ class InstitucionMaterialController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('Materiales/Index', [
+        return Inertia::render('Material/Index', [
             'materiales' => $materiales,
         ]);
     }
@@ -42,7 +44,7 @@ class InstitucionMaterialController extends Controller
             abort(403, 'Solo las instituciones pueden crear materiales');
         }
 
-        return Inertia::render('Materiales/Create');
+        return Inertia::render('Material/Create');
     }
 
     /**
@@ -66,10 +68,9 @@ class InstitucionMaterialController extends Controller
             'modalidad' => 'nullable|string|in:Presencial,Virtual,Híbrida',
             'publicado' => 'nullable|boolean',
             'plan_estudios' => 'nullable|array',
-            'plan_estudios.*' => 'file|mimes:pdf|max:10240', // 10MB max por archivo
+            'plan_estudios.*' => 'file|mimes:pdf|max:10240',
         ]);
 
-        // Procesar archivos PDF del plan de estudios
         $planesEstudiosPaths = [];
 
         if ($request->hasFile('plan_estudios')) {
@@ -83,7 +84,6 @@ class InstitucionMaterialController extends Controller
             }
         }
 
-        // Crear el material
         $material = InstitucionMaterial::create([
             'perf_institucion_id' => $user->institucion->id,
             'tipo' => $validated['tipo'],
@@ -96,8 +96,49 @@ class InstitucionMaterialController extends Controller
             'plan_estudios' => !empty($planesEstudiosPaths) ? $planesEstudiosPaths : null,
         ]);
 
-        return redirect()->route('materiales.index')
+        return redirect()->route('material.index')
             ->with('success', ucfirst($validated['tipo']) . ' creado exitosamente');
+    }
+
+    /**
+     * Muestra el detalle de un material (PÚBLICO para usuarios logueados)
+     */
+    public function show($id)
+    {
+        $material = InstitucionMaterial::with(['institucion.user'])
+            ->findOrFail($id);
+
+        $user = Auth::user();
+        $esOwner = $user->tipo_usuario === 'institucion' &&
+            $material->perf_institucion_id === $user->institucion->id;
+
+        if (!$material->publicado && !$esOwner) {
+            abort(404, 'Material no encontrado');
+        }
+
+        $guardado = MaterialGuardado::where('user_id', $user->id)
+            ->where('material_id', $material->id)
+            ->exists();
+
+        $material->nombre_institucion = $material->institucion?->user?->nombre ?? 'Institución desconocida';
+        $material->foto_institucion = $material->institucion?->foto_perfil
+            ?? $material->institucion?->user?->profile_photo_url
+            ?? '/profile-photos/default-avatar.webp';
+
+
+        ActividadController::registrar(
+            $user->id,
+            'vista',
+            'material',
+            $id,
+            'Viste un curso/carrera'
+        );
+
+        return Inertia::render('Material/Show', [
+            'material' => $material,
+            'guardado' => $guardado,
+            'esOwner' => $esOwner,
+        ]);
     }
 
     /**
@@ -112,7 +153,7 @@ class InstitucionMaterialController extends Controller
             abort(403, 'No tienes permiso para editar este material');
         }
 
-        return Inertia::render('Materiales/Edit', [
+        return Inertia::render('Material/Edit', [
             'material' => $material,
         ]);
     }
@@ -143,7 +184,7 @@ class InstitucionMaterialController extends Controller
             'deleted_planes' => 'nullable|array',
         ]);
 
-        // Eliminar planes marcados para eliminación
+        // Eliminar planes marcados
         if ($request->has('deleted_planes') && is_array($request->input('deleted_planes'))) {
             $currentPlanes = $material->plan_estudios ?? [];
             foreach ($request->input('deleted_planes') as $planPath) {
@@ -171,7 +212,7 @@ class InstitucionMaterialController extends Controller
             $material->plan_estudios = $planesActuales;
         }
 
-        // Actualizar el material
+        // Actualizar
         $material->update([
             'tipo' => $validated['tipo'],
             'nombre' => $validated['nombre'],
@@ -182,7 +223,7 @@ class InstitucionMaterialController extends Controller
             'publicado' => $request->input('publicado', true),
         ]);
 
-        return redirect()->route('materiales.index')
+        return redirect()->route('material.index')
             ->with('success', ucfirst($validated['tipo']) . ' actualizado exitosamente');
     }
 
@@ -205,7 +246,95 @@ class InstitucionMaterialController extends Controller
     }
 
     /**
-     * API: Obtener recomendaciones para el usuario actual
+     * Guardar/Quitar un material
+     */
+    public function toggleGuardado($id)
+    {
+        $user = Auth::user();
+        $material = InstitucionMaterial::findOrFail($id);
+
+        if (!$material->publicado) {
+            return response()->json(['error' => 'Material no disponible'], 403);
+        }
+
+        $guardado = MaterialGuardado::where('user_id', $user->id)
+            ->where('material_id', $material->id)
+            ->first();
+
+        if ($guardado) {
+            $guardado->delete();
+
+            ActividadController::registrar(
+                $user->id,
+                'quitar_guardado',
+                'material',
+                $id,
+                'Quitaste un curso/carrera de guardados'
+            );
+
+            return response()->json(['guardado' => false, 'message' => 'Eliminado de guardados']);
+        } else {
+            MaterialGuardado::create([
+                'user_id' => $user->id,
+                'material_id' => $material->id,
+            ]);
+
+            ActividadController::registrar(
+                $user->id,
+                'guardado',
+                'material',
+                $id,
+                'Guardaste un curso/carrera'
+            );
+
+            return response()->json(['guardado' => true, 'message' => 'Guardado exitosamente']);
+        }
+    }
+
+    /**
+     * Mis cursos guardados
+     */
+    public function misCursos()
+    {
+        $user = Auth::user();
+
+        $cursos = InstitucionMaterial::whereHas('guardados', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->where('tipo', 'curso')
+            ->where('publicado', true)
+            ->with(['institucion.user'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+
+        return Inertia::render('Material/MisCursos', [
+            'cursos' => $cursos,
+        ]);
+    }
+
+    /**
+     * Mis carreras guardadas
+     */
+    public function misCarreras()
+    {
+        $user = Auth::user();
+
+        $carreras = InstitucionMaterial::whereHas('guardados', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->where('tipo', 'carrera')
+            ->where('publicado', true)
+            ->with(['institucion.user'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+
+        return Inertia::render('Material/MisCarreras', [
+            'carreras' => $carreras,
+        ]);
+    }
+
+    /**
+     * API: Recomendaciones
      */
     public function recomendaciones()
     {
@@ -215,7 +344,6 @@ class InstitucionMaterialController extends Controller
             return response()->json(['materiales' => [], 'instituciones' => []]);
         }
 
-        // Obtener intereses del usuario
         $perfil = $user->tipo_usuario === 'persona' ? $user->persona : $user->institucion;
         $interesesUsuario = $perfil->interests ?? [];
 
@@ -223,7 +351,6 @@ class InstitucionMaterialController extends Controller
             return response()->json(['materiales' => [], 'instituciones' => []]);
         }
 
-        // Obtener materiales recomendados
         $materiales = InstitucionMaterial::publicados()
             ->porIntereses($interesesUsuario)
             ->with(['institucion.user'])
@@ -241,7 +368,6 @@ class InstitucionMaterialController extends Controller
             ->sortByDesc('relevance_score')
             ->values();
 
-        // Obtener instituciones recomendadas (que tengan intereses similares)
         $instituciones = \App\Models\PerfInstitucion::where('verificado', true)
             ->whereNotNull('interests')
             ->whereHas('user', function ($q) {
@@ -275,6 +401,29 @@ class InstitucionMaterialController extends Controller
         return response()->json([
             'materiales' => $materiales,
             'instituciones' => $instituciones,
+        ]);
+    }
+    /**
+     * Lista todos los materiales públicos (para todos los usuarios)
+     */
+    public function listar()
+    {
+        $materiales = InstitucionMaterial::where('publicado', true)
+            ->with(['institucion.user'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(12);
+
+
+        $materiales->getCollection()->transform(function ($material) {
+            $material->nombre_institucion = $material->institucion?->user?->nombre ?? 'Institución desconocida';
+            $material->foto_institucion = $material->institucion?->foto_perfil
+                ?? $material->institucion?->user?->profile_photo_url
+                ?? '/images/default-avatar.png';
+            return $material;
+        });
+
+        return Inertia::render('Material/ListarMaterial', [
+            'materiales' => $materiales,
         ]);
     }
 }

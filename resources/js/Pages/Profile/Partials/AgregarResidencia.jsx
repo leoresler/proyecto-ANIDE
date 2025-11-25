@@ -182,8 +182,10 @@ export default function AgregarResidencia({
         toast(
             (t) => (
                 <div className="flex flex-col space-y-3">
-                    <p className="font-medium">¿Esta seguro que desea eliminar?</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium">
+                        ¿Esta seguro que desea eliminar?
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                         Esta acción no se puede deshacer
                     </p>
 
@@ -191,7 +193,7 @@ export default function AgregarResidencia({
                         {/* Cancelar */}
                         <button
                             onClick={() => toast.dismiss(t.id)}
-                            className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium"
+                            className="px-3 py-1 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-medium"
                         >
                             Cancelar
                         </button>
@@ -201,9 +203,8 @@ export default function AgregarResidencia({
                             onClick={() => {
                                 toast.dismiss(t.id);
 
-                                const loadingToast = toast.loading(
-                                    "Eliminando..."
-                                );
+                                const loadingToast =
+                                    toast.loading("Eliminando...");
 
                                 router.delete(
                                     route("residencias.destroy", id),
@@ -222,9 +223,7 @@ export default function AgregarResidencia({
                                         },
                                         onError: () => {
                                             toast.dismiss(loadingToast);
-                                            toast.error(
-                                                "Error al eliminar"
-                                            );
+                                            toast.error("Error al eliminar");
                                         },
                                     }
                                 );
@@ -250,10 +249,10 @@ export default function AgregarResidencia({
     return (
         <section className={`${className} w-full`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                     Facultades, Sedes o Alojamientos
                 </h2>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
                     Agrega las diferentes facultades, sedes o residencias que
                     pertenecen a tu institución.
                 </p>
@@ -261,14 +260,14 @@ export default function AgregarResidencia({
 
             {residencias && residencias.length > 0 && (
                 <div className="mt-6 mb-6">
-                    <h3 className="text-md font-semibold mb-3">
+                    <h3 className="text-md font-semibold mb-3 text-gray-900 dark:text-gray-200">
                         Residencias actuales:
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {residencias.map((residencia) => (
                             <div
                                 key={residencia.id}
-                                className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition"
+                                className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700 transition"
                             >
                                 {residencia.foto_portada && (
                                     <img
@@ -278,14 +277,14 @@ export default function AgregarResidencia({
                                     />
                                 )}
                                 <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-semibold text-gray-900">
+                                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                                         {residencia.nombre}
                                     </h4>
                                     <button
                                         onClick={() =>
                                             handleEliminar(residencia.id)
                                         }
-                                        className="text-red-600 hover:text-red-800 transition"
+                                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
                                         title="Eliminar"
                                     >
                                         <svg
@@ -303,19 +302,19 @@ export default function AgregarResidencia({
                                         </svg>
                                     </button>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                                     📍 {residencia.direccion}
                                 </p>
-                                <p className="text-sm text-gray-600 mb-1">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
                                     📞 {residencia.contacto}
                                 </p>
                                 {residencia.capacidad && (
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-gray-600 dark:text-gray-300">
                                         👥 Capacidad: {residencia.capacidad}
                                     </p>
                                 )}
                                 {residencia.info_adicional && (
-                                    <p className="text-sm text-gray-500 mt-2 italic">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
                                         {residencia.info_adicional.length > 50
                                             ? residencia.info_adicional.substring(
                                                   0,
@@ -395,7 +394,7 @@ export default function AgregarResidencia({
                                 message={errors.capacidad}
                                 className="mt-2"
                             />
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
                                 Si no ingresas capacidad, no se mostrará en el
                                 mapa
                             </p>
@@ -403,10 +402,10 @@ export default function AgregarResidencia({
                     </div>
 
                     {/* Foto de portada */}
-                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <div className="bg-blue-50 dark:bg-edu-dark p-4 rounded-lg border border-blue-200 dark:border-gray-600">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
                             <svg
-                                className="w-5 h-5 text-blue-600"
+                                className="w-5 h-5 text-blue-600 dark:text-blue-400"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -449,9 +448,9 @@ export default function AgregarResidencia({
                                 </button>
                             </div>
                         ) : (
-                            <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center hover:border-blue-400 transition">
+                            <div className="border-2 border-dashed border-blue-300 dark:border-gray-500 rounded-lg p-6 text-center hover:border-blue-400 dark:hover:border-gray-400 transition">
                                 <svg
-                                    className="mx-auto h-12 w-12 text-blue-400"
+                                    className="mx-auto h-12 w-12 text-blue-400 dark:text-blue-500"
                                     stroke="currentColor"
                                     fill="none"
                                     viewBox="0 0 48 48"
@@ -468,7 +467,7 @@ export default function AgregarResidencia({
                                         htmlFor="foto_portada"
                                         className="cursor-pointer"
                                     >
-                                        <span className="inline-block px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 cursor-pointer">
+                                        <span className="inline-block px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
                                             Seleccionar imagen
                                         </span>
                                         <input
@@ -479,7 +478,7 @@ export default function AgregarResidencia({
                                             className="hidden"
                                         />
                                     </label>
-                                    <p className="mt-1 text-xs text-gray-500">
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                         JPG, PNG hasta 4MB
                                     </p>
                                 </div>
@@ -491,10 +490,10 @@ export default function AgregarResidencia({
                         />
                     </div>
 
-                    <div className="bg-blue-50 p-4 rounded-lg border border-gray-200">
-                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <div className="bg-blue-50 dark:bg-edu-dark p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2 text-gray-900 dark:text-gray-100">
                             <svg
-                                className="w-5 h-5 text-blue-600"
+                                className="w-5 h-5 text-blue-600 dark:text-blue-400"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -517,19 +516,19 @@ export default function AgregarResidencia({
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">
+                                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">
                                     Provincia
                                 </label>
                                 <input
                                     type="text"
                                     value="Neuquén"
                                     disabled
-                                    className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-100 cursor-not-allowed text-sm"
+                                    className="w-full border border-gray-300 dark:border-gray-600 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 dark:text-gray-300 cursor-not-allowed text-sm"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">
+                                <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">
                                     Ciudad *
                                 </label>
                                 <select
@@ -538,7 +537,7 @@ export default function AgregarResidencia({
                                         setData("ciudad", e.target.value);
                                         setDireccionValida(null);
                                     }}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500 text-sm"
+                                    className="w-full border border-gray-300 px-3 py-2 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-gray-500 text-sm"
                                 >
                                     {ciudadesNeuquen.map((ciudad) => (
                                         <option key={ciudad} value={ciudad}>
@@ -550,10 +549,10 @@ export default function AgregarResidencia({
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-200">
                                 Dirección *
                             </label>
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                                 Ingresa calle y número. Ejemplos: "Buenos Aires
                                 1400", "Avenida Argentina 1400", "Roca 1070"
                             </p>
@@ -565,7 +564,7 @@ export default function AgregarResidencia({
                                     setDireccionValida(null);
                                 }}
                                 placeholder="Ej: Buenos Aires 1400"
-                                className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500 text-sm"
+                                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 px-3 py-2 rounded-lg focus:ring-2 focus:ring-gray-500 text-sm"
                             />
                             <InputError
                                 message={errors.direccion}
@@ -586,7 +585,7 @@ export default function AgregarResidencia({
                                     ? "bg-green-600 text-white"
                                     : direccionValida === false
                                     ? "bg-red-600 text-white"
-                                    : "bg-edu-dark text-white hover:bg-gray-800"
+                                    : "bg-edu-dark text-white hover:bg-gray-800 dark:bg-gray-500 dark:hover:bg-gray-600"
                             } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {validandoDireccion ? (
@@ -674,7 +673,7 @@ export default function AgregarResidencia({
                         />
                         <textarea
                             id="info_adicional"
-                            className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm resize-vertical"
+                            className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm resize-vertical"
                             value={data.info_adicional}
                             onChange={(e) =>
                                 setData("info_adicional", e.target.value)
@@ -693,10 +692,7 @@ export default function AgregarResidencia({
                             disabled={processing || !direccionValida}
                             className="w-full sm:w-auto"
                         >
-                            {" "}
-                            {processing
-                                ? "Guardando..."
-                                : "Guardar Residencia"}{" "}
+                            {processing ? "Guardando..." : "Guardar Residencia"}
                         </PrimaryButton>
 
                         <SecondaryButton

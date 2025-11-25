@@ -75,7 +75,7 @@ export default function MisPublicaciones({ auth, publicaciones }) {
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout user={auth.user} showRecomendaciones={false}>
             <Head title="Mis Publicaciones" />
 
             <div className="py-6 sm:py-8 lg:py-12">
@@ -83,10 +83,10 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                     {/* Header */}
                     <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                                 Publicaciones
                             </h1>
-                            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+                            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
                                 Administra todas tus publicaciones
                             </p>
                         </div>
@@ -100,25 +100,25 @@ export default function MisPublicaciones({ auth, publicaciones }) {
 
                     {/* Lista de publicaciones */}
                     {publicaciones.data.length === 0 ? (
-                        <div className="bg-white overflow-hidden rounded-xl sm:rounded-2xl p-8 sm:p-12 text-center">
-                            <p className="text-gray-500 text-base sm:text-lg mb-4">
+                        <div className="bg-white dark:bg-gray-800 overflow-hidden sm:rounded-2xl p-8 sm:p-12 text-center transition-colors">
+                            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg mb-4">
                                 No has creado ninguna publicación todavía
                             </p>
                         </div>
                     ) : (
                         <>
-                            <div className="bg-white overflow-hidden border rounded-xl sm:rounded-2xl">
-                                <div className="divide-y divide-gray-200">
+                            <div className="bg-white dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-xl sm:rounded-2xl transition-colors">
+                                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {publicaciones.data.map((publicacion) => (
                                         <div
                                             key={publicacion.id}
-                                            className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
+                                            className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                         >
                                             {/* Mobile Layout */}
                                             <div className="block sm:hidden">
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div className="flex-1 min-w-0 pr-2">
-                                                        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
+                                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2">
                                                             {publicacion.titulo}
                                                         </h3>
 
@@ -126,8 +126,8 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                         <span
                                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                                 publicacion.publicado
-                                                                    ? "bg-green-100 text-green-800"
-                                                                    : "bg-yellow-100 text-yellow-800"
+                                                                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                                                    : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
                                                             }`}
                                                         >
                                                             {publicacion.publicado
@@ -166,13 +166,13 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                     </div>
                                                 </div>
 
-                                                <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                                                <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mb-3">
                                                     {publicacion.contenido}
                                                 </p>
 
                                                 {/* Estadísticas Mobile */}
                                                 <div className="flex items-center justify-between">
-                                                    <div className="flex items-center space-x-3 sm:space-x-4 text-xs sm:text-sm text-gray-500">
+                                                    <div className="flex items-center space-x-3 sm:space-x-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                                         <div className="flex items-center space-x-1">
                                                             <Heart className="w-3.5 h-3.5" />
                                                             <span>
@@ -220,19 +220,19 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex-1">
-                                                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                                                                     {
                                                                         publicacion.titulo
                                                                     }
                                                                 </h3>
-                                                                <p className="text-gray-600 line-clamp-2 mb-3">
+                                                                <p className="text-gray-600 dark:text-gray-400 line-clamp-2 mb-3">
                                                                     {
                                                                         publicacion.contenido
                                                                     }
                                                                 </p>
 
                                                                 {/* Estadísticas */}
-                                                                <div className="flex items-center space-x-6 text-sm text-gray-500">
+                                                                <div className="flex items-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
                                                                     <div className="flex items-center space-x-1">
                                                                         <Heart className="w-4 h-4" />
                                                                         <span>
@@ -305,8 +305,8 @@ export default function MisPublicaciones({ auth, publicaciones }) {
                                                             <span
                                                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                                                                     publicacion.publicado
-                                                                        ? "bg-green-100 text-green-800"
-                                                                        : "bg-yellow-100 text-yellow-800"
+                                                                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                                                        : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
                                                                 }`}
                                                             >
                                                                 {publicacion.publicado

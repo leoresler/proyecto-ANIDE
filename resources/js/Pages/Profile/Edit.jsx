@@ -34,26 +34,26 @@ export default function Edit({ auth, residencias = [] }) {
         const estaAbierta = seccionAbierta === id;
 
         return (
-            <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm transition-colors">
                 <button
                     onClick={() => toggleSeccion(id)}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                     <div className="flex items-center gap-3">
-                        <Icono className="w-5 h-5 text-gray-600" />
-                        <span className="font-semibold text-gray-900">
+                        <Icono className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        <span className="font-semibold text-gray-900 dark:text-white">
                             {titulo}
                         </span>
                     </div>
                     {estaAbierta ? (
-                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                        <ChevronUp className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                        <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                     )}
                 </button>
 
                 {estaAbierta && (
-                    <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 transition-colors">
                         {children}
                     </div>
                 )}
@@ -78,6 +78,7 @@ export default function Edit({ auth, residencias = [] }) {
     return (
         <AuthenticatedLayout
             user={auth.user}
+            showRecomendaciones={true}
             header={
                 <div className="space-y-3">
                     <div className="flex gap-2 overflow-x-auto pb-2 px-1">
@@ -93,12 +94,12 @@ export default function Edit({ auth, residencias = [] }) {
                             label="Me Gusta"
                             isActive={false}
                         />
-                        <NavButton
+                        {/* <NavButton
                             href="/seguidos"
                             icon={UserPlus}
                             label="Seguidos"
                             isActive={false}
-                        />
+                        /> */}
                         {esInstitucion && (
                             <>
                                 <NavButton
@@ -108,7 +109,7 @@ export default function Edit({ auth, residencias = [] }) {
                                     isActive={false}
                                 />
                                 <NavButton
-                                    href="/material"
+                                    href="/mis-materiales"
                                     icon={BookOpen}
                                     label="Cursos y Carreras"
                                     isActive={false}
@@ -121,28 +122,28 @@ export default function Edit({ auth, residencias = [] }) {
         >
             <Head title="Editar Perfil" />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white rounded-lg p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4">
+            <div className="py-8 mb-8">
+                <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-6 flex flex-col sm:flex-row items-center gap-4 transition-colors">
                         <ActualizarFotoPerfil
                             currentPhoto={auth.user.profile_photo_url}
                         />
                         <div className="w-full sm:flex-1">
-                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                                 {auth.user.nombre}
                             </h3>
                             {esInstitucion ? (
                                 <>
-                                    <p className="text-gray-600 font-medium">
+                                    <p className="text-gray-600 dark:text-gray-400 font-medium">
                                         {props.institucion?.tipo_institucion ||
                                             "Institución"}
                                     </p>
-                                    <p className="text-gray-500 text-sm mt-1">
+                                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                                         {auth.user.email}
                                     </p>
                                 </>
                             ) : (
-                                <p className="text-gray-600">
+                                <p className="text-gray-600 dark:text-gray-400">
                                     {auth.user.email}
                                 </p>
                             )}

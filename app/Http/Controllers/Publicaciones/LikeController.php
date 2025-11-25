@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Publicaciones;
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\Controller;
 use App\Models\Like;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class LikeController extends Controller
         ]);
 
         $user = Auth::user();
-        
+
         // Obtener el ID del perfil segun el tipo de usuario
         if ($user->tipo_usuario === 'persona') {
             $perfId = $user->persona->id;
@@ -38,8 +39,17 @@ class LikeController extends Controller
         ])->first();
 
         if ($like) {
-            // Si existe, eliminar (unlike)
+            // Si existe, eliminar
             $like->delete();
+
+            ActividadController::registrar(
+                $user->id,
+                'unlike',
+                'publicacion',
+                $validated['target_id'],
+                'Quitaste tu like'
+            );
+
             return response()->json([
                 'success' => true,
                 'action' => 'unliked',
@@ -52,6 +62,15 @@ class LikeController extends Controller
                 'target_id' => $validated['target_id'],
                 'target_tipo' => $validated['target_tipo'],
             ]);
+
+            ActividadController::registrar(
+                $user->id,
+                'like',
+                'publicacion',
+                $validated['target_id'],
+                'Te gustó una publicación'
+            );
+
             return response()->json([
                 'success' => true,
                 'action' => 'liked',

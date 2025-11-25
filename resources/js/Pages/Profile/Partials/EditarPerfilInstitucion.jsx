@@ -52,13 +52,13 @@ export default function EditarPerfilInstitucion({ className = "", onCancel }) {
     return (
         <section className={`${className} w-full`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-200">
                     Datos institucionales
                 </h2>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Actualiza los datos de tu institución.
                 </p>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Para actualizar su correo electrónico, comuníquese con el
                     soporte técnico.
                 </p>
@@ -73,7 +73,7 @@ export default function EditarPerfilInstitucion({ className = "", onCancel }) {
                         />
                         <select
                             id="tipo_institucion"
-                            className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm"
+                            className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm"
                             value={data.tipo_institucion}
                             onChange={(e) =>
                                 setData("tipo_institucion", e.target.value)
@@ -161,14 +161,14 @@ export default function EditarPerfilInstitucion({ className = "", onCancel }) {
                     <InputLabel htmlFor="descripcion" value="Descripción (es recomendable añadir las carreras o cursos disponibles)" />
                     <textarea
                         id="descripcion"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm resize-vertical"
+                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm resize-vertical"
                         value={data.descripcion}
                         onChange={(e) => setData("descripcion", e.target.value)}
                         rows="4"
                         maxLength="1000"
                         placeholder="Describí tu institución..."
                     />
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         {data.descripcion?.length || 0}/1000 caracteres
                     </p>
                     <InputError message={errors.descripcion} className="mt-2" />

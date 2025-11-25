@@ -95,7 +95,7 @@ export default function EditarPerfilPersona({ className = "", onCancel }) {
                     <InputLabel htmlFor="biografia" value="Biografía" />
                     <textarea
                         id="biografia"
-                        className="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm resize-vertical"
+                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg shadow-sm resize-vertical"
                         value={data.biografia}
                         onChange={(e) => setData("biografia", e.target.value)}
                         rows="4"

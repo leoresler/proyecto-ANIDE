@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\MapaController;
 
 use App\Http\Controllers\ProfileController;
@@ -54,6 +55,23 @@ Route::get('/api/buscar', [BusquedaController::class, 'buscarApi'])
     ->middleware(['auth'])
     ->withoutMiddleware([\App\Http\Middleware\EnsureProfileIsComplete::class])
     ->name('busqueda.api');
+
+// material (cursos y carreras) - solo para instituciones
+Route::middleware(['check.institucion'])->group(function () {
+    Route::get('/mis-materiales', [InstitucionMaterialController::class, 'index'])
+        ->name('material.index');
+    Route::get('/material/create', [InstitucionMaterialController::class, 'create'])
+        ->name('material.create');
+    Route::post('/material', [InstitucionMaterialController::class, 'store'])
+        ->name('material.store');
+    Route::get('/material/{id}/edit', [InstitucionMaterialController::class, 'edit'])
+        ->name('material.edit');
+    Route::put('/material/{id}', [InstitucionMaterialController::class, 'update'])
+        ->name('material.update');
+    Route::delete('/material/{id}', [InstitucionMaterialController::class, 'destroy'])
+        ->name('material.destroy');
+});
+
 
 // rutas protegidas - requieren autenticacion, verificacion y completar datos
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -114,6 +132,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/favoritos/toggle', [FavoritoController::class, 'toggle'])->name('favoritos.toggle');
     Route::get('/favoritos', [FavoritoController::class, 'index'])->name('favoritos.index');
 
+    // mi Actividad
+    Route::get('/mi-actividad', [ActividadController::class, 'index'])->name('actividad.index');
+
     // mapa
     Route::get('/chats', [ChatController::class, 'index'])->name('chat.index');
     Route::get('/chats/{id}', [ChatController::class, 'show'])->name('chat.show');
@@ -122,22 +143,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // residencias
     Route::resource('residencias', ResidenciaController::class);
-
-    // material (cursos y carreras) - solo para instituciones
-    Route::middleware(['check.institucion'])->group(function () {
-        Route::get('/material', [InstitucionMaterialController::class, 'index'])
-            ->name('material.index');
-        Route::get('/material/create', [InstitucionMaterialController::class, 'create'])
-            ->name('material.create');
-        Route::post('/material', [InstitucionMaterialController::class, 'store'])
-            ->name('material.store');
-        Route::get('/material/{id}/edit', [InstitucionMaterialController::class, 'edit'])
-            ->name('material.edit');
-        Route::put('/material/{id}', [InstitucionMaterialController::class, 'update'])
-            ->name('material.update');
-        Route::delete('/material/{id}', [InstitucionMaterialController::class, 'destroy'])
-            ->name('material.destroy');
-    });
 
     // API de recomendaciones (disponible para todos los usuarios autenticados)
     Route::get('/api/recomendaciones', [InstitucionMaterialController::class, 'recomendaciones'])
@@ -149,6 +154,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // pagina de busqueda
     Route::get('/busqueda', [BusquedaController::class, 'index'])->name('busqueda.index');
+
+    // cursos y carreras (material para usuarios autenticados)
+    Route::get('/material', [InstitucionMaterialController::class, 'listar'])
+    ->name('material.listar');
+
+    Route::get('/material/{id}', [InstitucionMaterialController::class, 'show'])
+        ->name('material.show');
+    
+    Route::post('/material/{id}/toggle-guardado', [InstitucionMaterialController::class, 'toggleGuardado'])
+        ->name('material.toggle.guardado');
+    
+    Route::get('/mis-cursos', [InstitucionMaterialController::class, 'misCursos'])
+        ->name('cursos.guardados');
+    
+    Route::get('/mis-carreras', [InstitucionMaterialController::class, 'misCarreras'])
+        ->name('carreras.guardadas');
 });
 
 

@@ -75,21 +75,21 @@ export default function Index({ auth, materiales }) {
         <AuthenticatedLayout user={auth.user}>
             <Head title="Mis Cursos y Carreras" />
 
-            <div className="py-8">
+            <div className="py-8 mb-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                                 Cursos y Carreras
                             </h1>
-                            <p className="text-gray-600 mt-1">
+                            <p className="text-gray-600 mt-1 dark:text-gray-400">
                                 Administra tu oferta educativa
                             </p>
                         </div>
                         <Link
                             href="/material/create"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 transition"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 transition"
                         >
                             <Plus className="w-5 h-5" />
                             Agregar Material
@@ -98,10 +98,10 @@ export default function Index({ auth, materiales }) {
 
                     {/* Lista de materiales */}
                     {materialesData.length === 0 ? (
-                        <div className="bg-white rounded-lg shadow p-12 text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
                             <div className="flex justify-center mb-4">
                                 <div
-                                    className="w-16 h-16 opacity-30"
+                                    className="w-16 h-16 opacity-30 dark:brightness-0 dark:invert dark:opacity-20"
                                     style={{
                                         backgroundImage:
                                             "url('/svg/sidebar/courses.svg')",
@@ -111,15 +111,15 @@ export default function Index({ auth, materiales }) {
                                     }}
                                 />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                                 No hay materiales aún
                             </h3>
-                            <p className="text-gray-500 mb-6">
+                            <p className="text-gray-500 dark:text-gray-400 mb-6">
                                 Comienza agregando cursos o carreras que ofreces
                             </p>
                             <Link
                                 href="/material/create"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 transition"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 transition"
                             >
                                 <Plus className="w-5 h-5" />
                                 Agregar Material
@@ -130,7 +130,7 @@ export default function Index({ auth, materiales }) {
                             {materialesData.map((material) => (
                                 <div
                                     key={material.id}
-                                    className="bg-white rounded-lg shadow hover:shadow-lg transition border"
+                                    className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition border dark:border-gray-700"
                                 >
                                     {/* Header del card */}
                                     <div className="p-6">
@@ -140,8 +140,8 @@ export default function Index({ auth, materiales }) {
                                                     className={`p-3 rounded-lg ${
                                                         material.tipo ===
                                                         "curso"
-                                                            ? "bg-blue-100"
-                                                            : "bg-yellow-100"
+                                                            ? "bg-blue-100 dark:bg-blue-900/30"
+                                                            : "bg-yellow-100 dark:bg-yellow-900/30"
                                                     }`}
                                                 >
                                                     {material.tipo ===
@@ -150,8 +150,8 @@ export default function Index({ auth, materiales }) {
                                                             className={`w-6 h-6 ${
                                                                 material.tipo ===
                                                                 "curso"
-                                                                    ? "text-blue-600"
-                                                                    : "text-yellow-600"
+                                                                    ? "text-blue-600 dark:text-blue-400"
+                                                                    : "text-yellow-600 dark:text-yellow-400"
                                                             }`}
                                                         />
                                                     ) : (
@@ -159,8 +159,8 @@ export default function Index({ auth, materiales }) {
                                                             className={`w-6 h-6 ${
                                                                 material.tipo ===
                                                                 "curso"
-                                                                    ? "text-blue-600"
-                                                                    : "text-yellow-600"
+                                                                    ? "text-blue-600 dark:text-blue-400"
+                                                                    : "text-yellow-600 dark:text-yellow-400"
                                                             }`}
                                                         />
                                                     )}
@@ -170,8 +170,8 @@ export default function Index({ auth, materiales }) {
                                                         className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
                                                             material.tipo ===
                                                             "curso"
-                                                                ? "bg-blue-100 text-blue-800"
-                                                                : "bg-yellow-100 text-yellow-800"
+                                                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                                                         }`}
                                                     >
                                                         {material.tipo ===
@@ -185,7 +185,7 @@ export default function Index({ auth, materiales }) {
                                             <div className="flex gap-1">
                                                 <Link
                                                     href={`/material/${material.id}/edit`}
-                                                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                                                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition"
                                                     title="Editar"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
@@ -198,7 +198,7 @@ export default function Index({ auth, materiales }) {
                                                             material.nombre
                                                         )
                                                     }
-                                                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition"
+                                                    className="p-2 text-red-600 dark:text-red-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition"
                                                     title="Eliminar"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -206,18 +206,18 @@ export default function Index({ auth, materiales }) {
                                             </div>
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
                                             {material.nombre}
                                         </h3>
 
-                                        <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4">
                                             {material.contenido}
                                         </p>
 
                                         {/* Info adicional */}
                                         <div className="space-y-2">
                                             {material.modalidad && (
-                                                <div className="flex items-center text-sm text-gray-500">
+                                                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                                                     <span className="font-medium mr-2">
                                                         Modalidad:
                                                     </span>
@@ -225,7 +225,7 @@ export default function Index({ auth, materiales }) {
                                                 </div>
                                             )}
                                             {material.duracion && (
-                                                <div className="flex items-center text-sm text-gray-500">
+                                                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                                                     <span className="font-medium mr-2">
                                                         Duración:
                                                     </span>
@@ -242,7 +242,7 @@ export default function Index({ auth, materiales }) {
                                                         (cat, idx) => (
                                                             <span
                                                                 key={idx}
-                                                                className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
+                                                                className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs"
                                                             >
                                                                 {cat}
                                                             </span>
@@ -253,12 +253,12 @@ export default function Index({ auth, materiales }) {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="px-6 py-3 bg-gray-50 border-t flex items-center justify-between">
+                                    <div className="px-6 py-3 bg-gray-50 dark:bg-gray-900/50 border-t dark:border-gray-700 flex items-center justify-between">
                                         <span
                                             className={`text-xs font-medium ${
                                                 material.publicado
-                                                    ? "text-green-600"
-                                                    : "text-gray-500"
+                                                    ? "text-green-600 dark:text-green-400"
+                                                    : "text-gray-500 dark:text-gray-400"
                                             }`}
                                         >
                                             {material.publicado
@@ -268,7 +268,7 @@ export default function Index({ auth, materiales }) {
                                         {material.plan_estudios &&
                                             material.plan_estudios.length >
                                                 0 && (
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                                     {
                                                         material.plan_estudios
                                                             .length
@@ -295,8 +295,8 @@ export default function Index({ auth, materiales }) {
                                     href={link.url || "#"}
                                     className={`px-4 py-2 rounded ${
                                         link.active
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-white text-gray-700 hover:bg-gray-100 border"
+                                            ? "bg-blue-600 text-white dark:bg-blue-500"
+                                            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border dark:border-gray-700"
                                     } ${
                                         !link.url
                                             ? "opacity-50 cursor-not-allowed"

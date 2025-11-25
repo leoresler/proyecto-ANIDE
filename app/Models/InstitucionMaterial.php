@@ -36,6 +36,11 @@ class InstitucionMaterial extends Model
         return $this->belongsTo(PerfInstitucion::class, 'perf_institucion_id');
     }
 
+    public function guardados()
+    {
+        return $this->hasMany(MaterialGuardado::class, 'material_id');
+    }
+
     public function getNombreInstitucionAttribute()
     {
         return $this->institucion?->nombre ?? 'Institución desconocida';

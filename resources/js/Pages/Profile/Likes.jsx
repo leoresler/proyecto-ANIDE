@@ -1,6 +1,6 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link } from "@inertiajs/react";
-import { User, Heart, FileText, UserPlus } from "lucide-react";
+import { User, Heart, FileText, UserPlus, BookOpen } from "lucide-react";
 import PublicacionCard from "@/Components/Publicacion/PublicacionCard";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import LoadingSpinner from "@/Components/LoadingSpinner";
@@ -28,6 +28,7 @@ export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
     return (
         <AuthenticatedLayout
             user={auth.user}
+            showRecomendaciones={true}
             header={
                 <div className="space-y-3">
                     <div className="flex gap-2 overflow-x-auto pb-2 px-1">
@@ -50,15 +51,26 @@ export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
                             isActive={false}
                         />
                         {esInstitucion && (
-                            <Link
-                                href="/publicaciones/misPublicaciones"
-                                className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                                <FileText className="w-4 h-4" />
-                                <span className="hidden sm:inline">
-                                    Mis Publicaciones
-                                </span>
-                            </Link>
+                            <>
+                                <Link
+                                    href="/publicaciones/misPublicaciones"
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    <FileText className="w-5 h-5" />
+                                    <span className="hidden sm:inline">
+                                        Mis Publicaciones
+                                    </span>
+                                </Link>
+                                <Link
+                                    href="/material"
+                                    className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    <BookOpen className="w-5 h-5" />
+                                    <span className="hidden sm:inline">
+                                        Cursos y Carreras
+                                    </span>
+                                </Link>
+                            </>
                         )}
                     </div>
                 </div>
@@ -67,11 +79,11 @@ export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
             <Head title="Me Gusta" />
 
             <div className="py-8">
-                <div className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="mx-auto max-w-4xl space-y-4 px-4 sm:px-6 lg:px-8">
+                    <div className="">
                         <div className="flex items-center gap-3 mb-6">
-                            <Heart className="w-6 h-6 text-edu-dark" />
-                            <h3 className="text-xl font-bold text-gray-900">
+                            <Heart className="w-6 h-6 text-edu-dark dark:text-gray-200" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-200">
                                 Publicaciones que te gustaron
                             </h3>
                         </div>
@@ -97,12 +109,12 @@ export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
                             </>
                         ) : (
                             <div className="text-center py-12">
-                                <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-500 text-lg">
+                                <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4 dark:text-gray-200" />
+                                <p className="text-gray-500 text-lg dark:text-gray-200">
                                     Aún no has dado "Me gusta" a ninguna
                                     publicación
                                 </p>
-                                <p className="text-gray-400 text-sm mt-2">
+                                <p className="text-gray-400 text-sm mt-2 dark:text-gray-200">
                                     Explora el feed y marca tus publicaciones
                                     favoritas
                                 </p>

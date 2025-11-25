@@ -101,7 +101,7 @@ export default function ActualizarFotoPerfil({ currentPhoto, className = "" }) {
                                         "Foto eliminada correctamente."
                                     );
                                     setDisplayPhoto(
-                                        "/storage/profile-photos/default.png"
+                                        "/storage/profile-photos/default-avatar.webp"
                                     );
                                     setPreviewPhoto(null);
                                     setData("photo", null);
@@ -138,14 +138,14 @@ export default function ActualizarFotoPerfil({ currentPhoto, className = "" }) {
     };
 
     const currentDisplayPhoto =
-        previewPhoto || displayPhoto || "/storage/profile-photos/default.png";
+        previewPhoto || displayPhoto || "/storage/profile-photos/default-avatar.webp";
 
     return (
         <>
             {/* Foto de perfil con ícono de edición */}
             <div className={`relative inline-block ${className}`}>
                 <img
-                    src={displayPhoto || "/storage/profile-photos/default.png"}
+                    src={displayPhoto || "/storage/profile-photos/default-avatar.webp"}
                     alt="Foto de perfil"
                     className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-full shadow-lg border-4 border-gray-200"
                 />

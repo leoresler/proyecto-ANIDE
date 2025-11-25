@@ -73,7 +73,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return asset('storage/' . $this->profile_photo_path);
         }
 
-        return asset('storage/profile-photos/default.png');
+        return asset('storage/profile-photos/default-avatar.webp');
     }
 
     public function persona()

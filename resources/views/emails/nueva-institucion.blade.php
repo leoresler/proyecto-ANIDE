@@ -79,8 +79,9 @@
                 <p><strong>Documento:</strong> {{ $user->institucion->doc_identificador }}</p>
                 <p><strong>Tipo:</strong> {{ $user->institucion->tipo_institucion }}</p>
                 <p><strong>Dirección:</strong> {{ $user->institucion->direccion }}</p>
+                <p><strong>Ciudad:</strong> {{ $user->institucion->ciudad ?? 'No especificada' }}</p>
+                <p><strong>Provincia:</strong> {{ $user->institucion->provincia ?? 'No especificada' }}</p>
             @endif
-            <p><strong>Ciudad:</strong> {{ $user->ciudad }}, {{ $user->provincia }}</p>
         </div>
 
         <p><strong>Fecha de registro:</strong> {{ $user->created_at->format('d/m/Y H:i') }}</p>

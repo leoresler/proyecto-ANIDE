@@ -32,12 +32,20 @@ export default function ComentarioItem({
     const [showAllReplies, setShowAllReplies] = useState(false);
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
     const [replyErrorMessage, setReplyErrorMessage] = useState("");
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const REPLIES_PREVIEW_COUNT = 1;
+    const MAX_LINES_MOBILE = 8; // ✅ NUEVO: Máximo de líneas en móvil
+    const MAX_LINES_DESKTOP = 20; // ✅ NUEVO: Máximo de líneas en desktop
+
     const respuestas = comentario.respuestas || [];
     const displayedReplies = showAllReplies
         ? respuestas
         : respuestas.slice(0, REPLIES_PREVIEW_COUNT);
+
+    const contenido = comentario.eliminado
+        ? "La persona o institución ha borrado el mensaje."
+        : comentario.contenido;
 
     const getAuthorName = () => {
         if (comentario.perf_persona_id && comentario.persona?.user) {
@@ -57,18 +65,18 @@ export default function ComentarioItem({
         if (comentario.perf_persona_id && comentario.persona?.user) {
             return (
                 comentario.persona.user.profile_photo_url ||
-                "/storage/profile-photos/default.png"
+                "/images/default-avatar.png"
             );
         }
 
         if (comentario.perf_institucion_id && comentario.institucion?.user) {
             return (
                 comentario.institucion.user.profile_photo_url ||
-                "/storage/profile-photos/default.png"
+                "/images/default-avatar.png"
             );
         }
 
-        return "/storage/profile-photos/default.png";
+        return "/images/default-avatar.png";
     };
 
     const handleLike = async () => {
@@ -133,7 +141,6 @@ export default function ComentarioItem({
                 const data = error.response.data;
 
                 if (data.blocked) {
-                    // Respuesta bloqueada por palabras prohibidas
                     const count = data.detected_words_count || 0;
                     const mensaje =
                         count === 1
@@ -141,21 +148,11 @@ export default function ComentarioItem({
                             : `Tu respuesta contiene ${count} palabras prohibidas. Por favor, usa un lenguaje apropiado.`;
 
                     setReplyErrorMessage(data.message || mensaje);
-
-                    // Toast de error destacado
                     toast.error(
                         "Respuesta bloqueada por contenido inapropiado ⚠️",
-                        {
-                            duration: 5000,
-                            style: {
-                                background: "#fef2f2",
-                                color: "#991b1b",
-                                border: "1px solid #fecaca",
-                            },
-                        }
+                        { duration: 5000 }
                     );
                 } else if (data.errors) {
-                    // Errores de validación
                     const errores = Object.values(data.errors).flat();
                     const errorMsg = errores.join(", ");
                     setReplyErrorMessage(errorMsg);
@@ -178,22 +175,21 @@ export default function ComentarioItem({
     };
 
     const handleDelete = () => {
-        // Toast de confirmación personalizado
         toast(
             (t) => (
                 <div className="flex flex-col space-y-3">
                     <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900 dark:text-white">
                             ¿Eliminar este comentario?
                         </p>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             Esta acción no se puede deshacer
                         </p>
                     </div>
                     <div className="flex space-x-2 justify-end">
                         <button
                             onClick={() => toast.dismiss(t.id)}
-                            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition"
+                            className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-medium transition"
                         >
                             Cancelar
                         </button>
@@ -218,13 +214,6 @@ export default function ComentarioItem({
                                             preserveState: false,
                                             only: ["publicacion"],
                                         });
-
-                                        // window.location.reload();
-
-                                        // router.reload({
-                                        //     only: ["publicacion"],
-                                        //     preserveScroll: true,
-                                        // });
                                     })
                                     .catch(() => {
                                         toast.dismiss(loadingToast);
@@ -243,8 +232,8 @@ export default function ComentarioItem({
             {
                 duration: Infinity,
                 style: {
-                    background: "#fff",
-                    color: "#000",
+                    background: "var(--toast-bg, #fff)",
+                    color: "var(--toast-color, #000)",
                     maxWidth: "400px",
                     padding: "16px",
                 },
@@ -252,9 +241,6 @@ export default function ComentarioItem({
         );
     };
 
-    // Puede eliminar si:
-    // - Persona: su propio comentario
-    // - Institución: su comentario o cualquier comentario de su publicación
     const canDelete =
         !comentario.eliminado &&
         ((userType === "persona" &&
@@ -264,7 +250,7 @@ export default function ComentarioItem({
                     currentUserId === publicacionInstitucionId)));
 
     return (
-        <div className={`${level > 0 ? "ml-12" : ""}`}>
+        <div className={`${level > 0 ? "ml-8" : ""}`}>
             <div className="flex space-x-3">
                 <img
                     src={getAuthorPhoto()}
@@ -272,34 +258,84 @@ export default function ComentarioItem({
                     className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
                 />
 
-                <div className="flex-1">
-                    <div className="bg-gray-100 rounded-lg p-3">
+                <div className="flex-1 min-w-0">
+                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-gray-900 dark:text-white">
                                 {getAuthorName()}
                             </span>
 
                             {canDelete && (
                                 <button
                                     onClick={handleDelete}
-                                    className="text-red-600 hover:text-red-800 transition"
+                                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition"
                                     title="Eliminar comentario"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
-                        <p
-                            className={`whitespace-pre-wrap ${
-                                comentario.eliminado
-                                    ? "italic text-gray-500"
-                                    : "text-gray-700"
-                            }`}
-                        >
-                            {comentario.eliminado
-                                ? "La persona o institución ha borrado el mensaje."
-                                : comentario.contenido}
-                        </p>
+
+                        {/* ✅ NUEVO: Contenido con altura máxima y scroll personalizado */}
+                        <div className="relative">
+                            <div
+                                className={`whitespace-pre-wrap overflow-y-auto transition-all duration-300 ${
+                                    comentario.eliminado
+                                        ? "italic text-gray-500 dark:text-gray-400"
+                                        : "text-gray-700 dark:text-gray-300"
+                                } ${
+                                    isExpanded
+                                        ? "max-h-96"
+                                        : "max-h-[8rem] md:max-h-[20rem]"
+                                } ${
+                                    !isExpanded
+                                        ? "line-clamp-8 md:line-clamp-20"
+                                        : ""
+                                } scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-500 dark:hover:scrollbar-thumb-gray-500`}
+                                style={{
+                                    wordBreak: "break-word",
+                                    overflowWrap: "break-word",
+                                }}
+                            >
+                                {contenido}
+                            </div>
+
+                            {/* Gradiente de fade cuando no está expandido */}
+                            {!isExpanded &&
+                                contenido.split("\n").length >
+                                    MAX_LINES_MOBILE &&
+                                !comentario.eliminado && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-100 dark:from-gray-700 to-transparent pointer-events-none md:hidden"></div>
+                                )}
+                            {!isExpanded &&
+                                contenido.split("\n").length >
+                                    MAX_LINES_DESKTOP &&
+                                !comentario.eliminado && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-100 dark:from-gray-700 to-transparent pointer-events-none hidden md:block"></div>
+                                )}
+                        </div>
+
+                        {/* ✅ NUEVO: Botón "Ver más" / "Ver menos" - Solo si el contenido es largo */}
+                        {!comentario.eliminado &&
+                            (contenido.split("\n").length > MAX_LINES_MOBILE ||
+                                contenido.length > 400) && (
+                                <button
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition mt-2 flex items-center gap-1"
+                                >
+                                    {isExpanded ? (
+                                        <>
+                                            Ver menos
+                                            <ChevronDown className="w-3 h-3 transform rotate-180" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            Ver más
+                                            <ChevronDown className="w-3 h-3" />
+                                        </>
+                                    )}
+                                </button>
+                            )}
                     </div>
 
                     {/* Acciones del comentario */}
@@ -308,31 +344,35 @@ export default function ComentarioItem({
                             <button
                                 onClick={handleLike}
                                 className={`flex items-center space-x-1 transition ${
-                                    isLiked ? "text-edu-dark" : "text-gray-600"
-                                } hover:text-black`}
+                                    isLiked
+                                        ? "text-edu-dark"
+                                        : "text-gray-600 dark:text-gray-400"
+                                } hover:text-black dark:hover:text-white`}
                             >
                                 <Heart
-                                    className={`w-4 h-4 ${
+                                    className={`w-4 h-4 dark:text-gray-200 ${
                                         isLiked ? "fill-current" : ""
                                     }`}
                                 />
-                                <span>{likesCount}</span>
+                                <span className="dark:text-gray-200">
+                                    {likesCount}
+                                </span>
                             </button>
 
                             {level === 0 && (
                                 <button
                                     onClick={() => {
                                         setShowReplyForm(!showReplyForm);
-                                        setReplyErrorMessage(""); // Limpiar error al abrir
+                                        setReplyErrorMessage("");
                                     }}
-                                    className="flex items-center space-x-1 text-edu-dark hover:text-black transition"
+                                    className="flex items-center space-x-1 text-edu-dark hover:text-black dark:text-gray-400 dark:hover:text-white transition"
                                 >
                                     <MessageCircle className="w-4 h-4" />
                                     <span>Responder</span>
                                 </button>
                             )}
 
-                            <span className="text-gray-500 text-xs">
+                            <span className="text-gray-500 dark:text-gray-400 text-xs">
                                 {new Date(
                                     comentario.created_at
                                 ).toLocaleDateString("es-AR", {
@@ -348,11 +388,10 @@ export default function ComentarioItem({
                     {/* Formulario de respuesta */}
                     {showReplyForm && (
                         <form onSubmit={handleReplySubmit} className="mt-3">
-                            {/* Alerta de error inline */}
                             {replyErrorMessage && (
-                                <div className="mb-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start space-x-2">
-                                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-red-700">
+                                <div className="mb-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start space-x-2">
+                                    <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                                    <p className="text-sm text-red-700 dark:text-red-300">
                                         {replyErrorMessage}
                                     </p>
                                 </div>
@@ -367,9 +406,9 @@ export default function ComentarioItem({
                                             setReplyErrorMessage("");
                                     }}
                                     placeholder="Escribe una respuesta..."
-                                    className={`flex-1 rounded-lg border-gray-300 focus:border-gray-500 focus:ring-gray-500 text-sm ${
+                                    className={`flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 focus:border-gray-500 focus:ring-gray-500 text-sm ${
                                         replyErrorMessage
-                                            ? "border-red-300"
+                                            ? "border-red-300 dark:border-red-600"
                                             : ""
                                     }`}
                                     rows="2"
@@ -383,7 +422,7 @@ export default function ComentarioItem({
                                     className={`text-xs ${
                                         replyText.length > 950
                                             ? "text-red-500 font-medium"
-                                            : "text-gray-500"
+                                            : "text-gray-500 dark:text-gray-400"
                                     }`}
                                 >
                                     {replyText.length}/1000
@@ -395,7 +434,7 @@ export default function ComentarioItem({
                                             !replyText.trim() ||
                                             isSubmittingReply
                                         }
-                                        className="px-3 py-1 bg-edu-dark text-white rounded-md text-sm hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                        className="px-3 py-1 bg-edu-dark text-white rounded-md text-sm hover:bg-gray-800 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                                     >
                                         {isSubmittingReply
                                             ? "Enviando..."
@@ -408,7 +447,7 @@ export default function ComentarioItem({
                                             setReplyErrorMessage("");
                                             setReplyText("");
                                         }}
-                                        className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md text-sm hover:bg-gray-300 transition"
+                                        className="px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition"
                                         disabled={isSubmittingReply}
                                     >
                                         Cancelar
@@ -421,7 +460,6 @@ export default function ComentarioItem({
                     {/* Respuestas anidadas */}
                     {respuestas.length > 0 && (
                         <div className="mt-4 space-y-4">
-                            {/* Mostrar las respuestas según el estado */}
                             {displayedReplies.map((respuesta) => (
                                 <ComentarioItem
                                     key={respuesta.id}
@@ -435,14 +473,13 @@ export default function ComentarioItem({
                                 />
                             ))}
 
-                            {/* Botón para ver más respuestas */}
                             {!showAllReplies &&
                                 respuestas.length > REPLIES_PREVIEW_COUNT && (
                                     <button
                                         onClick={() => {
                                             setShowAllReplies(true);
                                         }}
-                                        className="flex items-center space-x-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition ml-12"
+                                        className="flex items-center space-x-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition ml-8"
                                     >
                                         <ChevronDown className="w-4 h-4" />
                                         <span>
@@ -460,12 +497,11 @@ export default function ComentarioItem({
                                     </button>
                                 )}
 
-                            {/* Botón para ocultar respuestas */}
                             {showAllReplies &&
                                 respuestas.length > REPLIES_PREVIEW_COUNT && (
                                     <button
                                         onClick={() => setShowAllReplies(false)}
-                                        className="flex items-center space-x-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition ml-12"
+                                        className="flex items-center space-x-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition ml-8"
                                     >
                                         <ChevronDown className="w-4 h-4 transform rotate-180" />
                                         <span>Ocultar respuestas</span>

@@ -57,13 +57,10 @@ export default function Favoritos({ auth, favoritos, userType }) {
         <AuthenticatedLayout user={auth.user}>
             <Head title="Favoritos" />
 
-            <div className="py-8">
+            <div className="py-8 mb-8">
                 <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
                     <div className="mb-8">
-                        <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-                            Elementos Guardados
-                        </h1>
-
+                        
                         {/* Barra de búsqueda para favoritos */}
                         <div className="flex justify-center shadow-md border rounded-full">
                             <BarraBusqueda
@@ -124,7 +121,7 @@ export default function Favoritos({ auth, favoritos, userType }) {
                     <div className="space-y-6">
                         {publicacionesAMostrar.length === 0 &&
                         publicacionesFiltradas === null ? (
-                            <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-8 text-center">
+                            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-8 text-center">
                                 <svg
                                     className="mx-auto h-12 w-12 text-gray-400 mb-4"
                                     fill="none"
@@ -138,15 +135,15 @@ export default function Favoritos({ auth, favoritos, userType }) {
                                         d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
                                     />
                                 </svg>
-                                <p className="text-gray-500 text-lg mb-2">
+                                <p className="text-gray-500 dark:text-gray-300 text-lg mb-2">
                                     No tenés publicaciones guardadas todavía.
                                 </p>
-                                <p className="text-gray-400 text-sm mb-4">
+                                <p className="text-gray-400 dark:text-gray-400 text-sm mb-4">
                                     Guardá publicaciones para verlas más tarde
                                 </p>
                                 <Link
                                     href="/inicio"
-                                    className="mt-3 inline-block px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 font-medium transition-colors"
+                                    className="mt-3 inline-block px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 font-medium dark:bg-gray-600 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     Explorar publicaciones
                                 </Link>
