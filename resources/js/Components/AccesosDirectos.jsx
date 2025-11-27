@@ -11,9 +11,9 @@ export default function AccesosDirectos({ instituciones = [] }) {
                 <img
                     src="/svg/accesoDirect.svg"
                     alt="Accesos"
-                    className="h-6 w-6"
+                    className="h-6 w-6 dark:brightness-100 dark:invert"
                 />
-                <p className="text-gray-500 dark:text-gray-400 font-medium">
+                <p className="text-gray-600 dark:text-gray-400 font-medium">
                     Accesos Directos
                 </p>
             </div>
@@ -29,7 +29,11 @@ export default function AccesosDirectos({ instituciones = [] }) {
                     >
                         <div className="bg-white dark:bg-gray-800 shadow-md hover:shadow-lg rounded-full p-2 transition">
                             <img
-                                src={institucion.foto_perfil || institucion.user?.profile_photo_url || '/images/default-avatar.png'}
+                                src={
+                                    institucion.foto_perfil ||
+                                    institucion.user?.profile_photo_url ||
+                                    "/images/default-avatar.png"
+                                }
                                 alt={institucion.nombre}
                                 className="h-14 w-14 rounded-full object-cover"
                             />

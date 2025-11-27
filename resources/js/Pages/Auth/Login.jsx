@@ -30,7 +30,7 @@ export default function Login({ status, canResetPassword }) {
     const handleEmailChange = (e) => {
         const value = e.target.value;
         setData("email", value);
-        
+
         if (clientErrors.email && value.trim() !== "") {
             setClientErrors((prev) => ({
                 ...prev,
@@ -42,7 +42,7 @@ export default function Login({ status, canResetPassword }) {
     const handlePasswordChange = (e) => {
         const value = e.target.value;
         setData("password", value);
-        
+
         if (clientErrors.password && value.trim() !== "") {
             setClientErrors((prev) => ({
                 ...prev,
@@ -57,11 +57,11 @@ export default function Login({ status, canResetPassword }) {
         // se validan todos los campos antes de enviar
         const emailError = validateField("email", data.email);
         const passwordError = validateField("password", data.password);
-        
+
         if (emailError || passwordError) {
-            setClientErrors({ 
-                email: emailError, 
-                password: passwordError 
+            setClientErrors({
+                email: emailError,
+                password: passwordError,
             });
             return;
         }
@@ -69,11 +69,12 @@ export default function Login({ status, canResetPassword }) {
         setClientErrors({});
 
         post(route("login"), {
+            onSuccess: () => {
+                window.location.reload();
+            },
             onFinish: () => reset("password"),
         });
     };
-
-    
 
     return (
         <GuestLayout>
@@ -157,25 +158,29 @@ export default function Login({ status, canResetPassword }) {
                             ¿No tenes cuenta?
                         </Link>
                     </div>
-                    
+
                     {/* mostrar errores */}
                     {(clientErrors.email || clientErrors.password) && (
                         <div className="mt-6 flex justify-center">
                             <InputError
-                                message={clientErrors.email || clientErrors.password}
+                                message={
+                                    clientErrors.email || clientErrors.password
+                                }
                                 className="text-center font-semibold"
                             />
                         </div>
                     )}
 
-                    {hasAuthError && !clientErrors.email && !clientErrors.password && (
-                        <div className="mt-6 flex justify-center">
-                            <InputError
-                                message={"Credenciales incorrectas"}
-                                className="text-center font-semibold"
-                            />
-                        </div>
-                    )}
+                    {hasAuthError &&
+                        !clientErrors.email &&
+                        !clientErrors.password && (
+                            <div className="mt-6 flex justify-center">
+                                <InputError
+                                    message={"Credenciales incorrectas"}
+                                    className="text-center font-semibold"
+                                />
+                            </div>
+                        )}
 
                     <div className="flex flex-col items-center justify-center mt-8 gap-4">
                         <RoundedButton

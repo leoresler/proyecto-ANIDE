@@ -51,19 +51,33 @@ export default function Inicio({
 
                 {userType === "institucion" && (
                     <div className="flex items-center mb-6 justify-between gap-2">
-                        <Link href="/publicaciones/create">
-                            <p className="text-edu-dark dark:text-white text-md font-bold">
-                                Compartí tus últimas novedades
-                            </p>
-                            <hr className="border-gray-500" />
-                        </Link>
+                        <div className="w-full bg-gradient-to-r dark:from-edu-dark dark:to-edu-mid from-gray-300 to-gray-100 text-black dark:text-white border border-gray-300 dark:border-gray-700 rounded-3xl p-5 shadow-md">
+                            <Link
+                                href="/publicaciones/create"
+                                className="flex justify-between items-center"
+                            >
+                                <div>
+                                    <p className="text-lg font-bold">
+                                        Compartí tus novedades
+                                    </p>
+                                    <p className="text-sm opacity-90">
+                                        Publicá noticias, eventos o avisos
+                                        importantes
+                                    </p>
+                                </div>
+
+                                <div className="bg-edu-dark text-white dark:bg-white dark:text-black font-bold px-4 py-2 rounded-lg">
+                                    Crear
+                                </div>
+                            </Link>
+                        </div>
                     </div>
                 )}
 
                 <div className="space-y-6">
                     {publicacionesData.length === 0 ? (
                         <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-8 text-center">
-                            <p className="text-gray-500 dark:text-gray-400">
+                            <p className="text-gray-600 dark:text-gray-400">
                                 No hay publicaciones disponibles
                             </p>
                         </div>

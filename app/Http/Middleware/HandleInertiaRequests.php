@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 use Inertia\Middleware;
 use App\Models\Mensaje;
 use Illuminate\Support\Facades\Auth;
-use App\Models\ComentPublicacion;
-use Illuminate\Notifications\DatabaseNotification;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,51 +33,37 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if (!$user) {
-            return array_merge(parent::share($request), [
-                'auth' => ['user' => null],
-                'notificacionesIniciales' => [],
-                'notificacionesNoLeidasCount' => 0,
-                'unreadCount' => 0,
-            ]);
+        $unread = 0;
+        if ($user) {
+            // contar mensajes no leídos dirigidos al user
+            $unread = Mensaje::where('leido', false)
+                ->where('emisor_id', '!=', $user->id)
+                ->whereHas('chat', function ($q) use ($user) {
+                    // nos aseguramos que el chat contenga al user: (persona_id/institucion_id relacionados)
+                    // si tu estructura guarda persona_id/institucion_id, probá esto simple:
+                    $q->where(function ($sub) use ($user) {
+                        // si el usuario tiene perf_persona o perf_institucion
+                        $sub->where('persona_id', optional($user->persona)->id)
+                            ->orWhere('institucion_id', optional($user->institucion)->id);
+                    });
+                })
+                ->count();
         }
-
-        // 🔹 Contador de mensajes no leídos (chats)
-        $unread = Mensaje::where('leido', false)
-            ->where('emisor_id', '!=', $user->id)
-            ->whereHas('chat', function ($q) use ($user) {
-                $q->where(function($sub) use ($user) {
-                    $sub->where('persona_id', optional($user->persona)->id)
-                        ->orWhere('institucion_id', optional($user->institucion)->id);
-                });
-            })
-            ->count();
-
-        // 🔹 Traer las últimas notificaciones de cualquier tipo (comentarios y likes)
-        $notificacionesIniciales = DatabaseNotification::where('notifiable_id', $user->id)
-            ->latest()
-            ->take(20)
-            ->get();
-
-        // 🔹 Contador de notificaciones no leídas
-        $notificacionesNoLeidasCount = DatabaseNotification::where('notifiable_id', $user->id)
-            ->whereNull('read_at')
-            ->count();
 
         return [
             ...parent::share($request),
-            'auth' => ['user' => $user],
+            'auth' => [
+                'user' => $user,
+            ],
             'flash' => [
                 'message' => fn() => $request->session()->get('message'),
-                'error'   => fn() => $request->session()->get('error'),
+                'error' => fn() => $request->session()->get('error'),
             ],
+            // Compartir el token CSRF en todas las páginas
             'csrf_token' => csrf_token(),
             'unreadCount' => $unread,
-            'notificacionesIniciales' => $notificacionesIniciales,
-            'notificacionesNoLeidasCount' => $notificacionesNoLeidasCount,
         ];
     }
-
 
     /**
      * Handle the incoming request.
@@ -87,11 +71,6 @@ class HandleInertiaRequests extends Middleware
     public function handle($request, $next)
     {
         $response = parent::handle($request, $next);
-
-        // Si hay un error 419, retornar una respuesta que Inertia pueda manejar
-        if ($response->status() === 419) {
-            return back()->with('error', 'Tu sesión ha expirado. Por favor, intenta nuevamente.');
-        }
 
         return $response;
     }
@@ -106,4 +85,3 @@ class HandleInertiaRequests extends Middleware
     //         ],
     //     ];
     // }
-

@@ -92,6 +92,16 @@ export default function Sidebar({ isOpen, onClose, unreadCount }) {
                 href={route("logout")}
                 method="post"
                 as="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    router.post(
+                        route("logout"),
+                        {},
+                        {
+                            onFinish: () => window.location.reload(),
+                        }
+                    );
+                }}
                 className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-red-600 dark:text-red-400"
             >
                 <LogOut size={18} />
@@ -194,7 +204,7 @@ export default function Sidebar({ isOpen, onClose, unreadCount }) {
                                 label="Elementos Guardados"
                             />
                             <BotonSidebar
-                                href="#"
+                                href="/ubicaciones"
                                 icon="/svg/sidebar/location.svg"
                                 label="Ubicaciones Guardadas"
                             />
@@ -204,7 +214,7 @@ export default function Sidebar({ isOpen, onClose, unreadCount }) {
                                 label="Cursos"
                             />
                             <BotonSidebar
-                                href="#"
+                                href={route("actividad.index")}
                                 icon="/svg/sidebar/clock.svg"
                                 label="Actividad"
                             />

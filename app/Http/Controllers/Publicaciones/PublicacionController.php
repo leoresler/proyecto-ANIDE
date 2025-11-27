@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use App\Notifications\UbicacionGuardadaNotification;
 
 class PublicacionController extends Controller
 {
@@ -21,87 +20,67 @@ class PublicacionController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-            $user = Auth::user();
+        $user = Auth::user();
 
-            // Solo instituciones pueden publicar
-            if ($user->tipo_usuario !== 'institucion') {
-                abort(403, 'Solo las instituciones pueden crear publicaciones');
-            }
-
-            // Verificar que el usuario tenga perfil de institución
-            if (!$user->institucion) {
-                return redirect()->back()->with('error', 'No se encontró perfil de institución para este usuario.');
-            }
-
-            // Validación
-            $validated = $request->validate([
-                'titulo' => 'required|string|max:255',
-                'contenido' => 'required|string',
-                'publicado' => 'nullable',
-                'categorias' => 'required|array|min:1|max:5',
-                'categorias.*' => 'string|max:255',
-            ]);
-
-            // Crear publicación
-            $publicacion = Publicacion::create([
-                'perf_institucion_id' => $user->institucion->id,
-                'titulo' => $validated['titulo'],
-                'contenido' => $validated['contenido'],
-                'publicado' => $request->boolean('publicado', true),
-                'categorias' => $validated['categorias'],
-            ]);
-
-            // Procesar archivos multimedia
-            $index = 0;
-            while ($request->hasFile("media.{$index}.file")) {
-                try {
-                    $file = $request->file("media.{$index}.file");
-                    $tipo = $request->input("media.{$index}.tipo", 'imagen');
-
-                    // Guardar archivo
-                    $path = $file->store('publicaciones', 'public');
-
-                    // Crear registro en DB
-                    PublicacionMedia::create([
-                        'publicacion_id' => $publicacion->id,
-                        'tipo' => $tipo,
-                        'url' => $path,
-                        'orden' => $index,
-                    ]);
-                } catch (\Exception $e) {
-                    Log::error("Error procesando media.{$index}.file: " . $e->getMessage(), [
-                        'trace' => $e->getTraceAsString()
-                    ]);
-                }
-                $index++;
-            }
-
-            // Enviar notificaciones a usuarios que guardaron la institución
-            $institucion = $publicacion->institucion;
-            $institucion->guardadaPorUsuarios->each(function ($persona) use ($publicacion) {
-            if ($persona->user) {
-                // Guardar en base de datos
-                $persona->user->notify(new \App\Notifications\UbicacionGuardadaNotification($publicacion));
-            }
-        });
-
-        // Enviar broadcast en tiempo real
-        event(new \App\Events\PublicacionCreada($publicacion));
-
-
-            return redirect()->route('publicaciones.misPublicaciones')
-                ->with('success', 'Publicación creada exitosamente');
-        } catch (\Throwable $e) {
-            Log::error("Error al crear publicación: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'request' => $request->all(),
-            ]);
-
-            return redirect()->back()->with('error', 'Hubo un error al crear la publicación');
+        if ($user->tipo_usuario !== 'institucion') {
+            abort(403, 'Solo las instituciones pueden crear publicaciones');
         }
-    }
 
+        $validated = $request->validate([
+            'titulo' => 'required|string|max:255',
+            'contenido' => 'required|string',
+            'publicado' => 'nullable',
+            'categorias' => 'required|array|min:1|max:5',
+            'categorias.*' => 'string|max:255',
+        ]);
+
+        // Crear la publicación
+        $publicacion = Publicacion::create([
+            'perf_institucion_id' => $user->institucion->id,
+            'titulo' => $validated['titulo'],
+            'contenido' => $validated['contenido'],
+            'publicado' => $request->input('publicado') == '1' || $request->input('publicado') == 1 || $request->input('publicado') === true,
+            'categorias' => $validated['categorias'],
+        ]);
+
+        // Procesar archivos multimedia
+        $mediaCount = 0;
+
+        $index = 0;
+        while ($request->hasFile("media.{$index}.file")) {
+            try {
+                $file = $request->file("media.{$index}.file");
+                $tipo = $request->input("media.{$index}.tipo");
+
+                Log::info("Procesando media.{$index}.file", [
+                    'original_name' => $file->getClientOriginalName(),
+                    'tipo' => $tipo,
+                    'size' => $file->getSize(),
+                ]);
+
+                // Guardar el archivo
+                $path = $file->store('publicaciones', 'public');
+
+                // Crear el registro en la base de datos
+                $media = PublicacionMedia::create([
+                    'publicacion_id' => $publicacion->id,
+                    'tipo' => $tipo,
+                    'url' => $path,
+                    'orden' => $index,
+                ]);
+
+                $mediaCount++;
+            } catch (\Exception $e) {
+                Log::error("Error procesando media.{$index}.file: " . $e->getMessage());
+                Log::error($e->getTraceAsString());
+            }
+
+            $index++;
+        }
+
+        return redirect()->route('publicaciones.misPublicaciones')
+            ->with('success', 'Publicación creada exitosamente');
+    }
 
     /**
      * Muestra el feed principal filtrado por intereses del usuario
@@ -132,7 +111,19 @@ class PublicacionController extends Controller
                 $query->orderBy('orden', 'asc');
             },
             'likes',
-            'comentarios',
+            'comentarios' => function ($query) {
+                $query->whereNull('coment_padre_id')
+                    ->with([
+                        'persona.user',
+                        'institucion.user',
+                        'respuestas' => function ($subQuery) {
+                            $subQuery->with(['persona.user', 'institucion.user', 'likes'])
+                                ->orderBy('created_at', 'asc');
+                        },
+                        'likes'
+                    ])
+                    ->orderBy('created_at', 'desc');
+            },
             'favoritos' => function ($query) use ($user) {
                 if ($user->tipo_usuario === 'persona') {
                     $query->where('perf_persona_id', $user->persona->id);

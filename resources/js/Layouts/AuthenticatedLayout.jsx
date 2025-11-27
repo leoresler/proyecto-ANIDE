@@ -17,49 +17,13 @@ export default function AuthenticatedLayout({
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Asegúrate de que las props se pasen correctamente desde el backend
     const { auth, notificacionesIniciales = [], unreadCount, unreadMessagesCount } = usePage().props;
     const user = auth?.user;
 
     const [notificaciones, setNotificaciones] = useState(notificacionesIniciales || []);
     const [contadorRojo, setContadorRojo] = useState(unreadCount || 0);
     const pageProps = usePage().props;
-    // const unreadCount = pageProps.unreadCount ?? pageProps.unreadMessagesCount ?? 0;
-    // const user = pageProps.auth?.user;
     const userType = pageProps.userType;
-
-
-    // useEffect(() => {
-    //     const handler = (data) => {
-
-    //     console.log('Notificación recibida:', data); // Verifica la notificación completa
-    //     // Verificar si el nombre del usuario está presente
-    //     console.log('Nombre del usuario:', data.comentario.usuario.name);
-
-
-    //     setNotificaciones(prev => {
-    //         const updatedNotificaciones = [data.comentario, ...prev];
-    //         console.log('Notificaciones actualizadas:', updatedNotificaciones); // Verifica el estado actualizado
-    //         return updatedNotificaciones;
-    //     });
-    //     setContadorRojo(prev => prev + 1); // Actualizar el contador rojo
-    // };
-
-        
-    //     if (user && window.Echo) {
-    //         const canal = window.Echo.private(`user.${user.id}`);
-    //         canal.listen(".ComentarioCreado", handler);
-    //     }
-
-    //     return () => {
-    //         // Limpiar al salir del componente
-    //         if (user && window.Echo) {
-    //             const canal = window.Echo.private(`user.${user.id}`);
-    //             canal.stopListening(".ComentarioCreado");
-    //         }
-    //     };
-    // }, [user]);
-
 
     // Definimos Pusher/Echo y eventos globales
     useEffect(() => {
@@ -113,10 +77,10 @@ export default function AuthenticatedLayout({
         <div className="min-h-screen bg-white flex flex-col dark:bg-gray-900 transition-colors">
             <Header
                 onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                notificaciones={notificaciones} // Pasar las notificaciones al Header
+                notificaciones={notificaciones}
             />
 
-            <BackButton />
+            {/* <BackButton /> */}
 
             {/* Contenedor principal con 3 columnas */}
             <div className="flex flex-1 bg-gray-50 dark:bg-gray-900">
@@ -130,7 +94,7 @@ export default function AuthenticatedLayout({
                 {/* Contenido central */}
                 <main className="flex-1 overflow-y-auto">
                     {header && (
-                        <div className="">
+                        <div>
                             <div className={`${maxWidth === "w-full" ? "w-full" : `mx-auto ${maxWidth} px-4 py-6 sm:px-6 lg:px-8`}`}>
                                 {header}
                             </div>
