@@ -11,9 +11,9 @@ export default function AccesosDirectos({ instituciones = [] }) {
                 <img
                     src="/svg/accesoDirect.svg"
                     alt="Accesos"
-                    className="h-6 w-6"
+                    className="h-6 w-6 dark:brightness-100 dark:invert"
                 />
-                <p className="text-gray-500 dark:text-gray-400 font-medium">
+                <p className="text-gray-600 dark:text-gray-400 font-medium">
                     Accesos Directos
                 </p>
             </div>

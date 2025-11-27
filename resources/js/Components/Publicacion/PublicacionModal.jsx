@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link, router } from "@inertiajs/react";
 import PublicacionActions from "./PublicacionActions";
+import ComentarioItem from "./ComentarioItem";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -43,6 +44,12 @@ export default function PublicacionModal({
 
     const media = publicacion.media || [];
     const currentMedia = media[currentMediaIndex];
+
+    // Obtener el ID del usuario actual según el tipo
+    const currentUserId =
+        userType === "persona"
+            ? auth.user.persona?.id
+            : auth.user.institucion?.id;
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
@@ -127,7 +134,15 @@ export default function PublicacionModal({
                 toast.dismiss(loadingToast);
                 toast.success("¡Comentario publicado!");
                 setComentario("");
+
+                // Agregar el nuevo comentario al inicio de la lista
                 setComentarios([response.data.comentario, ...comentarios]);
+
+                // Recargar para obtener los datos actualizados
+                router.reload({
+                    only: ["publicacion"],
+                    preserveScroll: true,
+                });
             }
         } catch (error) {
             toast.dismiss(loadingToast);
@@ -246,6 +261,7 @@ export default function PublicacionModal({
 
     const canLike = true;
     const canFavorite = true;
+    const canComment = true;
 
     return (
         <div
@@ -253,7 +269,7 @@ export default function PublicacionModal({
             onClick={handleClickOutside}
             className="fixed inset-0 bg-black/80 z-40 flex items-center justify-center p-4 backdrop-blur-sm"
         >
-            <div className="bg-white border border-edu-dark dark:bg-gray-800 rounded-3xl max-w-6xl w-full max-h-[80vh] overflow-hidden flex flex-col md:flex-row shadow-2xl">
+            <div className="bg-white border border-edu-dark dark:bg-gray-800 rounded-3xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl mt-10">
                 {/* Sección Izquierda - Media */}
                 <div className="md:w-3/5 bg-black relative flex items-center justify-center h-[450px] md:h-auto">
                     {media.length > 0 ? (
@@ -504,7 +520,7 @@ export default function PublicacionModal({
                         />
                     </div>
 
-                    {/* Comentarios con Scroll */}
+                    {/* Comentarios con Scroll usando ComentarioItem */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scroll bg-gray-50 dark:bg-gray-900">
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                             Comentarios ({comentarios.length})
@@ -516,148 +532,88 @@ export default function PublicacionModal({
                                 comentar!
                             </p>
                         ) : (
-                            comentarios.map((coment) => (
-                                <div key={coment.id} className="space-y-2">
-                                    <div className="flex gap-3">
-                                        <img
-                                            src={
-                                                coment.persona?.user
-                                                    ?.profile_photo_url ||
-                                                coment.institucion?.user
-                                                    ?.profile_photo_url ||
-                                                "/profile-photos/default-avatar.webp"
-                                            }
-                                            alt="Avatar"
-                                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-2">
-                                                <p className="font-semibold text-sm text-gray-900 dark:text-white">
-                                                    {coment.persona?.user
-                                                        ?.nombre ||
-                                                        coment.institucion?.user
-                                                            ?.nombre}
-                                                </p>
-                                                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                                                    {coment.contenido}
-                                                </p>
-                                            </div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-3">
-                                                {new Date(
-                                                    coment.created_at
-                                                ).toLocaleDateString("es-AR")}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {coment.respuestas &&
-                                        coment.respuestas.length > 0 && (
-                                            <div className="ml-13 space-y-2">
-                                                {coment.respuestas.map(
-                                                    (respuesta) => (
-                                                        <div
-                                                            key={respuesta.id}
-                                                            className="flex gap-3"
-                                                        >
-                                                            <img
-                                                                src={
-                                                                    respuesta
-                                                                        .persona
-                                                                        ?.user
-                                                                        ?.profile_photo_url ||
-                                                                    respuesta
-                                                                        .institucion
-                                                                        ?.user
-                                                                        ?.profile_photo_url ||
-                                                                    "/profile-photos/default-avatar.webp"
-                                                                }
-                                                                alt="Avatar"
-                                                                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                                                            />
-                                                            <div className="flex-1">
-                                                                <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl px-3 py-2">
-                                                                    <p className="font-semibold text-xs text-gray-900 dark:text-white">
-                                                                        {respuesta
-                                                                            .persona
-                                                                            ?.user
-                                                                            ?.nombre ||
-                                                                            respuesta
-                                                                                .institucion
-                                                                                ?.user
-                                                                                ?.nombre}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
-                                                                        {
-                                                                            respuesta.contenido
-                                                                        }
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                )}
-                                            </div>
-                                        )}
-                                </div>
-                            ))
+                            [...comentarios]
+                                .sort(
+                                    (a, b) =>
+                                        new Date(b.created_at) -
+                                        new Date(a.created_at)
+                                )
+                                .map((comentario) => (
+                                    <ComentarioItem
+                                        key={comentario.id}
+                                        comentario={comentario}
+                                        userType={userType}
+                                        currentUserId={currentUserId}
+                                        publicacionInstitucionId={
+                                            publicacion.perf_institucion_id
+                                        }
+                                        level={0}
+                                    />
+                                ))
                         )}
                     </div>
 
                     {/* Input de Comentario */}
-                    <form
-                        onSubmit={handleSubmitComentario}
-                        className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                    >
-                        <div className="flex space-x-3">
-                            <img
-                                src={
-                                    auth?.user?.profile_photo_url ||
-                                    "/profile-photos/default-avatar.webp"
-                                }
-                                alt={auth?.user?.nombre}
-                                className="w-10 h-10 rounded-full flex-shrink-0"
-                            />
-                            <div className="flex-1">
-                                <textarea
-                                    value={comentario}
-                                    onChange={(e) => {
-                                        setComentario(e.target.value);
-                                        if (errorMessage) setErrorMessage("");
-                                    }}
-                                    placeholder="Escribe un comentario..."
-                                    className={`w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 focus:border-gray-500 focus:ring-gray-500 resize-none ${
-                                        errorMessage ? "border-red-300" : ""
-                                    }`}
-                                    rows="3"
-                                    maxLength={1000}
-                                    disabled={isSubmitting}
+                    {canComment && (
+                        <form
+                            onSubmit={handleSubmitComentario}
+                            className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                        >
+                            <div className="flex space-x-3">
+                                <img
+                                    src={
+                                        auth?.user?.profile_photo_url ||
+                                        "/profile-photos/default-avatar.webp"
+                                    }
+                                    alt={auth?.user?.nombre}
+                                    className="w-10 h-10 rounded-full flex-shrink-0"
                                 />
-                                <div className="flex items-center justify-between mt-2">
-                                    <span
-                                        className={`text-xs ${
-                                            comentario.length > 950
-                                                ? "text-red-500 font-medium"
-                                                : "text-gray-500 dark:text-gray-400"
+                                <div className="flex-1">
+                                    <textarea
+                                        value={comentario}
+                                        onChange={(e) => {
+                                            setComentario(e.target.value);
+                                            if (errorMessage)
+                                                setErrorMessage("");
+                                        }}
+                                        placeholder="Escribe un comentario..."
+                                        className={`w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 focus:border-gray-500 focus:ring-gray-500 resize-none ${
+                                            errorMessage
+                                                ? "border-red-300 dark:border-red-600"
+                                                : ""
                                         }`}
-                                    >
-                                        {comentario.length}/1000
-                                    </span>
-                                    <button
-                                        type="submit"
-                                        disabled={
-                                            isSubmitting || !comentario.trim()
-                                        }
-                                        className="inline-flex items-center px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-black transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Send className="w-4 h-4 mr-2" />
-                                        {isSubmitting
-                                            ? "Enviando..."
-                                            : "Comentar"}
-                                    </button>
+                                        rows="3"
+                                        maxLength={500}
+                                        disabled={isSubmitting}
+                                    />
+                                    <div className="flex items-center justify-between mt-2">
+                                        <span
+                                            className={`text-xs ${
+                                                comentario.length > 950
+                                                    ? "text-red-500 font-medium"
+                                                    : "text-gray-500 dark:text-gray-400"
+                                            }`}
+                                        >
+                                            {comentario.length}/500
+                                        </span>
+                                        <button
+                                            type="submit"
+                                            disabled={
+                                                isSubmitting ||
+                                                !comentario.trim()
+                                            }
+                                            className="inline-flex items-center px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-black transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Send className="w-4 h-4 mr-2" />
+                                            {isSubmitting
+                                                ? "Enviando..."
+                                                : "Comentar"}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>

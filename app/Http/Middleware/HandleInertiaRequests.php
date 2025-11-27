@@ -72,11 +72,6 @@ class HandleInertiaRequests extends Middleware
     {
         $response = parent::handle($request, $next);
 
-        // Si hay un error 419, retornar una respuesta que Inertia pueda manejar
-        if ($response->status() === 419) {
-            return back()->with('error', 'Tu sesión ha expirado. Por favor, intenta nuevamente.');
-        }
-
         return $response;
     }
 }

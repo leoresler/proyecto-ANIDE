@@ -3,7 +3,7 @@ import Header from "@/Components/Header/Header";
 import Sidebar from "@/Components/Sidebard/Sidebard";
 import Recomendaciones from "@/Components/Recomendaciones";
 import { Toaster } from "react-hot-toast";
-import BackButton from "@/Components/BackButton";
+// import BackButton from "@/Components/BackButton";
 import { usePage, router } from "@inertiajs/react";
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
@@ -71,7 +71,7 @@ export default function AuthenticatedLayout({
             {/* Header fijo arriba */}
             <Header onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-            <BackButton />
+            {/* <BackButton /> */}
 
             {/* Contenedor principal con 3 columnas */}
             <div className="flex flex-1 bg-gray-50 dark:bg-gray-900">

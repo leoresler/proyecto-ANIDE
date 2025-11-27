@@ -173,7 +173,7 @@ export default function Show({ auth, publicacion, userType }) {
                     {media.length > 0 ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* IZQUIERDA - Slider */}
-                            <div className="bg-white rounded-3xl border overflow-hidden h-[450px]">
+                            <div className="bg-white rounded-3xl border border-gray-700 overflow-hidden h-[450px]">
                                 <div className="relative bg-black h-full flex items-center justify-center">
                                     <MediaSlide
                                         media={media[currentMediaIndex]}
@@ -290,7 +290,7 @@ export default function Show({ auth, publicacion, userType }) {
                                                     : ""
                                             }`}
                                             rows="3"
-                                            maxLength={1000}
+                                            maxLength={500}
                                             disabled={isSubmitting}
                                         />
                                         <div className="flex items-center justify-between mt-2">
@@ -301,7 +301,7 @@ export default function Show({ auth, publicacion, userType }) {
                                                         : "text-gray-500"
                                                 }`}
                                             >
-                                                {comentarioText.length}/1000
+                                                {comentarioText.length}/500
                                             </span>
                                             <button
                                                 type="submit"
@@ -322,7 +322,7 @@ export default function Show({ auth, publicacion, userType }) {
                             </form>
                         )}
 
-                        <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                        <div className="space-y-4">
                             {comentarios.length === 0 ? (
                                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                                     Aún no hay comentarios. ¡Sé el primero en
@@ -339,7 +339,9 @@ export default function Show({ auth, publicacion, userType }) {
                                                 ? auth.user.persona?.id
                                                 : auth.user.institucion?.id
                                         }
-                                        isPublicacionOwner={isOwner}
+                                        publicacionInstitucionId={
+                                            publicacion.perf_institucion_id
+                                        }
                                     />
                                 ))
                             )}

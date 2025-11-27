@@ -92,6 +92,16 @@ export default function Sidebar({ isOpen, onClose, unreadCount }) {
                 href={route("logout")}
                 method="post"
                 as="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    router.post(
+                        route("logout"),
+                        {},
+                        {
+                            onFinish: () => window.location.reload(),
+                        }
+                    );
+                }}
                 className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-red-600 dark:text-red-400"
             >
                 <LogOut size={18} />

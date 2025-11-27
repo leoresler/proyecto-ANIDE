@@ -111,7 +111,19 @@ class PublicacionController extends Controller
                 $query->orderBy('orden', 'asc');
             },
             'likes',
-            'comentarios',
+            'comentarios' => function ($query) {
+                $query->whereNull('coment_padre_id')
+                    ->with([
+                        'persona.user',
+                        'institucion.user',
+                        'respuestas' => function ($subQuery) {
+                            $subQuery->with(['persona.user', 'institucion.user', 'likes'])
+                                ->orderBy('created_at', 'asc');
+                        },
+                        'likes'
+                    ])
+                    ->orderBy('created_at', 'desc');
+            },
             'favoritos' => function ($query) use ($user) {
                 if ($user->tipo_usuario === 'persona') {
                     $query->where('perf_persona_id', $user->persona->id);

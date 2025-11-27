@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { router } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import {
     Heart,
     MessageCircle,
@@ -33,19 +33,23 @@ export default function ComentarioItem({
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
     const [replyErrorMessage, setReplyErrorMessage] = useState("");
     const [isExpanded, setIsExpanded] = useState(false);
+    const [localRespuestas, setLocalRespuestas] = useState(
+        comentario.respuestas || []
+    );
 
     const REPLIES_PREVIEW_COUNT = 1;
-    const MAX_LINES_MOBILE = 8; // ✅ NUEVO: Máximo de líneas en móvil
-    const MAX_LINES_DESKTOP = 20; // ✅ NUEVO: Máximo de líneas en desktop
+    const MAX_CHARS = 200; // max de caracteres antes de mostrar "ver mas"
 
-    const respuestas = comentario.respuestas || [];
     const displayedReplies = showAllReplies
-        ? respuestas
-        : respuestas.slice(0, REPLIES_PREVIEW_COUNT);
+        ? localRespuestas
+        : localRespuestas.slice(0, REPLIES_PREVIEW_COUNT);
 
     const contenido = comentario.eliminado
         ? "La persona o institución ha borrado el mensaje."
         : comentario.contenido;
+
+    const shouldShowExpandButton =
+        !comentario.eliminado && contenido.length > MAX_CHARS;
 
     const getAuthorName = () => {
         if (comentario.perf_persona_id && comentario.persona?.user) {
@@ -65,18 +69,18 @@ export default function ComentarioItem({
         if (comentario.perf_persona_id && comentario.persona?.user) {
             return (
                 comentario.persona.user.profile_photo_url ||
-                "/images/default-avatar.png"
+                "/images/default-avatar.webp"
             );
         }
 
         if (comentario.perf_institucion_id && comentario.institucion?.user) {
             return (
                 comentario.institucion.user.profile_photo_url ||
-                "/images/default-avatar.png"
+                "/images/default-avatar.webp"
             );
         }
 
-        return "/images/default-avatar.png";
+        return "/images/default-avatar.webp";
     };
 
     const handleLike = async () => {
@@ -104,7 +108,7 @@ export default function ComentarioItem({
 
         if (!replyText.trim() || isSubmittingReply) return;
 
-        if (respuestas.length >= 20) {
+        if (localRespuestas.length >= 20) {
             const errorMsg =
                 "Se alcanzó el límite máximo de 20 respuestas para este comentario.";
             setReplyErrorMessage(errorMsg);
@@ -129,7 +133,10 @@ export default function ComentarioItem({
                 toast.success("¡Respuesta publicada!");
 
                 const nuevaRespuesta = response.data.comentario;
-                comentario.respuestas = [nuevaRespuesta, ...respuestas];
+
+                // Actualizar las respuestas locales
+                setLocalRespuestas([nuevaRespuesta, ...localRespuestas]);
+
                 setShowReplyForm(false);
                 setReplyText("");
             }
@@ -179,17 +186,17 @@ export default function ComentarioItem({
             (t) => (
                 <div className="flex flex-col space-y-3">
                     <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
+                        <p className="font-medium text-gray-900">
                             ¿Eliminar este comentario?
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-gray-600 mt-1">
                             Esta acción no se puede deshacer
                         </p>
                     </div>
                     <div className="flex space-x-2 justify-end">
                         <button
                             onClick={() => toast.dismiss(t.id)}
-                            className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-medium transition"
+                            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition"
                         >
                             Cancelar
                         </button>
@@ -252,11 +259,21 @@ export default function ComentarioItem({
     return (
         <div className={`${level > 0 ? "ml-8" : ""}`}>
             <div className="flex space-x-3">
-                <img
-                    src={getAuthorPhoto()}
-                    alt={getAuthorName()}
-                    className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
-                />
+                {comentario.institucion ? (
+                    <Link href={`/instituciones/${comentario.institucion.id}`}>
+                        <img
+                            src={getAuthorPhoto()}
+                            alt={getAuthorName()}
+                            className="w-10 h-10 rounded-full flex-shrink-0 object-cover cursor-pointer"
+                        />
+                    </Link>
+                ) : (
+                    <img
+                        src={getAuthorPhoto()}
+                        alt={getAuthorName()}
+                        className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                    />
+                )}
 
                 <div className="flex-1 min-w-0">
                     <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3">
@@ -276,49 +293,26 @@ export default function ComentarioItem({
                             )}
                         </div>
 
-                        {/* ✅ NUEVO: Contenido con altura máxima y scroll personalizado */}
-                        <div className="relative">
-                            <div
-                                className={`whitespace-pre-wrap overflow-y-auto transition-all duration-300 ${
+                        {/* Contenido del comentario */}
+                        <div className="break-words">
+                            <p
+                                className={`whitespace-pre-wrap ${
                                     comentario.eliminado
                                         ? "italic text-gray-500 dark:text-gray-400"
                                         : "text-gray-700 dark:text-gray-300"
-                                } ${
-                                    isExpanded
-                                        ? "max-h-96"
-                                        : "max-h-[8rem] md:max-h-[20rem]"
-                                } ${
-                                    !isExpanded
-                                        ? "line-clamp-8 md:line-clamp-20"
-                                        : ""
-                                } scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent hover:scrollbar-thumb-gray-500 dark:hover:scrollbar-thumb-gray-500`}
+                                }`}
                                 style={{
                                     wordBreak: "break-word",
                                     overflowWrap: "break-word",
                                 }}
                             >
-                                {contenido}
-                            </div>
+                                {isExpanded || !shouldShowExpandButton
+                                    ? contenido
+                                    : `${contenido.substring(0, MAX_CHARS)}...`}
+                            </p>
 
-                            {/* Gradiente de fade cuando no está expandido */}
-                            {!isExpanded &&
-                                contenido.split("\n").length >
-                                    MAX_LINES_MOBILE &&
-                                !comentario.eliminado && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-100 dark:from-gray-700 to-transparent pointer-events-none md:hidden"></div>
-                                )}
-                            {!isExpanded &&
-                                contenido.split("\n").length >
-                                    MAX_LINES_DESKTOP &&
-                                !comentario.eliminado && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-100 dark:from-gray-700 to-transparent pointer-events-none hidden md:block"></div>
-                                )}
-                        </div>
-
-                        {/* ✅ NUEVO: Botón "Ver más" / "Ver menos" - Solo si el contenido es largo */}
-                        {!comentario.eliminado &&
-                            (contenido.split("\n").length > MAX_LINES_MOBILE ||
-                                contenido.length > 400) && (
+                            {/* Botón ver más / ver menos */}
+                            {shouldShowExpandButton && (
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}
                                     className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition mt-2 flex items-center gap-1"
@@ -336,6 +330,7 @@ export default function ComentarioItem({
                                     )}
                                 </button>
                             )}
+                        </div>
                     </div>
 
                     {/* Acciones del comentario */}
@@ -412,7 +407,7 @@ export default function ComentarioItem({
                                             : ""
                                     }`}
                                     rows="2"
-                                    maxLength={1000}
+                                    maxLength={500}
                                     autoFocus
                                     disabled={isSubmittingReply}
                                 />
@@ -425,7 +420,7 @@ export default function ComentarioItem({
                                             : "text-gray-500 dark:text-gray-400"
                                     }`}
                                 >
-                                    {replyText.length}/1000
+                                    {replyText.length}/500
                                 </span>
                                 <div className="flex space-x-2">
                                     <button
@@ -458,7 +453,7 @@ export default function ComentarioItem({
                     )}
 
                     {/* Respuestas anidadas */}
-                    {respuestas.length > 0 && (
+                    {localRespuestas.length > 0 && (
                         <div className="mt-4 space-y-4">
                             {displayedReplies.map((respuesta) => (
                                 <ComentarioItem
@@ -474,7 +469,8 @@ export default function ComentarioItem({
                             ))}
 
                             {!showAllReplies &&
-                                respuestas.length > REPLIES_PREVIEW_COUNT && (
+                                localRespuestas.length >
+                                    REPLIES_PREVIEW_COUNT && (
                                     <button
                                         onClick={() => {
                                             setShowAllReplies(true);
@@ -484,10 +480,10 @@ export default function ComentarioItem({
                                         <ChevronDown className="w-4 h-4" />
                                         <span>
                                             Ver{" "}
-                                            {respuestas.length -
+                                            {localRespuestas.length -
                                                 REPLIES_PREVIEW_COUNT}{" "}
                                             respuesta
-                                            {respuestas.length -
+                                            {localRespuestas.length -
                                                 REPLIES_PREVIEW_COUNT !==
                                             1
                                                 ? "s"
@@ -498,7 +494,8 @@ export default function ComentarioItem({
                                 )}
 
                             {showAllReplies &&
-                                respuestas.length > REPLIES_PREVIEW_COUNT && (
+                                localRespuestas.length >
+                                    REPLIES_PREVIEW_COUNT && (
                                     <button
                                         onClick={() => setShowAllReplies(false)}
                                         className="flex items-center space-x-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition ml-8"
