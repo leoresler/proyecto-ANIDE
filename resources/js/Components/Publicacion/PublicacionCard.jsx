@@ -5,10 +5,6 @@ import PublicacionModal from "./PublicacionModal";
 import MediaFullscreenMobile from "./MediaFullscreenMobile";
 import { FileText } from "lucide-react";
 
-/**
- * Componente principal para mostrar una tarjeta de publicación
- * Diseño: Nombre institución -> Contenido -> Título sobre imagen -> Acciones
- */
 export default function PublicacionCard({ publicacion, userType, auth }) {
     const [isLiked, setIsLiked] = useState(publicacion.user_has_liked);
     const [likesCount, setLikesCount] = useState(
@@ -26,9 +22,8 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
     }, [publicacion.id]);
 
     useEffect(() => {
-        // Detectar si es móvil
         const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768); // md breakpoint de Tailwind
+            setIsMobile(window.innerWidth < 768);
         };
 
         checkMobile();
@@ -96,7 +91,6 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
     };
 
     const handleContentClick = (e) => {
-        // Si el click es en botones de acción o enlaces, no hacer nada
         if (
             e.target.closest("button") ||
             e.target.closest("a[href^='/instituciones']")
@@ -104,7 +98,6 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
             return;
         }
 
-        // Si el click NO es en la media, ir a la página de la publicación
         if (!e.target.closest(".media-container")) {
             router.visit(`/publicaciones/${publicacion.id}`);
         }
@@ -113,7 +106,6 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
     const canLike = true;
     const canFavorite = true;
 
-    // Obtener la primera media para mostrar como destacada
     const primeraMedia =
         publicacion.media && publicacion.media.length > 0
             ? publicacion.media[0]
@@ -123,19 +115,19 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
         <>
             <div
                 onClick={handleContentClick}
-                className="bg-white rounded-3xl border shadow-md transition-shadow overflow-hidden cursor-pointer hover:shadow-lg"
+                className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-md transition-all overflow-hidden cursor-pointer hover:shadow-lg"
             >
                 {/* Header - Nombre de la institución */}
                 <Link
                     href={`/instituciones/${publicacion.institucion.id}`}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="p-4 flex items-center space-x-3 hover:bg-gray-50 transition">
+                    <div className="p-4 flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
                         <img
                             src={
                                 publicacion.institucion?.user
                                     ?.profile_photo_url ||
-                                "/images/default-avatar.png"
+                                "/profile-photos/default-avatar.webp"
                             }
                             alt={
                                 publicacion.institucion?.user?.nombre ||
@@ -144,11 +136,11 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                             className="w-12 h-12 rounded-full object-cover"
                         />
                         <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 text-base">
+                            <h3 className="font-semibold text-gray-900 dark:text-white text-base">
                                 {publicacion.institucion?.user?.nombre ||
                                     "Institución"}
                             </h3>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {new Date(
                                     publicacion.created_at
                                 ).toLocaleDateString("es-AR", {
@@ -164,7 +156,7 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
 
                 {/* Contenido de texto */}
                 <div className="px-4 pb-3">
-                    <p className="text-gray-700 text-sm leading-relaxed">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
                         {publicacion.contenido.length > 200
                             ? publicacion.contenido.substring(0, 200) + "..."
                             : publicacion.contenido}
@@ -177,7 +169,6 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                         className="media-container relative w-full h-80 bg-gray-900 cursor-zoom-in"
                         onClick={handleMediaClick}
                     >
-                        {/* Imagen o video de fondo */}
                         {primeraMedia.tipo === "imagen" && (
                             <img
                                 src={primeraMedia.url_publica}
@@ -195,22 +186,19 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                         )}
 
                         {primeraMedia.tipo === "documento" && (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                                <FileText className="w-24 h-24 text-gray-400" />
+                            <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                                <FileText className="w-24 h-24 text-gray-400 dark:text-gray-500" />
                             </div>
                         )}
 
-                        {/* Overlay con gradiente */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
 
-                        {/* Título superpuesto */}
                         <div className="absolute bottom-0 left-0 right-0 p-6 pointer-events-none">
                             <h2 className="text-white text-2xl font-bold leading-tight drop-shadow-lg">
                                 {publicacion.titulo}
                             </h2>
                         </div>
 
-                        {/* Indicador de más imágenes */}
                         {publicacion.media.length > 1 && (
                             <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm font-medium pointer-events-none">
                                 +{publicacion.media.length - 1}
@@ -222,7 +210,7 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                 {/* Si no hay media, mostrar solo el título */}
                 {!primeraMedia && (
                     <div className="px-4 pb-3">
-                        <h2 className="text-xl font-bold text-gray-900">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                             {publicacion.titulo}
                         </h2>
                     </div>
@@ -230,7 +218,7 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
 
                 {/* Acciones */}
                 <div
-                    className="px-4 py-3 border-t"
+                    className="px-4 py-3 border-t border-gray-200 dark:border-gray-700"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <PublicacionActions
@@ -250,7 +238,6 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                 </div>
             </div>
 
-            {/* Modal Desktop */}
             {showModal && !isMobile && (
                 <PublicacionModal
                     publicacion={publicacion}
@@ -260,7 +247,6 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                 />
             )}
 
-            {/* Fullscreen Mobile */}
             {showMobileFullscreen && isMobile && (
                 <MediaFullscreenMobile
                     publicacion={publicacion}

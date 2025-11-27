@@ -1,14 +1,11 @@
 import { Heart, MessageCircle, Bookmark, Share2 } from "lucide-react";
 
-/**
- * Componente para el boton de Like
- */
 export function LikeButton({
     isLiked,
     likesCount,
     onLike,
     disabled = false,
-    size = "default", // 'small' | 'default' | 'large'
+    size = "default",
 }) {
     const sizeClasses = {
         small: "w-4 h-4",
@@ -29,8 +26,12 @@ export function LikeButton({
             className={`flex items-center space-x-2 transition ${
                 disabled
                     ? "cursor-not-allowed opacity-50"
-                    : "hover:text-black"
-            } ${isLiked ? "text-edu-dark" : "text-gray-600"}`}
+                    : "hover:text-black dark:hover:text-white"
+            } ${
+                isLiked
+                    ? "text-edu-dark dark:text-gray-200"
+                    : "text-gray-600 dark:text-gray-400"
+            }`}
         >
             <Heart
                 className={`${sizeClasses[size]} ${
@@ -44,14 +45,11 @@ export function LikeButton({
     );
 }
 
-/**
- * Componente para el boton de Comentarios
- */
 export function CommentButton({
     comentariosCount,
     onClick,
     href,
-    size = "default", // 'small' | 'default' | 'large'
+    size = "default",
 }) {
     const sizeClasses = {
         small: "w-4 h-4",
@@ -66,7 +64,7 @@ export function CommentButton({
     };
 
     const baseClasses =
-        "flex items-center space-x-2 text-gray-600 hover:text-black transition";
+        "flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white transition";
 
     const content = (
         <>
@@ -92,14 +90,11 @@ export function CommentButton({
     );
 }
 
-/**
- * Componente para el boton de Favoritos
- */
 export function FavoriteButton({
     isFavorite,
     onFavorite,
     disabled = false,
-    size = "default", // 'small' | 'default' | 'large'
+    size = "default",
 }) {
     const sizeClasses = {
         small: "w-4 h-4",
@@ -114,8 +109,12 @@ export function FavoriteButton({
             className={`transition ${
                 disabled
                     ? "cursor-not-allowed opacity-50"
-                    : "hover:text-black"
-            } ${isFavorite ? "text-edu-dark" : "text-gray-600"}`}
+                    : "hover:text-black dark:hover:text-white"
+            } ${
+                isFavorite
+                    ? "text-edu-dark dark:text-gray-200"
+                    : "text-gray-600 dark:text-gray-400"
+            }`}
             title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
         >
             <Bookmark
@@ -127,14 +126,7 @@ export function FavoriteButton({
     );
 }
 
-/**
- * Componente para el boton de Compartir
- */
-export function ShareButton({
-    onShare,
-    publicacionId,
-    size = "default", // 'small' | 'default' | 'large'
-}) {
+export function ShareButton({ onShare, publicacionId, size = "default" }) {
     const sizeClasses = {
         small: "w-4 h-4",
         default: "w-5 h-5",
@@ -145,7 +137,6 @@ export function ShareButton({
         if (onShare) {
             onShare(publicacionId);
         } else {
-            // Compartir nativo del navegador
             const url = `${window.location.origin}/publicaciones/${publicacionId}`;
             if (navigator.share) {
                 navigator
@@ -155,7 +146,6 @@ export function ShareButton({
                     })
                     .catch((err) => console.log("Error al compartir:", err));
             } else {
-                // Fallback: copiar al portapapeles
                 navigator.clipboard.writeText(url);
                 alert("Enlace copiado al portapapeles");
             }
@@ -165,7 +155,7 @@ export function ShareButton({
     return (
         <button
             onClick={handleShare}
-            className="text-gray-600 hover:text-gray-900 transition"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
             title="Compartir publicación"
         >
             <Share2 className={sizeClasses[size]} />
@@ -173,35 +163,23 @@ export function ShareButton({
     );
 }
 
-/**
- * Componente contenedor para todas las acciones de publicación
- */
 export function PublicacionActions({
-    // Props para Like
     isLiked,
     likesCount,
     onLike,
     canLike = true,
-
-    // Props para Comentarios
     comentariosCount,
     onCommentClick,
     commentHref,
-
-    // Props para Favoritos
     isFavorite,
     onFavorite,
     canFavorite = false,
-
-    // Props para Compartir
     onShare,
     publicacionId,
     showShare = true,
-
-    // Props generales
     size = "default",
     className = "",
-    layout = "horizontal", // 'horizontal' | 'spaced'
+    layout = "horizontal",
 }) {
     const layoutClasses = {
         horizontal: "flex items-center space-x-6",
@@ -211,7 +189,6 @@ export function PublicacionActions({
     return (
         <div className={`${layoutClasses[layout]} ${className}`}>
             <div className="flex items-center space-x-6">
-                {/* Like */}
                 <LikeButton
                     isLiked={isLiked}
                     likesCount={likesCount}
@@ -220,7 +197,6 @@ export function PublicacionActions({
                     size={size}
                 />
 
-                {/* Comentarios */}
                 <CommentButton
                     comentariosCount={comentariosCount}
                     onClick={onCommentClick}
@@ -230,7 +206,6 @@ export function PublicacionActions({
             </div>
 
             <div className="flex items-center space-x-4">
-                {/* Favoritos */}
                 {canFavorite && (
                     <FavoriteButton
                         isFavorite={isFavorite}
@@ -239,7 +214,6 @@ export function PublicacionActions({
                     />
                 )}
 
-                {/* Compartir */}
                 {showShare && (
                     <ShareButton
                         onShare={onShare}

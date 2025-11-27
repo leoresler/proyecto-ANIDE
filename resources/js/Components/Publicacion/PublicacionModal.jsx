@@ -253,12 +253,11 @@ export default function PublicacionModal({
             onClick={handleClickOutside}
             className="fixed inset-0 bg-black/80 z-40 flex items-center justify-center p-4 backdrop-blur-sm"
         >
-            <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[80vh] overflow-hidden flex flex-col md:flex-row shadow-2xl">
+            <div className="bg-white border border-edu-dark dark:bg-gray-800 rounded-3xl max-w-6xl w-full max-h-[80vh] overflow-hidden flex flex-col md:flex-row shadow-2xl">
                 {/* Sección Izquierda - Media */}
                 <div className="md:w-3/5 bg-black relative flex items-center justify-center h-[450px] md:h-auto">
                     {media.length > 0 ? (
                         <>
-                            {/* Contenido de Media */}
                             <div className="w-full h-full flex items-center justify-center">
                                 {currentMedia?.tipo === "imagen" && (
                                     <img
@@ -302,7 +301,7 @@ export default function PublicacionModal({
                                             download
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center px-6 py-3 bg-edu-dark text-white rounded-lg hover:bg-gray-800 transition"
+                                            className="inline-flex items-center px-6 py-3 bg-edu-dark text-white rounded-lg hover:bg-gray-700 transition"
                                         >
                                             <Download className="w-5 h-5 mr-2" />
                                             Descargar documento
@@ -311,7 +310,6 @@ export default function PublicacionModal({
                                 )}
                             </div>
 
-                            {/* Controles de navegación */}
                             {media.length > 1 && (
                                 <>
                                     <button
@@ -327,17 +325,14 @@ export default function PublicacionModal({
                                         <ChevronRight className="w-6 h-6" />
                                     </button>
 
-                                    {/* Contador */}
                                     <div className="absolute top-3 right-4 bg-black/60 text-white px-3 py-1 rounded-full text-xs z-10">
                                         {currentMediaIndex + 1} / {media.length}
                                     </div>
                                 </>
                             )}
 
-                            {/* Controles de video */}
                             {currentMedia?.tipo === "video" && (
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 z-20">
-                                    {/* Barra de progreso */}
                                     <div
                                         className="w-full h-1 bg-white/20 rounded-full mb-3 cursor-pointer group"
                                         onClick={handleSeek}
@@ -358,7 +353,6 @@ export default function PublicacionModal({
                                         </div>
                                     </div>
 
-                                    {/* Controles inferiores */}
                                     <div className="flex items-center justify-between text-white">
                                         <div className="flex items-center space-x-3">
                                             <button
@@ -444,7 +438,7 @@ export default function PublicacionModal({
                 {/* Sección Derecha - Info y Comentarios */}
                 <div className="md:w-2/5 flex flex-col max-h-[90vh]">
                     {/* Header con botón cerrar */}
-                    <div className="p-4 border-b flex items-center justify-between">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                         <Link
                             href={`/instituciones/${publicacion.institucion.id}`}
                             className="flex items-center gap-3 flex-1"
@@ -453,16 +447,16 @@ export default function PublicacionModal({
                                 src={
                                     publicacion.institucion?.user
                                         ?.profile_photo_url ||
-                                    "/images/default-avatar.png"
+                                    "/profile-photos/default-avatar.webp"
                                 }
                                 alt={publicacion.institucion?.user?.nombre}
                                 className="w-14 h-14 rounded-full object-cover"
                             />
                             <div>
-                                <h3 className="font-bold text-gray-900 text-lg">
+                                <h3 className="font-bold text-gray-900 dark:text-white text-lg">
                                     {publicacion.institucion?.user?.nombre}
                                 </h3>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                     {new Date(
                                         publicacion.created_at
                                     ).toLocaleDateString("es-AR", {
@@ -477,24 +471,24 @@ export default function PublicacionModal({
                         </Link>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-gray-100 rounded-full transition flex-shrink-0"
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition flex-shrink-0"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                         </button>
                     </div>
 
                     {/* Título y Contenido */}
-                    <div className="p-4 border-b">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-3">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                             {publicacion.titulo}
                         </h1>
-                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed max-h-[240px] overflow-y-auto pr-2 custom-scroll">
+                        <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed max-h-[240px] overflow-y-auto pr-2 custom-scroll">
                             {publicacion.contenido}
                         </div>
                     </div>
 
                     {/* Acciones */}
-                    <div className="p-4 border-b">
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                         <PublicacionActions
                             isLiked={isLiked}
                             likesCount={likesCount}
@@ -511,13 +505,13 @@ export default function PublicacionModal({
                     </div>
 
                     {/* Comentarios con Scroll */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scroll">
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scroll bg-gray-50 dark:bg-gray-900">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                             Comentarios ({comentarios.length})
                         </h2>
 
                         {comentarios.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8 text-sm">
+                            <p className="text-gray-500 dark:text-gray-400 text-center py-8 text-sm">
                                 Aún no hay comentarios. ¡Sé el primero en
                                 comentar!
                             </p>
@@ -531,24 +525,24 @@ export default function PublicacionModal({
                                                     ?.profile_photo_url ||
                                                 coment.institucion?.user
                                                     ?.profile_photo_url ||
-                                                "/images/default-avatar.png"
+                                                "/profile-photos/default-avatar.webp"
                                             }
                                             alt="Avatar"
                                             className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                                         />
                                         <div className="flex-1">
-                                            <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                                                <p className="font-semibold text-sm">
+                                            <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl px-4 py-2">
+                                                <p className="font-semibold text-sm text-gray-900 dark:text-white">
                                                     {coment.persona?.user
                                                         ?.nombre ||
                                                         coment.institucion?.user
                                                             ?.nombre}
                                                 </p>
-                                                <p className="text-sm text-gray-700 mt-1">
+                                                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                                                     {coment.contenido}
                                                 </p>
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-1 px-3">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-3">
                                                 {new Date(
                                                     coment.created_at
                                                 ).toLocaleDateString("es-AR")}
@@ -556,7 +550,6 @@ export default function PublicacionModal({
                                         </div>
                                     </div>
 
-                                    {/* Respuestas */}
                                     {coment.respuestas &&
                                         coment.respuestas.length > 0 && (
                                             <div className="ml-13 space-y-2">
@@ -576,14 +569,14 @@ export default function PublicacionModal({
                                                                         .institucion
                                                                         ?.user
                                                                         ?.profile_photo_url ||
-                                                                    "/images/default-avatar.png"
+                                                                    "/profile-photos/default-avatar.webp"
                                                                 }
                                                                 alt="Avatar"
                                                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                                             />
                                                             <div className="flex-1">
-                                                                <div className="bg-gray-100 rounded-2xl px-3 py-2">
-                                                                    <p className="font-semibold text-xs">
+                                                                <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl px-3 py-2">
+                                                                    <p className="font-semibold text-xs text-gray-900 dark:text-white">
                                                                         {respuesta
                                                                             .persona
                                                                             ?.user
@@ -593,7 +586,7 @@ export default function PublicacionModal({
                                                                                 ?.user
                                                                                 ?.nombre}
                                                                     </p>
-                                                                    <p className="text-xs text-gray-700 mt-1">
+                                                                    <p className="text-xs text-gray-700 dark:text-gray-300 mt-1">
                                                                         {
                                                                             respuesta.contenido
                                                                         }
@@ -613,13 +606,13 @@ export default function PublicacionModal({
                     {/* Input de Comentario */}
                     <form
                         onSubmit={handleSubmitComentario}
-                        className="p-4 border-t"
+                        className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                     >
                         <div className="flex space-x-3">
                             <img
                                 src={
                                     auth?.user?.profile_photo_url ||
-                                    "/images/default-avatar.png"
+                                    "/profile-photos/default-avatar.webp"
                                 }
                                 alt={auth?.user?.nombre}
                                 className="w-10 h-10 rounded-full flex-shrink-0"
@@ -632,7 +625,7 @@ export default function PublicacionModal({
                                         if (errorMessage) setErrorMessage("");
                                     }}
                                     placeholder="Escribe un comentario..."
-                                    className={`w-full rounded-lg border-gray-300 focus:border-gray-500 focus:ring-gray-500 resize-none ${
+                                    className={`w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 focus:border-gray-500 focus:ring-gray-500 resize-none ${
                                         errorMessage ? "border-red-300" : ""
                                     }`}
                                     rows="3"
@@ -644,7 +637,7 @@ export default function PublicacionModal({
                                         className={`text-xs ${
                                             comentario.length > 950
                                                 ? "text-red-500 font-medium"
-                                                : "text-gray-500"
+                                                : "text-gray-500 dark:text-gray-400"
                                         }`}
                                     >
                                         {comentario.length}/1000

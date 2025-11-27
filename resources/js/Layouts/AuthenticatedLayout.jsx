@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
 import Header from "@/Components/Header/Header";
 import Sidebar from "@/Components/Sidebard/Sidebard";
+import Recomendaciones from "@/Components/Recomendaciones";
 import { Toaster } from "react-hot-toast";
 import BackButton from "@/Components/BackButton";
 import { usePage, router } from '@inertiajs/react';
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import MobileBottomNav from "@/Components/Header/MobileBottomNav";
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({ 
+    header, 
+    children, 
+    showRecomendaciones = true, // por defecto se muestran
+    maxWidth = "max-w-4xl" // opciones: "max-w-3xl", "max-w-4xl", "max-w-5xl", "max-w-6xl", "max-w-7xl", "w-full"
+}) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Asegúrate de que las props se pasen correctamente desde el backend
@@ -16,6 +23,10 @@ export default function AuthenticatedLayout({ header, children }) {
 
     const [notificaciones, setNotificaciones] = useState(notificacionesIniciales || []);
     const [contadorRojo, setContadorRojo] = useState(unreadCount || 0);
+    const pageProps = usePage().props;
+    // const unreadCount = pageProps.unreadCount ?? pageProps.unreadMessagesCount ?? 0;
+    // const user = pageProps.auth?.user;
+    const userType = pageProps.userType;
 
 
     // useEffect(() => {
@@ -85,9 +96,7 @@ export default function AuthenticatedLayout({ header, children }) {
             try {
                 channel.stopListening(".MensajeEnviado");
                 channel.unsubscribe && channel.unsubscribe();
-            } catch (e) {
-                console.warn("Error al limpiar canal user:", e);
-            }
+            } catch (e) {}
         };
     }, [user]);
 
@@ -101,7 +110,7 @@ export default function AuthenticatedLayout({ header, children }) {
     }, []);
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
+        <div className="min-h-screen bg-white flex flex-col dark:bg-gray-900 transition-colors">
             <Header
                 onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                 notificaciones={notificaciones} // Pasar las notificaciones al Header
@@ -109,43 +118,53 @@ export default function AuthenticatedLayout({ header, children }) {
 
             <BackButton />
 
-            <div className="flex flex-1">
+            {/* Contenedor principal con 3 columnas */}
+            <div className="flex flex-1 bg-gray-50 dark:bg-gray-900">
+                {/* Sidebar izquierdo */}
                 <Sidebar
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
                     unreadCount={unreadCount}
                 />
 
-                <div className="flex-1 flex flex-col">
+                {/* Contenido central */}
+                <main className="flex-1 overflow-y-auto">
                     {header && (
-                        <div className="bg-white shadow-sm">
-                            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                        <div className="">
+                            <div className={`${maxWidth === "w-full" ? "w-full" : `mx-auto ${maxWidth} px-4 py-6 sm:px-6 lg:px-8`}`}>
                                 {header}
                             </div>
                         </div>
                     )}
+                    <div className={`${maxWidth === "w-full" ? "w-full h-full" : `mx-auto ${maxWidth} px-4 py-6 sm:px-6 lg:px-8`}`}>
+                        {children}
+                    </div>
+                </main>
 
-                    <main className="flex-1 overflow-y-auto">
-                        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                            {children}
-                        </div>
-                    </main>
-
-                    <Toaster
-                        position="bottom-right"
-                        toastOptions={{
-                            duration: 4000,
-                            style: {
-                                background: "#363636",
-                                color: "#fff",
-                                borderRadius: "12px",
-                                padding: "16px",
-                                fontSize: "14px",
-                            },
-                        }}
-                    />
-                </div>
+                {/* Sidebar derecho - recomendaciones con condicional */}
+                {showRecomendaciones && (
+                    <aside className="hidden lg:block w-80 flex-shrink-0 mr-12 p-4 h-[calc(100vh-64px)] sticky top-16 overflow-y-auto">
+                        <Recomendaciones userType={userType} />
+                    </aside>
+                )}
             </div>
+
+            {/* Navegación móvil inferior */}
+            <MobileBottomNav onToggleSidebar={() => setSidebarOpen(true)} />
+
+            <Toaster
+                position="bottom-right"
+                toastOptions={{
+                    duration: 4000,
+                    style: {
+                        background: "#363636",
+                        color: "#fff",
+                        borderRadius: "12px",
+                        padding: "16px",
+                        fontSize: "14px",
+                    },
+                }}
+            />
         </div>
     );
 }

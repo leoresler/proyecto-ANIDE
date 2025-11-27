@@ -52,7 +52,7 @@ export default function UpdatePasswordForm({ className = "", onCancel }) {
     return (
         <section className={`${className} w-full`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">Actualizar contraseña</h2>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Actualizar contraseña</h2>
             </header>
 
             <form onSubmit={updatePassword} className="mt-6 space-y-6">

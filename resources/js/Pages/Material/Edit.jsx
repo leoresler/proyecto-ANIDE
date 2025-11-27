@@ -6,10 +6,10 @@ import {
     CATEGORIAS,
     MAX_CATEGORIAS_PUBLICACION,
 } from "@/utils/categoriasConfig";
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 export default function Edit({ auth, material }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, put, processing, errors } = useForm({
         tipo: material?.tipo || "curso",
         nombre: material?.nombre || "",
         contenido: material?.contenido || "",
@@ -53,14 +53,12 @@ export default function Edit({ auth, material }) {
 
         if (files.length === 0) return;
 
-        // Validar que sean PDFs
         const invalidFiles = files.filter((f) => f.type !== "application/pdf");
         if (invalidFiles.length > 0) {
             toast.error("Solo se permiten archivos PDF");
             return;
         }
 
-        // Validar tamaño (10MB por archivo)
         const oversizedFiles = files.filter((f) => f.size > 10 * 1024 * 1024);
         if (oversizedFiles.length > 0) {
             toast.error("Los archivos no pueden superar 10MB");
@@ -88,7 +86,6 @@ export default function Edit({ auth, material }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Validaciones
         if (!data.nombre.trim()) {
             toast.error("El nombre es obligatorio");
             return;
@@ -134,7 +131,7 @@ export default function Edit({ auth, material }) {
 
         const toastId = toast.loading("Actualizando...");
 
-        post(`/material/${material.id}`, {
+        put(`/material/${material.id}`, {
             data: formData,
             preserveScroll: true,
             onSuccess: () => {
@@ -153,18 +150,11 @@ export default function Edit({ auth, material }) {
         <AuthenticatedLayout user={auth.user}>
             <Head title={`Editar ${data.tipo}`} />
 
-            <div className="py-8">
+            <div className="py-8 mb-8">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-6">
-                        <Link
-                            href="/material"
-                            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Volver a la lista
-                        </Link>
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                             Editar {data.tipo === "curso" ? "Curso" : "Carrera"}
                         </h1>
                     </div>
@@ -172,11 +162,11 @@ export default function Edit({ auth, material }) {
                     {/* Formulario */}
                     <form
                         onSubmit={handleSubmit}
-                        className="bg-white rounded-lg shadow p-6 space-y-6"
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6"
                     >
                         {/* Tipo */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Tipo de material *
                             </label>
                             <div className="grid grid-cols-2 gap-4">
@@ -185,12 +175,12 @@ export default function Edit({ auth, material }) {
                                     onClick={() => setData("tipo", "curso")}
                                     className={`p-4 border-2 rounded-lg flex items-center gap-3 transition ${
                                         data.tipo === "curso"
-                                            ? "border-blue-500 bg-blue-50"
-                                            : "border-gray-200 hover:border-gray-300"
+                                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900 dark:border-blue-400"
+                                            : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
                                     }`}
                                 >
                                     <div
-                                        className={`w-6 h-6 ${
+                                        className={`w-6 h-6 dark:brightness-0 dark:invert dark:opacity-80 ${
                                             data.tipo === "curso"
                                                 ? "opacity-100"
                                                 : "opacity-40"
@@ -204,8 +194,10 @@ export default function Edit({ auth, material }) {
                                         }}
                                     />
                                     <div className="text-left">
-                                        <p className="font-semibold">Curso</p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                            Curso
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
                                             Capacitación corta
                                         </p>
                                     </div>
@@ -216,12 +208,12 @@ export default function Edit({ auth, material }) {
                                     onClick={() => setData("tipo", "carrera")}
                                     className={`p-4 border-2 rounded-lg flex items-center gap-3 transition ${
                                         data.tipo === "carrera"
-                                            ? "border-yellow-500 bg-yellow-50"
-                                            : "border-gray-200 hover:border-gray-300"
+                                            ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-900 dark:border-yellow-400"
+                                            : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500"
                                     }`}
                                 >
                                     <div
-                                        className={`w-6 h-6 ${
+                                        className={`w-6 h-6 dark:brightness-0 dark:invert dark:opacity-80 ${
                                             data.tipo === "carrera"
                                                 ? "opacity-100"
                                                 : "opacity-40"
@@ -235,8 +227,10 @@ export default function Edit({ auth, material }) {
                                         }}
                                     />
                                     <div className="text-left">
-                                        <p className="font-semibold">Carrera</p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                            Carrera
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
                                             Formación profesional
                                         </p>
                                     </div>
@@ -251,8 +245,7 @@ export default function Edit({ auth, material }) {
 
                         {/* Nombre */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Nombre del{" "}
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 {data.tipo === "curso" ? "Curso" : "Carrera"} *
                             </label>
                             <input
@@ -261,7 +254,7 @@ export default function Edit({ auth, material }) {
                                 onChange={(e) =>
                                     setData("nombre", e.target.value)
                                 }
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200"
                                 placeholder="Ej: Desarrollo Web Full Stack"
                             />
                             {errors.nombre && (
@@ -273,7 +266,7 @@ export default function Edit({ auth, material }) {
 
                         {/* Contenido */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Descripción *
                             </label>
                             <textarea
@@ -282,7 +275,7 @@ export default function Edit({ auth, material }) {
                                     setData("contenido", e.target.value)
                                 }
                                 rows={6}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200"
                                 placeholder="Describí el contenido, objetivos, requisitos, etc."
                             />
                             {errors.contenido && (
@@ -295,7 +288,7 @@ export default function Edit({ auth, material }) {
                         {/* Duración y Modalidad */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Duración (meses)
                                 </label>
                                 <input
@@ -305,7 +298,7 @@ export default function Edit({ auth, material }) {
                                         setData("duracion", e.target.value)
                                     }
                                     min="1"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200"
                                     placeholder="12"
                                 />
                                 {errors.duracion && (
@@ -316,7 +309,7 @@ export default function Edit({ auth, material }) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Modalidad
                                 </label>
                                 <select
@@ -324,7 +317,7 @@ export default function Edit({ auth, material }) {
                                     onChange={(e) =>
                                         setData("modalidad", e.target.value)
                                     }
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-200"
                                 >
                                     <option value="">Seleccionar...</option>
                                     <option value="Presencial">
@@ -343,14 +336,14 @@ export default function Edit({ auth, material }) {
 
                         {/* Categorías */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Categorías * (máximo{" "}
                                 {MAX_CATEGORIAS_PUBLICACION})
                             </label>
 
                             {/* Categorías disponibles */}
                             <div className="mb-3">
-                                <p className="text-xs text-gray-500 mb-2">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                                     Selecciona las categorías que aplican:
                                 </p>
                                 <div className="flex flex-wrap gap-2">
@@ -367,7 +360,7 @@ export default function Edit({ auth, material }) {
                                                 data.categorias.length >=
                                                 MAX_CATEGORIAS_PUBLICACION
                                             }
-                                            className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             + {cat}
                                         </button>
@@ -378,14 +371,14 @@ export default function Edit({ auth, material }) {
                             {/* Categorías seleccionadas */}
                             {data.categorias.length > 0 && (
                                 <div>
-                                    <p className="text-xs text-gray-500 mb-2">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                                         Categorías seleccionadas:
                                     </p>
                                     <div className="flex flex-wrap gap-2">
                                         {data.categorias.map((cat) => (
                                             <span
                                                 key={cat}
-                                                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-lg text-sm"
                                             >
                                                 {cat}
                                                 <button
@@ -395,7 +388,7 @@ export default function Edit({ auth, material }) {
                                                             cat
                                                         )
                                                     }
-                                                    className="hover:bg-blue-200 rounded-full p-0.5"
+                                                    className="hover:bg-blue-200 dark:hover:bg-gray-600 rounded-full p-0.5"
                                                 >
                                                     <X className="w-3 h-3" />
                                                 </button>
@@ -413,24 +406,24 @@ export default function Edit({ auth, material }) {
 
                         {/* Plan de estudios */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Plan de estudios (PDF)
                             </label>
 
                             {/* Archivos existentes */}
                             {existingPlanes.length > 0 && (
                                 <div className="mb-3 space-y-2">
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
                                         Archivos actuales:
                                     </p>
                                     {existingPlanes.map((plan, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-center justify-between p-3 bg-gray-50 rounded border"
+                                            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
                                         >
                                             <div className="flex items-center gap-2">
-                                                <FileText className="w-4 h-4 text-gray-500" />
-                                                <span className="text-sm text-gray-700">
+                                                <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
                                                     {plan.split("/").pop()}
                                                 </span>
                                             </div>
@@ -441,7 +434,7 @@ export default function Edit({ auth, material }) {
                                                         plan
                                                     )
                                                 }
-                                                className="text-red-600 hover:bg-red-50 p-1 rounded"
+                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900 p-1 rounded"
                                             >
                                                 <X className="w-4 h-4" />
                                             </button>
@@ -450,9 +443,9 @@ export default function Edit({ auth, material }) {
                                 </div>
                             )}
 
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
                                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                <p className="text-sm text-gray-600 mb-2">
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                                     Arrastra archivos PDF o haz clic para
                                     seleccionar
                                 </p>
@@ -466,7 +459,7 @@ export default function Edit({ auth, material }) {
                                 />
                                 <label
                                     htmlFor="plan-estudios"
-                                    className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer"
+                                    className="inline-block px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
                                 >
                                     Seleccionar archivos
                                 </label>
@@ -478,11 +471,11 @@ export default function Edit({ auth, material }) {
                                     {data.plan_estudios.map((file, idx) => (
                                         <div
                                             key={idx}
-                                            className="flex items-center justify-between p-3 bg-blue-50 rounded border border-blue-200"
+                                            className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900 rounded border border-blue-200 dark:border-blue-700"
                                         >
                                             <div className="flex items-center gap-2">
-                                                <FileText className="w-4 h-4 text-blue-600" />
-                                                <span className="text-sm text-gray-700">
+                                                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
                                                     {file.name}
                                                 </span>
                                             </div>
@@ -491,7 +484,7 @@ export default function Edit({ auth, material }) {
                                                 onClick={() =>
                                                     handleRemoveFile(idx)
                                                 }
-                                                className="text-red-600 hover:bg-red-50 p-1 rounded"
+                                                className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900 p-1 rounded"
                                             >
                                                 <X className="w-4 h-4" />
                                             </button>
@@ -515,26 +508,26 @@ export default function Edit({ auth, material }) {
                                     onChange={(e) =>
                                         setData("publicado", e.target.checked)
                                     }
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
                                 />
-                                <span className="text-sm font-medium text-gray-700">
+                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                     Publicar (visible para los usuarios)
                                 </span>
                             </label>
                         </div>
 
                         {/* Botones */}
-                        <div className="flex gap-3 pt-4 border-t">
+                        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <Link
-                                href="/material"
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-center hover:bg-gray-50 transition"
+                                href="/mis-materiales"
+                                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition text-gray-700 dark:text-gray-300"
                             >
                                 Cancelar
                             </Link>
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                className="flex-1 px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                             >
                                 {processing ? "Actualizando..." : "Actualizar"}
                             </button>

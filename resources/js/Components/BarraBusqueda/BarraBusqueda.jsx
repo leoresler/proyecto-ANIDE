@@ -89,7 +89,9 @@ export default function BarraBusqueda({
             fetch(`/api/buscar?q=${encodeURIComponent(query)}`, {
                 headers: {
                     Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
                 },
+                credentials: "same-origin",
             })
                 .then((res) => res.json())
                 .then((data) => {
@@ -145,7 +147,7 @@ export default function BarraBusqueda({
         if (tipo === "publicacion") {
             router.visit(`/publicaciones/${resultado.id}`);
         } else if (tipo === "institucion") {
-            router.visit(`/institucion/${resultado.id}`);
+            router.visit(`/instituciones/${resultado.id}`);
         }
         setIsOpen(false);
         setSearchTerm("");
@@ -176,11 +178,11 @@ export default function BarraBusqueda({
             className="relative w-full max-w-2xl"
             ref={searchRef}
         >
-            <div className="flex items-center bg-white rounded-full px-4 py-2 shadow-sm">
+            <div className="flex items-center bg-white rounded-full px-4 py-1 shadow-sm">
                 <img
-                    src="/svg/header/Vector-lupa.svg"
+                    src="/svg/mapa/search-circle-sharp.svg"
                     alt="Buscar"
-                    className="h-4 w-4 text-gray-500 mr-2 flex-shrink-0"
+                    className="h-7 w-7 text-gray-500 flex-shrink-0"
                 />
                 <input
                     type="search"
@@ -357,59 +359,54 @@ export default function BarraBusqueda({
                                         )}
 
                                         {/* Instituciones */}
-                                        {institucionesResultado.length > 0 && (
-                                            <div>
-                                                <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase bg-gray-50 sticky top-0">
-                                                    Instituciones (
-                                                    {
-                                                        institucionesResultado.length
-                                                    }
+                                        {institucionesResultado.map((inst) => (
+                                            <button
+                                                key={`inst-${inst.id}`}
+                                                type="button"
+                                                onClick={() =>
+                                                    handleResultClick(
+                                                        inst,
+                                                        "institucion"
                                                     )
-                                                </div>
-                                                {institucionesResultado.map(
-                                                    (inst) => (
-                                                        <button
-                                                            key={`inst-${inst.id}`}
-                                                            type="button"
-                                                            onClick={() =>
-                                                                handleResultClick(
-                                                                    inst,
-                                                                    "institucion"
-                                                                )
+                                                }
+                                                className="w-full text-left px-3 py-3 hover:bg-blue-50 rounded transition-colors border-b border-gray-100 last:border-0"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {inst.foto_perfil ? (
+                                                        <img
+                                                            src={
+                                                                inst.foto_perfil
                                                             }
-                                                            className="w-full text-left px-3 py-3 hover:bg-blue-50 rounded transition-colors border-b border-gray-100 last:border-0"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                                    <svg
-                                                                        className="w-5 h-5 text-blue-600"
-                                                                        fill="none"
-                                                                        stroke="currentColor"
-                                                                        viewBox="0 0 24 24"
-                                                                    >
-                                                                        <path
-                                                                            strokeLinecap="round"
-                                                                            strokeLinejoin="round"
-                                                                            strokeWidth={
-                                                                                2
-                                                                            }
-                                                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                                                                        />
-                                                                    </svg>
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <span className="text-sm font-semibold text-gray-900 line-clamp-1">
-                                                                        {
-                                                                            inst.nombre
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    )
-                                                )}
-                                            </div>
-                                        )}
+                                                            alt={inst.nombre}
+                                                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <svg
+                                                                className="w-5 h-5 text-blue-600"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={
+                                                                        2
+                                                                    }
+                                                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                                                />
+                                                            </svg>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className="text-sm font-semibold text-gray-900 line-clamp-1">
+                                                            {inst.nombre}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ))}
                                     </div>
                                 )}
                             </div>

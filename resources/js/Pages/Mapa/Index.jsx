@@ -99,7 +99,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
         if (userLocation && mapInstance.current) {
             const coords = [userLocation.lat, userLocation.lng];
 
-            // Remover marcador y círculo anterior
+            // Remover marcador y circulo anterior
             if (userMarker.current) {
                 mapInstance.current.removeLayer(userMarker.current);
             }
@@ -107,7 +107,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 mapInstance.current.removeLayer(userCircle.current);
             }
 
-            // Crear círculo pulsante para la ubicación del usuario
+            // Circulo para la ubicacion del usuario
             const pulsingIcon = L.divIcon({
                 className: "user-location-marker",
                 html: `
@@ -156,7 +156,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 </div>
             `);
 
-            // Agregar círculo de precisión
+            // Agregar circulo de precisión
             userCircle.current = L.circle(coords, {
                 radius: userLocation.accuracy,
                 color: "#1e40af",
@@ -167,7 +167,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
         }
     }, [userLocation]);
 
-    // Búsqueda en tiempo real
+    // Busqueda en tiempo real
     useEffect(() => {
         if (busqueda.length < 2) {
             setResultadosBusqueda([]);
@@ -494,13 +494,13 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout user={auth.user} showRecomendaciones={false} fullWidth={true} maxWidth="w-full" >
             <Head title="Mapa" />
 
-            <div className="relative w-full h-[88vh] bg-gray-50 overflow-hidden">
+            <div className="relative w-full h-full bg-gray-50 overflow-hidden">
                 <div
                     ref={mapRef}
-                    className="absolute inset-0 w-full h-[88vh]"
+                    className="absolute inset-0 w-full h-full"
                     style={{ zIndex: 0 }}
                 />
 
@@ -696,7 +696,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                             onClick={() => setMostrarFiltros(false)}
                         />
 
-                        <div className="fixed md:absolute inset-x-0 bottom-0 md:inset-auto md:top-16 md:right-4 z-[500] bg-white rounded-t-2xl md:rounded-lg shadow-2xl p-4 sm:p-6 w-full md:w-80 max-h-[80vh] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
+                        <div className="relative md:absolute inset-x-0 bottom-0 md:inset-auto md:top-20 md:right-96 z-[500] bg-white rounded-t-2xl md:rounded-lg shadow-2xl p-4 sm:p-6 w-full md:w-80 max-h-[80vh] md:max-h-[calc(100vh-8rem)] overflow-y-auto">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                                     Filtros

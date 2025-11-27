@@ -292,20 +292,20 @@ export default function Edit({ auth, publicacion }) {
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout user={auth.user} showRecomendaciones={false}>
             <Head title="Editar Publicación" />
 
             <div className="py-8">
                 <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden sm:rounded-lg">
+                    <div className="bg-white dark:bg-gray-800 overflow-hidden sm:rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
                         <div className="p-8">
-                            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
                                 Editar Publicación
                             </h1>
 
                             {isPublicado && (
-                                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                                    <p className="text-sm text-blue-800">
+                                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md">
+                                    <p className="text-sm text-blue-800 dark:text-blue-200">
                                         Esta publicación ya está publicada. Solo
                                         podés editar el contenido.
                                     </p>
@@ -393,7 +393,7 @@ export default function Edit({ auth, publicacion }) {
                                             }
                                         }}
                                         onBlur={() => handleBlur("contenido")}
-                                        className="mt-1 block w-full border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-md shadow-sm"
+                                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-gray-500 focus:ring-gray-500 rounded-md shadow-sm"
                                         rows="8"
                                         placeholder="Escribe el contenido de tu publicación..."
                                         maxLength={CONFIG.contenido.maxLength}
@@ -419,13 +419,13 @@ export default function Edit({ auth, publicacion }) {
 
                                 {/* CATEGORÍAS - solo si es borrador */}
                                 {!isPublicado && (
-                                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-xl border-2 border-purple-200">
+                                    <div className="bg-blue-50 dark:bg-gray-700 p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800 transition-colors">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-2">
-                                                <Tag className="w-5 h-5 text-purple-600" />
+                                                <Tag className="w-5 h-5 text-blue-600" />
                                                 <InputLabel
                                                     value="Categorías de la publicación *"
-                                                    className="text-lg font-bold"
+                                                    className="text-lg font-bold dark:text-white"
                                                 />
                                             </div>
                                             <span
@@ -434,7 +434,7 @@ export default function Edit({ auth, publicacion }) {
                                                         .length >=
                                                     MAX_CATEGORIAS_PUBLICACION
                                                         ? "text-red-600"
-                                                        : "text-purple-600"
+                                                        : "text-blue-600"
                                                 }`}
                                             >
                                                 {formState.categorias.length}/
@@ -442,7 +442,7 @@ export default function Edit({ auth, publicacion }) {
                                             </span>
                                         </div>
 
-                                        <p className="text-sm text-gray-600 mb-4">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                             Selecciona hasta{" "}
                                             {MAX_CATEGORIAS_PUBLICACION}{" "}
                                             categorías que describan tu
@@ -452,7 +452,7 @@ export default function Edit({ auth, publicacion }) {
                                         {/* Categorías seleccionadas */}
                                         {formState.categorias.length > 0 && (
                                             <div className="mb-4">
-                                                <p className="text-sm font-medium text-gray-700 mb-2">
+                                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                     Categorías seleccionadas:
                                                 </p>
                                                 <div className="flex flex-wrap gap-2">
@@ -466,7 +466,7 @@ export default function Edit({ auth, publicacion }) {
                                                                         categoria
                                                                     )
                                                                 }
-                                                                className="px-4 py-2 bg-purple-600 text-white border-2 border-purple-700 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 font-medium shadow-md"
+                                                                className="px-4 py-2 bg-blue-600 text-white border-2 border-blue-700 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium shadow-md"
                                                             >
                                                                 {categoria}
                                                                 <X className="w-4 h-4" />
@@ -478,7 +478,7 @@ export default function Edit({ auth, publicacion }) {
                                         )}
 
                                         {/* Grid de todas las categorías */}
-                                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
                                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                                                 {CATEGORIAS.map((categoria) => (
                                                     <button
@@ -493,8 +493,8 @@ export default function Edit({ auth, publicacion }) {
                                                             formState.categorias.includes(
                                                                 categoria
                                                             )
-                                                                ? "bg-purple-600 text-white border-purple-700 shadow-md"
-                                                                : "bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50"
+                                                                ? "bg-blue-600 text-white border-blue-700 shadow-md"
+                                                                : "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                                                         }`}
                                                     >
                                                         {categoria}
@@ -527,7 +527,7 @@ export default function Edit({ auth, publicacion }) {
                                         {/* Media existente */}
                                         {existingMedia.length > 0 && (
                                             <div className="mt-2 mb-4">
-                                                <p className="text-sm text-gray-600 mb-2">
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                                                     Archivos actuales (
                                                     {existingMedia.length})
                                                 </p>
@@ -583,14 +583,14 @@ export default function Edit({ auth, publicacion }) {
 
                                         {/* Subir nuevos archivos */}
                                         <div className="mt-2">
-                                            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-50 transition-colors">
+                                            <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 dark:hover:border-gray-400 transition-colors">
                                                 <div className="text-center">
                                                     <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                                    <p className="mt-2 text-sm text-gray-600">
+                                                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                                         Haz clic para subir más
                                                         archivos
                                                     </p>
-                                                    <p className="mt-1 text-xs text-gray-500">
+                                                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                                                         PNG, JPG, WEBP, MP4,
                                                         MOV, PDF, DOC (máx.{" "}
                                                         {CONFIG.media.maxSizeMB}
@@ -722,7 +722,7 @@ export default function Edit({ auth, publicacion }) {
                                 <div className="flex items-center justify-end space-x-4 pt-4">
                                     <a
                                         href="/publicaciones/misPublicaciones"
-                                        className="inline-flex items-center px-6 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        className="inline-flex items-center px-6 py-3 bg-white dark:bg-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         Cancelar
                                     </a>

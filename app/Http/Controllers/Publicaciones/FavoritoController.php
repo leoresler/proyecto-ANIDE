@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Publicaciones;
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\Controller;
 use App\Models\Favorito;
 use Illuminate\Http\Request;
@@ -19,31 +20,47 @@ class FavoritoController extends Controller
             'publicacion_id' => 'required|exists:publicaciones,id',
         ]);
 
+        $publicacionId = $validated['publicacion_id'];
         $user = Auth::user();
 
-        // Determinar el campo según el tipo de usuario
         $campo = $user->tipo_usuario === 'persona' ? 'perf_persona_id' : 'perf_institucion_id';
         $perfilId = $user->tipo_usuario === 'persona' ? $user->persona->id : $user->institucion->id;
 
         $favorito = Favorito::where([
             $campo => $perfilId,
-            'publicacion_id' => $validated['publicacion_id'],
+            'publicacion_id' => $publicacionId,
         ])->first();
 
         if ($favorito) {
-            // Si existe, eliminar
             $favorito->delete();
+
+            ActividadController::registrar(
+                $user->id,
+                'dejar_favorito',
+                'publicacion',
+                $publicacionId,
+                'Quitaste de favoritos'
+            );
+
             return response()->json([
                 'success' => true,
                 'action' => 'removed',
                 'message' => 'Publicación eliminada de favoritos',
             ]);
         } else {
-            // Si no existe, crear
             Favorito::create([
                 $campo => $perfilId,
-                'publicacion_id' => $validated['publicacion_id'],
+                'publicacion_id' => $publicacionId,
             ]);
+
+            ActividadController::registrar(
+                $user->id,
+                'favorito',
+                'publicacion',
+                $publicacionId,
+                'Guardaste en favoritos'
+            );
+
             return response()->json([
                 'success' => true,
                 'action' => 'added',

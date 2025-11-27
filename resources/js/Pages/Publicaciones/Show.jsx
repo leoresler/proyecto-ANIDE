@@ -257,8 +257,8 @@ export default function Show({ auth, publicacion, userType }) {
                     )}
 
                     {/* COMENTARIOS */}
-                    <div className="mt-6 bg-white rounded-3xl border p-6">
-                        <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    <div className="mt-6 bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
                             Comentarios ({comentarios.length})
                         </h2>
 
@@ -284,9 +284,9 @@ export default function Show({ auth, publicacion, userType }) {
                                                     setErrorMessage("");
                                             }}
                                             placeholder="Escribe un comentario..."
-                                            className={`w-full rounded-lg border-gray-300 focus:border-gray-500 focus:ring-gray-500 resize-none ${
+                                            className={`w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 focus:border-gray-500 focus:ring-gray-500 resize-none ${
                                                 errorMessage
-                                                    ? "border-red-300"
+                                                    ? "border-red-300 dark:border-red-600"
                                                     : ""
                                             }`}
                                             rows="3"
@@ -309,7 +309,7 @@ export default function Show({ auth, publicacion, userType }) {
                                                     isSubmitting ||
                                                     !comentarioText.trim()
                                                 }
-                                                className="inline-flex items-center px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-black transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="inline-flex items-center px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Send className="w-4 h-4 mr-2" />
                                                 {isSubmitting
@@ -324,7 +324,7 @@ export default function Show({ auth, publicacion, userType }) {
 
                         <div className="space-y-4 max-h-[600px] overflow-y-auto">
                             {comentarios.length === 0 ? (
-                                <p className="text-gray-500 text-center py-8">
+                                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                                     Aún no hay comentarios. ¡Sé el primero en
                                     comentar!
                                 </p>
@@ -374,7 +374,7 @@ function PublicacionInfo({
     canFavorite,
 }) {
     return (
-        <div className="bg-white rounded-3xl border p-6 flex flex-col justify-between h-full">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col justify-between h-full transition-colors">
             <div>
                 <div className="flex items-center space-x-3 mb-4">
                     <img
@@ -383,10 +383,10 @@ function PublicacionInfo({
                         className="w-14 h-14 rounded-full object-cover"
                     />
                     <div>
-                        <h3 className="font-bold text-gray-900 text-lg">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-lg">
                             {publicacion.institucion?.user?.nombre}
                         </h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             {new Date(
                                 publicacion.created_at
                             ).toLocaleDateString("es-AR", {
@@ -400,11 +400,11 @@ function PublicacionInfo({
                     </div>
                 </div>
 
-                <h1 className="text-2xl font-bold text-gray-900 mb-3">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
                     {publicacion.titulo}
                 </h1>
 
-                <div className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-4 max-h-[240px] overflow-y-auto pr-2 custom-scroll">
+                <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed mb-4 max-h-[240px] overflow-y-auto pr-2 custom-scroll">
                     {publicacion.contenido}
                 </div>
             </div>
@@ -478,7 +478,7 @@ function MediaSlide({ media, onFullscreen }) {
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    className="inline-flex items-center px-6 py-3 bg-edu-dark text-white rounded-lg hover:bg-gray-800 transition"
                 >
                     <Download className="w-5 h-5 mr-2" />
                     Descargar documento

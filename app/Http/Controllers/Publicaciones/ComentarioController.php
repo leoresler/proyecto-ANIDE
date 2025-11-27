@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Publicaciones;
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\Controller;
 use App\Models\ComentPublicacion;
 use App\Services\OpenAIModerationService;
@@ -53,7 +54,7 @@ class ComentarioController extends Controller
 
         $comentarioData = [
             'publicacion_id' => $validated['publicacion_id'],
-            'contenido' => $validated['contenido'],
+            'contenido' => $validated['contenido'], // guardar texto original
             'coment_padre_id' => $validated['coment_padre_id'] ?? null,
         ];
 
@@ -97,6 +98,7 @@ class ComentarioController extends Controller
                 );
             }
         }
+        
 
         $comentario = ComentPublicacion::with([
             'persona.user',
@@ -106,6 +108,15 @@ class ComentarioController extends Controller
 
         Log::info('Comentario final con relaciones cargadas:', ['comentario' => $comentario]);
 
+        ActividadController::registrar(
+            $user->id,
+            'comentario',
+            'publicacion',
+            $validated['publicacion_id'],
+            'Comentaste una publicación',
+            ['comentario' => $validated['contenido']]
+        );
+        
         return response()->json([
             'success' => true,
             'comentario' => $comentario,

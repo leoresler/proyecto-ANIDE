@@ -246,14 +246,14 @@ export default function Create({ auth }) {
     };
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <AuthenticatedLayout user={auth.user} showRecomendaciones={false}>
             <Head title="Crear Publicación" />
 
             <div className="py-8">
                 <div className="max-w-3xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden sm:rounded-lg">
+                    <div className="bg-white dark:bg-gray-800 overflow-hidden sm:rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
                         <div className="p-8">
-                            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
                                 Crear Nueva Publicación
                             </h1>
 
@@ -336,7 +336,7 @@ export default function Create({ auth }) {
                                             }
                                         }}
                                         onBlur={() => handleBlur("contenido")}
-                                        className="mt-1 block w-full border-gray-300 focus:border-gray-500 focus:ring-gray-500 rounded-lg shadow-sm"
+                                        className="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:border-gray-500 focus:ring-gray-500 rounded-lg shadow-sm"
                                         rows="8"
                                         placeholder="Escribe el contenido de tu publicación..."
                                         maxLength={CONFIG.contenido.maxLength}
@@ -361,16 +361,16 @@ export default function Create({ auth }) {
                                 </div>
 
                                 {/* SECCIÓN DE CATEGORÍAS */}
-                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-800 transition-colors">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
-                                            <Tag className="w-5 h-5 text-blue-600" />
+                                            <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                             <div>
-                                                <p className="font-bold text-lg text-gray-900">
+                                                <p className="font-bold text-lg text-gray-900 dark:text-white">
                                                     Categorías de la publicación
                                                     *
                                                 </p>
-                                                <p className="text-sm text-gray-600 mt-1">
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                                                     Selecciona hasta{" "}
                                                     {MAX_CATEGORIAS_PUBLICACION}{" "}
                                                     categorías
@@ -390,9 +390,9 @@ export default function Create({ auth }) {
                                         </span>
                                     </div>
 
-                                    {/* Categorías disponibles para seleccionar */}
+                                    {/* Categorías disponibles */}
                                     <div className="mb-4">
-                                        <p className="text-sm font-medium text-gray-700 mb-2">
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Categorías disponibles:
                                         </p>
                                         <div className="flex flex-wrap gap-2">
@@ -413,7 +413,7 @@ export default function Create({ auth }) {
                                                             .length >=
                                                         MAX_CATEGORIAS_PUBLICACION
                                                     }
-                                                    className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     + {cat}
                                                 </button>
@@ -424,7 +424,7 @@ export default function Create({ auth }) {
                                     {/* Categorías seleccionadas */}
                                     {formState.categorias.length > 0 && (
                                         <div>
-                                            <p className="text-sm font-medium text-gray-700 mb-2">
+                                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                                 Categorías seleccionadas:
                                             </p>
                                             <div className="flex flex-wrap gap-2">
@@ -472,21 +472,21 @@ export default function Create({ auth }) {
                                 <div>
                                     <InputLabel value="Archivos multimedia (opcional)" />
                                     <div className="mt-2">
-                                        <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-50 transition-colors">
+                                        <label className="flex items-center justify-center w-full px-4 py-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-900 dark:hover:border-gray-400 transition-colors">
                                             <div className="text-center">
                                                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                                <p className="mt-2 text-sm text-gray-600">
+                                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                                                     Haz clic para subir
                                                     imágenes, videos o
                                                     documentos
                                                 </p>
-                                                <p className="mt-1 text-xs text-gray-500">
+                                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                     PNG, JPG, WEBP, MP4, MOV,
                                                     PDF, DOC (máx.{" "}
                                                     {CONFIG.media.maxSizeMB}MB
                                                     por archivo)
                                                 </p>
-                                                <p className="mt-1 text-xs text-gray-500">
+                                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                     Máximo{" "}
                                                     {CONFIG.media.maxFiles}{" "}
                                                     archivos
@@ -526,7 +526,7 @@ export default function Create({ auth }) {
                                     {/* Vista previa de archivos */}
                                     {mediaFiles.length > 0 && (
                                         <div className="mt-4">
-                                            <p className="text-sm text-gray-600 mb-2">
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                                                 {mediaFiles.length} archivo(s)
                                                 seleccionado(s)
                                             </p>
@@ -567,11 +567,11 @@ export default function Create({ auth }) {
                                                             )}
 
                                                             {/* Nombre del archivo */}
-                                                            <div className="p-2 bg-white">
-                                                                <p className="text-xs text-gray-600 truncate">
+                                                            <div className="p-2 bg-white dark:bg-gray-700 transition-colors">
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                                     {media.name}
                                                                 </p>
-                                                                <p className="text-xs text-gray-400">
+                                                                <p className="text-xs text-gray-400 dark:text-gray-500">
                                                                     {(
                                                                         media
                                                                             .file
@@ -629,7 +629,7 @@ export default function Create({ auth }) {
                                 <div className="flex items-center justify-end space-x-4 pt-4">
                                     <a
                                         href="/publicaciones/misPublicaciones"
-                                        className="inline-flex items-center px-6 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
+                                        className="inline-flex items-center px-6 py-3 bg-white border dark:bg-gray-300 dark:hover:bg-gray-200 border-gray-300 rounded-lg text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150"
                                     >
                                         Cancelar
                                     </a>

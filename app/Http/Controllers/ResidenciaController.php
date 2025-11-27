@@ -17,13 +17,13 @@ class ResidenciaController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         if ($user->tipo_usuario !== 'institucion') {
             abort(403, 'Solo las instituciones pueden gestionar residencias');
         }
 
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
-        
+
         if (!$institucion) {
             abort(404, 'Institución no encontrada');
         }
@@ -43,13 +43,13 @@ class ResidenciaController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-        
+
         if ($user->tipo_usuario !== 'institucion') {
             return back()->withErrors(['error' => 'Solo las instituciones pueden crear residencias']);
         }
 
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
-        
+
         if (!$institucion) {
             return back()->withErrors(['error' => 'Institución no encontrada']);
         }
@@ -64,7 +64,7 @@ class ResidenciaController extends Controller
             'latitud' => 'required|numeric|between:-90,90',
             'longitud' => 'required|numeric|between:-180,180',
             'info_adicional' => 'nullable|string|max:1000',
-            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png|max:4096',
+            'foto_portada' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:4096',
         ], [
             'nombre.required' => 'El nombre es obligatorio',
             'nombre.min' => 'El nombre debe tener al menos 3 caracteres',
@@ -92,10 +92,12 @@ class ResidenciaController extends Controller
             'info_adicional' => $validated['info_adicional'] ?? null,
         ];
 
-        // Guardar foto si existe
+        // Guardar foto si existe, sino asignar default
         if ($request->hasFile('foto_portada')) {
             $path = $request->file('foto_portada')->store('residencias', 'public');
             $residenciaData['foto_portada'] = $path;
+        } else {
+            $residenciaData['foto_portada'] = 'images/residencia-default.webp';
         }
 
         $residencia = Residencia::create($residenciaData);
@@ -125,7 +127,7 @@ class ResidenciaController extends Controller
 
         // Verificar que el usuario es dueño de la residencia
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
-        
+
         if (!$institucion || $residencia->perf_institucion_id !== $institucion->id) {
             abort(403, 'No tienes permisos para editar esta residencia');
         }
@@ -162,7 +164,7 @@ class ResidenciaController extends Controller
             if ($residencia->foto_portada) {
                 Storage::disk('public')->delete($residencia->foto_portada);
             }
-            
+
             $path = $request->file('foto_portada')->store('residencias', 'public');
             $residenciaData['foto_portada'] = $path;
         }
@@ -182,7 +184,7 @@ class ResidenciaController extends Controller
 
         // Verificar que el usuario es dueño de la residencia
         $institucion = PerfInstitucion::where('user_id', $user->id)->first();
-        
+
         if (!$institucion || $residencia->perf_institucion_id !== $institucion->id) {
             abort(403, 'No tienes permisos para eliminar esta residencia');
         }

@@ -13,7 +13,6 @@ import {
 } from "@/utils/geocodingUtils";
 import toast from "react-hot-toast";
 import { CATEGORIAS, MAX_INTERESES_USUARIO } from "@/utils/categoriasConfig";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function CompletarDatosUser() {
     const { props } = usePage();
@@ -26,8 +25,6 @@ export default function CompletarDatosUser() {
     const [direccionValida, setDireccionValida] = useState(null);
 
     const [photoPreview, setPhotoPreview] = useState(null);
-
-    const [mostrarIntereses, setMostrarIntereses] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
         profile_photo_path: null,
@@ -48,6 +45,15 @@ export default function CompletarDatosUser() {
         doc_identificador: type === "institucion" ? "" : undefined,
         tipo_documento: type === "institucion" ? "CUIT" : undefined,
     });
+
+    const normalizarTexto = (texto) => {
+        return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    };
+
+    const dataNormalizada = {
+        ...data,
+        ciudad: normalizarTexto(data.ciudad),
+    };
 
     useEffect(() => {
         const timeout = setTimeout(() => {
@@ -227,6 +233,7 @@ export default function CompletarDatosUser() {
         setClientErrors({});
 
         post(route("completar.datos.store"), {
+            data: dataNormalizada,
             preserveScroll: true,
             forceFormData: true,
             onSuccess: () => {

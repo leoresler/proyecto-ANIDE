@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ubicaciones_guardadas', function (Blueprint $table) {
+        Schema::create('material_guardado', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('material_id')->constrained('institucion_material')->onDelete('cascade');
             $table->timestamps();
+            
+            $table->unique(['user_id', 'material_id']);
         });
     }
 
@@ -22,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ubicaciones_guardadas');
+        Schema::dropIfExists('material_guardado');
     }
 };

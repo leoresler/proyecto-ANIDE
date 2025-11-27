@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Publicaciones;
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\Controller;
 use App\Models\Like;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class LikeController extends Controller
         $user = Auth::user();
 
         // Identificar perfil
+        // Obtener el ID del perfil segun el tipo de usuario
         if ($user->tipo_usuario === 'persona') {
             $perfId = $user->persona->id;
             $perfKey = 'perf_persona_id';
@@ -39,12 +41,44 @@ class LikeController extends Controller
         ])->first();
 
         if ($like) {
-            // dislike
+            // Si existe, eliminar
             $like->delete();
+
+            ActividadController::registrar(
+                $user->id,
+                'unlike',
+                'publicacion',
+                $validated['target_id'],
+                'Quitaste tu like'
+            );
+
+            broadcast(new LikeCreado($like))->toOthers();
 
             return response()->json([
                 'success' => true,
                 'action' => 'unliked',
+                'message' => 'Like eliminado',
+            ]);
+        } else {
+            // Si no existe, crear (like)
+            Like::create([
+                $perfKey => $perfId,
+                'target_id' => $validated['target_id'],
+                'target_tipo' => $validated['target_tipo'],
+            ]);
+
+            ActividadController::registrar(
+                $user->id,
+                'like',
+                'publicacion',
+                $validated['target_id'],
+                'Te gustó una publicación'
+            );
+
+            return response()->json([
+                'success' => true,
+                'action' => 'liked',
+                'message' => 'Like agregado',
             ]);
         }
 
@@ -63,5 +97,4 @@ class LikeController extends Controller
             'action' => 'liked',
         ]);
     }
-
 }

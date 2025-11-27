@@ -15,15 +15,11 @@ class NuevaInstitucionRegistrada extends Mailable
     public $urlAprobar;
     public $urlRechazar;
 
-    public function __construct(User $user)
+    public function __construct(User $user, $urlAprobar, $urlRechazar)
     {
         $this->user = $user;
-        
-        // Generar URLs con el token de aprobación
-        $token = $user->institucion->approval_token;
-        
-        $this->urlAprobar = route('institucion.aprobar', ['token' => $token]);
-        $this->urlRechazar = route('institucion.rechazar', ['token' => $token]);
+        $this->urlAprobar = $urlAprobar;
+        $this->urlRechazar = $urlRechazar;
     }
 
     public function build()

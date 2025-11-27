@@ -124,7 +124,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        if ($user->profile_photo_path && $user->profile_photo_path !== 'profile-photos/default.png') {
+        if ($user->profile_photo_path && $user->profile_photo_path !== 'profile-photos/default-avatar.webp') {
             Storage::disk('public')->delete($user->profile_photo_path);
         }
 
@@ -191,7 +191,7 @@ class ProfileController extends Controller
         $tipoUsuario = $user->tipo_usuario;
 
         $rules = [
-            'profile_photo_path' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:2048',
+            'profile_photo_path' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
             'nombre' => [
                 'required',
                 'string',
@@ -274,7 +274,7 @@ class ProfileController extends Controller
             'tipo_documento.required' => 'El tipo de documento es obligatorio',
             'tipo_documento.in' => 'El tipo de documento no es válido',
             'profile_photo_path.image' => 'El archivo debe ser una imagen',
-            'profile_photo_path.mimes' => 'Solo se permiten imágenes JPG, PNG o GIF',
+            'profile_photo_path.mimes' => 'Solo se permiten imágenes JPG, PNG o WEBP',
             'profile_photo_path.max' => 'La imagen no puede superar los 2MB',
         ]);
 
@@ -299,19 +299,18 @@ class ProfileController extends Controller
         $userData = [
             'nombre' => $validated['nombre'],
             'telefono' => $validated['telefono'],
+            'ciudad' => $validated['ciudad'],
+            'provincia' => $validated['provincia'],
         ];
-
-        if ($tipoUsuario === 'persona') {
-            $userData['ciudad'] = $validated['ciudad'];
-            $userData['provincia'] = $validated['provincia'];
-        }
 
         $user->update($userData);
 
-        // Guardar foto
+        // guardar foto
         if ($request->hasFile('profile_photo_path')) {
             $path = $request->file('profile_photo_path')->store('profile-photos', 'public');
             $user->update(['profile_photo_path' => $path]);
+        } elseif (!$user->profile_photo_path) {
+            $user->update(['profile_photo_path' => 'profile-photos/default-avatar.webp']);
         }
 
         // Crear perfil según tipo
@@ -331,7 +330,7 @@ class ProfileController extends Controller
             return redirect()->route('inicio')
                 ->with('success', 'Perfil completado correctamente.');
         } else {
-            $approvalToken = bin2hex(random_bytes(20));
+            $approvalToken = \Illuminate\Support\Str::random(64);
 
             // Limpiar documento antes de guardar
             $documentoLimpio = preg_replace('/[^0-9]/', '', $validated['doc_identificador']);
@@ -345,12 +344,12 @@ class ProfileController extends Controller
                 $tipoInstitucionFinal = $validated['tipo_institucion_otro'];
             }
 
-            PerfInstitucion::updateOrCreate(
+            $institucion = PerfInstitucion::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'tipo_institucion' => $tipoInstitucionFinal,
                     'direccion' => $direccionCompleta,
-                    'cuidad' => $validated['ciudad'],
+                    'ciudad' => $validated['ciudad'],
                     'provincia' => $validated['provincia'],
                     'latitud' => $validated['latitud'],
                     'longitud' => $validated['longitud'],
@@ -361,15 +360,19 @@ class ProfileController extends Controller
                     'doc_identificador' => $documentoLimpio,
                     'tipo_documento' => $validated['tipo_documento'],
                     'verificado' => 0,
-                    'approval_token' => \Illuminate\Support\Str::random(64),
+                    'approval_token' => $approvalToken,
                 ]
             );
 
             $user->update(['estado' => 'pendiente_aprobacion']);
 
+            $tokenFinal = $institucion->approval_token;
+
+            $user->load('institucion');
+
             // Generar URLs públicas para el email
-            $urlAprobar = url("/institucion/aprobar/{$approvalToken}");
-            $urlRechazar = url("/institucion/rechazar/{$approvalToken}");
+            $urlAprobar = url("/institucion/aprobar/{$tokenFinal}");
+            $urlRechazar = url("/institucion/rechazar/{$tokenFinal}");
 
             // Enviar email al administrador
             try {

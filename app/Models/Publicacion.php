@@ -68,23 +68,6 @@ class Publicacion extends Model
         return $query->orderBy('created_at', 'desc');
     }
 
-    /**
-     * Scope para filtrar publicaciones por intereses del usuario
-     * Calcula un score de relevancia basado en coincidencias de categorías
-     */
-    // public function scopePorIntereses($query, array $interesesUsuario)
-    // {
-    //     if (empty($interesesUsuario)) {
-    //         return $query;
-    //     }
-
-    //     return $query->whereNotNull('categorias')
-    //         ->where(function ($q) use ($interesesUsuario) {
-    //             foreach ($interesesUsuario as $interes) {
-    //                 $q->orWhereJsonContains('categorias', $interes);
-    //             }
-    //         });
-    // }
     public function scopePorIntereses($query, array $interesesUsuario)
     {
         if (empty($interesesUsuario)) {
