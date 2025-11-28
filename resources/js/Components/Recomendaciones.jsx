@@ -207,9 +207,9 @@ export default function Recomendaciones() {
                 )}
             </div>
 
-            <hr className="mt-2 mb-6 border-gray-300 dark:border-gray-600" />
+            {/* <hr className="mt-2 mb-6 border-gray-300 dark:border-gray-600" /> */}
             {/* Footer */}
-            <FooterLinks />
+            {/* <FooterLinks /> */}
         </div>
     );
 }

@@ -272,21 +272,18 @@ export default function Index({ auth, actividades: actividadesIniciales }) {
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                             Mi Actividad
                         </h1>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                            Historial de tus interacciones en EDUQUÉN
-                        </p>
                     </div>
 
                     {/* Lista de actividades */}
                     {actividades.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center border border-gray-200 dark:border-gray-700">
                             <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                Aún no tienes actividad
+                            <h3 className="text-gray-500 dark:text-gray-300 text-lg mb-2">
+                                Aún no tenés actividad
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-400">
-                                Comienza a explorar contenido para ver tu
-                                historial aquí
+                            <p className="text-gray-400 dark:text-gray-400 text-sm mb-4">
+                                Comenzá a explorar contenido para ver tu
+                                historial acá
                             </p>
                         </div>
                     ) : (
