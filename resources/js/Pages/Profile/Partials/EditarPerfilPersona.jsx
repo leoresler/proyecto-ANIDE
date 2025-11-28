@@ -49,10 +49,10 @@ export default function EditarPerfilPersona({ className = "", onCancel }) {
     return (
         <section className={`${className} w-full`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                     Información personal
                 </h2>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     Actualiza tu nombre, apellido y biografía.
                 </p>
             </header>

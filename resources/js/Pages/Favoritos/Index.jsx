@@ -57,7 +57,7 @@ export default function Favoritos({ auth, favoritos, userType }) {
         <AuthenticatedLayout user={auth.user}>
             <Head title="Favoritos" />
 
-            <div className="py-8 mb-8">
+            <div className="py-6 mb-8">
                 <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
                     <div className="mb-8">
                         
@@ -121,7 +121,7 @@ export default function Favoritos({ auth, favoritos, userType }) {
                     <div className="space-y-6">
                         {publicacionesAMostrar.length === 0 &&
                         publicacionesFiltradas === null ? (
-                            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-8 text-center">
+                            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-8 text-center border border-gray-200 dark:border-gray-700">
                                 <svg
                                     className="mx-auto h-12 w-12 text-gray-400 mb-4"
                                     fill="none"

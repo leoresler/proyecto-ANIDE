@@ -260,12 +260,12 @@ export default function Header({ onToggleSidebar }) {
 
                             <Dropdown.Content className="w-80 max-h-96 overflow-y-auto">
                                 <div className="py-2">
-                                    <h3 className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white border-b dark:border-gray-700">
+                                    <h3 className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-300">
                                         Notificaciones
                                     </h3>
                                     {notificaciones.length === 0 ? (
-                                        <p className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-                                            No tienes notificaciones
+                                        <p className="px-4 py-8 text-center text-gray-600 text-sm">
+                                            No tenés notificaciones
                                         </p>
                                     ) : (
                                         <div className="max-h-80 overflow-y-auto">

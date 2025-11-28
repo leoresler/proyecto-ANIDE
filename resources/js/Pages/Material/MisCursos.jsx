@@ -14,21 +14,21 @@ export default function MisCursos({ auth, cursos }) {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     {/* Header */}
                     <div className="mb-6">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                             Cursos Guardados
                         </h1>
                     </div>
 
                     {/* Lista de cursos */}
                     {cursosData.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center border border-gray-200 dark:border-gray-700">
                             <div className="w-16 h-16 mx-auto mb-4 opacity-30 dark:opacity-20">
                                 <BookOpen className="w-full h-full text-gray-400 dark:text-gray-200" />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            <h3 className="text-gray-500 dark:text-gray-300 text-lg mb-2">
                                 No hay cursos guardados
                             </h3>
-                            <p className="text-gray-500 dark:text-gray-400 mb-6">
+                            <p className="text-gray-400 dark:text-gray-400 text-sm mb-4">
                                 Explora el feed y guarda los cursos que te
                                 interesen
                             </p>

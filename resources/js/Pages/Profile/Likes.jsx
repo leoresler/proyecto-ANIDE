@@ -44,12 +44,6 @@ export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
                             label="Me Gusta"
                             isActive={true}
                         />
-                        <NavButton
-                            href="/seguidos"
-                            icon={UserPlus}
-                            label="Seguidos"
-                            isActive={false}
-                        />
                         {esInstitucion && (
                             <>
                                 <Link
