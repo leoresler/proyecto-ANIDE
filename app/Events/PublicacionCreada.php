@@ -50,7 +50,7 @@ class PublicacionCreada implements ShouldBroadcast
                 'nombre' => $this->institucion->nombre,
                 'foto' => $this->institucion->foto_perfil
                     ? asset('storage/' . $this->institucion->foto_perfil)
-                    : '/images/default-user.png',
+                    : '/storage/profile-photos/default-avatar.webp',
             ],
             'created_at' => now()->toDateTimeString(),
         ];

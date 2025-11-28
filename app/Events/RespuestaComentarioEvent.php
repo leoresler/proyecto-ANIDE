@@ -60,7 +60,7 @@ class RespuestaComentarioEvent implements ShouldBroadcast
                     'nombre' => $usuario->nombre ?? 'Usuario desconocido',
                     'foto' => $usuario?->profile_photo_path 
                               ? asset('storage/'.$usuario->profile_photo_path)
-                              : '/images/default-user.png',
+                              : '/storage/profile-photos/default-avatar.webp',
                 ],
             ],
         ];

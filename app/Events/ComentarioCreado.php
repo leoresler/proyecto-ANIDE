@@ -56,7 +56,7 @@ class ComentarioCreado implements ShouldBroadcast
         // Foto del usuario (misma lógica que en toDatabase)
         $usuario_foto = $usuario && $usuario->profile_photo_path
             ? asset('storage/' . $usuario->profile_photo_path)
-            : asset('images/default-avatar.png');
+            : ('/storage/profile-photos/default-avatar.webp');
 
         return [
             'comentario' => [

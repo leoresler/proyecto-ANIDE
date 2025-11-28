@@ -27,11 +27,11 @@ class ComentarioCreadoNotification extends Notification
             'nombre' => $usuario->nombre ?? $usuario->name,
             'foto' => $usuario->profile_photo_path
                 ? asset('storage/' . $usuario->profile_photo_path)
-                : '/images/default-user.png',
+                : '/storage/profile-photos/default-avatar.webp',
         ] : [
             'id' => null,
             'nombre' => 'Usuario desconocido',
-            'foto' => '/images/default-user.png',
+            'foto' => '/storage/profile-photos/default-avatar.webp',
         ];
 
         return [
@@ -67,7 +67,7 @@ class ComentarioCreadoNotification extends Notification
                     'nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
                     'foto' => $usuario->profile_photo_path
                         ? asset('storage/' . $usuario->profile_photo_path)
-                        : '/images/default-user.png',
+                        : '/storage/profile-photos/default-avatar.webp',
                 ],
             ],
         ];
@@ -85,11 +85,11 @@ class ComentarioCreadoNotification extends Notification
             'nombre' => $usuario->nombre ?? $usuario->name,
             'foto' => $usuario->profile_photo_path
                 ? asset('storage/' . $usuario->profile_photo_path)
-                : '/images/default-avatar.png',
+                : '/storage/profile-photos/default-avatar.webp',
         ] : [
             'id' => null,
             'nombre' => 'Usuario desconocido',
-            'foto' => '/images/default-avatar.png',
+            'foto' => '/storage/profile-photos/default-avatar.webp',
         ];
 
         return [

@@ -33,7 +33,7 @@ class LikeCreadoNotification extends Notification
                 'nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',
                 'foto' => $usuario->profile_photo_path
                     ? asset('storage/' . $usuario->profile_photo_path)
-                    : '/images/default-user.png',
+                    : '/storage/profile-photos/default-avatar.webp',
             ],
             'tipo' => 'like',
             'created_at' => $this->like->created_at,
@@ -53,11 +53,11 @@ class LikeCreadoNotification extends Notification
             'nombre' => $usuario->nombre ?? $usuario->name,
             'foto' => $usuario->profile_photo_path
                 ? asset('storage/' . $usuario->profile_photo_path)
-                : '/images/default-user.png',
+                : '/storage/profile-photos/default-avatar.webp',
         ] : [
             'id' => null,
             'nombre' => 'Usuario desconocido',
-            'foto' => '/images/default-user.png',
+            'foto' => '/storage/profile-photos/default-avatar.webp',
         ];
 
         return [

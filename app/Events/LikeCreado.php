@@ -52,7 +52,7 @@ class LikeCreado implements ShouldBroadcast
         $usuario_nombre = $usuario->name ?? $usuario->nombre ?? 'Usuario desconocido';
         $usuario_foto = $usuario && $usuario->profile_photo_path
             ? asset('storage/' . $usuario->profile_photo_path)
-            : asset('images/default-avatar.png');
+            : asset('/storage/profile-photos/default-avatar.webp');
 
         return [
             'type' => 'App\Notifications\LikeCreadoNotification', // <-- importante para que React no explote

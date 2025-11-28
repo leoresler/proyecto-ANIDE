@@ -52,8 +52,6 @@ class LikeController extends Controller
                 'Quitaste tu like'
             );
 
-            broadcast(new LikeCreado($like))->toOthers();
-
             return response()->json([
                 'success' => true,
                 'action' => 'unliked',
@@ -61,11 +59,14 @@ class LikeController extends Controller
             ]);
         } else {
             // Si no existe, crear (like)
-            Like::create([
+             $like = Like::create([
                 $perfKey => $perfId,
                 'target_id' => $validated['target_id'],
                 'target_tipo' => $validated['target_tipo'],
             ]);
+              
+            broadcast(new LikeCreado($like))->toOthers();
+
 
             ActividadController::registrar(
                 $user->id,
@@ -81,20 +82,5 @@ class LikeController extends Controller
                 'message' => 'Like agregado',
             ]);
         }
-
-        // Crear like (AHORA sí)
-        $like = Like::create([
-            $perfKey => $perfId,
-            'target_id' => $validated['target_id'],
-            'target_tipo' => $validated['target_tipo'],
-        ]);
-
-        // Enviar evento REAL con el $like creado
-        broadcast(new LikeCreado($like))->toOthers();
-
-        return response()->json([
-            'success' => true,
-            'action' => 'liked',
-        ]);
     }
 }

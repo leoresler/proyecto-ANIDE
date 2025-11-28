@@ -2,7 +2,7 @@ import Dropdown from "@/Components/Dropdown";
 import { Link, usePage } from "@inertiajs/react";
 import BarraBusqueda from "../BarraBusqueda/BarraBusqueda";
 import NavLink from "../NavLink";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo} from "react";
 import axios from "axios";
 import "../../echo";
 
@@ -12,6 +12,7 @@ export default function Header({ onToggleSidebar }) {
         notificacionesIniciales = [],
         notificacionesNoLeidasCount = 0,
     } = usePage().props;
+    console.log("📦 NOTIFICACIONES INICIALES:", notificacionesIniciales);
     const user = auth?.user;
 
     const [notificaciones, setNotificaciones] = useState(
@@ -43,6 +44,7 @@ export default function Header({ onToggleSidebar }) {
         const canal = window.Echo.private(`user.${user.id}`);
 
         canal.listen(".ComentarioCreado", (data) => {
+            console.log("📌 COMENTARIO RECIBIDO:", data);
             setNotificaciones((prev) => [
                 {
                     id: data.comentario.id,
@@ -124,7 +126,7 @@ export default function Header({ onToggleSidebar }) {
     }, [user]);
 
     // Componente reutilizable para renderizar una notificación
-    const NotificacionItem = ({ notif }) => {
+    const NotificacionItem = memo(({ notif }) => {
         // Determinar tipo de notificación
         let tipo = notif.data?.tipo ?? null;
         if (!tipo && notif.type) {
@@ -143,15 +145,16 @@ export default function Header({ onToggleSidebar }) {
         const usuario = notif.data?.usuario ?? {};
         const usuarioNombre =
             usuario.nombre ?? usuario.name ?? "Usuario desconocido";
-        const usuarioFoto = usuario.foto ?? "/images/default-avatar.png";
+        const usuarioFoto = usuario.foto && usuario.foto.trim() !== "" 
+        ? usuario.foto 
+        : "/storage/profile-photos/default-avatar.webp";
 
         // Mensaje según tipo
         let mensaje = "";
         if (esComentario) mensaje = "comentó tu publicación";
         else if (esLike) mensaje = "le gusta tu publicación";
         else if (esRespuesta) mensaje = "respondió a tu comentario";
-        else if (esPublicacion)
-            mensaje = notif.data?.mensaje ?? "ha publicado algo";
+        else if (esPublicacion) mensaje = notif.data?.mensaje ?? "ha publicado algo";
 
         return (
             <Link
@@ -195,7 +198,10 @@ export default function Header({ onToggleSidebar }) {
                 </div>
             </Link>
         );
-    };
+    });
+
+    // Agregar displayName para debugging
+    NotificacionItem.displayName = 'NotificacionItem';
 
     return (
         <header className="bg-edu-dark text-white sticky top-0 z-50">

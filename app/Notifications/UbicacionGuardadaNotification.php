@@ -37,7 +37,7 @@ class UbicacionGuardadaNotification extends Notification
                 // usar el mismo nombre de archivo por defecto que espera el frontend
                 'foto' => $this->publicacion->institucion->foto_perfil
                     ? asset('storage/' . $this->publicacion->institucion->foto_perfil)
-                    : '/images/default-user.png',
+                    : '/storage/profile-photos/default-avatar.webp',
             ],
             'created_at' => now()->toDateTimeString(),
         ];
