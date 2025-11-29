@@ -5,7 +5,12 @@ import PublicacionModal from "./PublicacionModal";
 import MediaFullscreenMobile from "./MediaFullscreenMobile";
 import { FileText } from "lucide-react";
 
-export default function PublicacionCard({ publicacion, userType, auth }) {
+export default function PublicacionCard({
+    publicacion,
+    userType,
+    auth,
+    disableModal = false,
+}) {
     const [isLiked, setIsLiked] = useState(publicacion.user_has_liked);
     const [likesCount, setLikesCount] = useState(
         Number(publicacion.likes_count) || 0
@@ -83,6 +88,11 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
         e.preventDefault();
         e.stopPropagation();
 
+        // No hacer nada si el modal está deshabilitado
+        if (disableModal) {
+            return;
+        }
+
         if (isMobile) {
             setShowMobileFullscreen(true);
         } else {
@@ -97,6 +107,11 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
         ) {
             return;
         }
+
+        // // No navegar si el modal está deshabilitado
+        // if (disableModal) {
+        //     return;
+        // }
 
         if (!e.target.closest(".media-container")) {
             router.visit(`/publicaciones/${publicacion.id}`);
@@ -115,7 +130,11 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
         <>
             <div
                 onClick={handleContentClick}
-                className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-md transition-all overflow-hidden cursor-pointer hover:shadow-lg"
+                className={`bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-md transition-all overflow-hidden ${
+                    disableModal
+                        ? "cursor-default"
+                        : "cursor-pointer hover:shadow-lg"
+                }`}
             >
                 {/* Header - Nombre de la institución */}
                 <Link
@@ -155,7 +174,7 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                 </Link>
 
                 {/* Contenido de texto */}
-                <div className="px-4 pb-3">
+                <div className="px-4 pb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-edu-mid hover:opacity-80">
                     <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
                         {publicacion.contenido.length > 200
                             ? publicacion.contenido.substring(0, 200) + "..."
@@ -166,7 +185,9 @@ export default function PublicacionCard({ publicacion, userType, auth }) {
                 {/* Imagen destacada con título superpuesto */}
                 {primeraMedia && (
                     <div
-                        className="media-container relative w-full h-80 bg-gray-900 cursor-zoom-in"
+                        className={`media-container relative w-full h-80 bg-gray-900 ${
+                            disableModal ? "cursor-default" : "cursor-zoom-in"
+                        }`}
                         onClick={handleMediaClick}
                     >
                         {primeraMedia.tipo === "imagen" && (

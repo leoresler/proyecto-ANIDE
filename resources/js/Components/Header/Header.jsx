@@ -12,7 +12,7 @@ export default function Header({ onToggleSidebar }) {
         notificacionesIniciales = [],
         notificacionesNoLeidasCount = 0,
     } = usePage().props;
-    console.log("📦 NOTIFICACIONES INICIALES:", notificacionesIniciales);
+    // console.log("📦 NOTIFICACIONES INICIALES:", notificacionesIniciales);
     const user = auth?.user;
 
     const [notificaciones, setNotificaciones] = useState(

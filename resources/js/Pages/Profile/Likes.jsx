@@ -90,6 +90,7 @@ export default function Likes({ auth, likedPublicaciones = [], links = [] }) {
                                             key={publicacion.id}
                                             publicacion={publicacion}
                                             userType={auth.user.tipo_usuario}
+                                            disableModal={true}
                                         />
                                     ))}
                                 </div>
