@@ -27,7 +27,11 @@ class LikeCreado implements ShouldBroadcast
         // obtener receptor
         $this->receptorId = $publicacion->institucion->user->id;
 
-        $publicacion->institucion->user->notify(new LikeCreadoNotification($like));
+        $usuarioQueHizoLike = $like->persona->user ?? $like->institucion->user;
+        
+        if ($usuarioQueHizoLike && $usuarioQueHizoLike->id !== $this->receptorId) {
+            $publicacion->institucion->user->notify(new LikeCreadoNotification($like));
+        }
     }
 
 

@@ -24,9 +24,12 @@ class ComentarioCreado implements ShouldBroadcast
         // Siempre hay una institución propietaria de la publicación
         $this->receptorId = $comentario->publicacion->institucion->user->id;
 
-        // Aquí enviamos la notificación al receptor (institución propietaria de la publicación)
-        $receptor = $comentario->publicacion->institucion->user;
-        $receptor->notify(new ComentarioCreadoNotification($comentario)); // Enviamos la notificación
+         $usuarioQueComento = $comentario->persona->user ?? $comentario->institucion->user;
+    
+        if ($usuarioQueComento && $usuarioQueComento->id !== $this->receptorId) {
+            $receptor = $comentario->publicacion->institucion->user;
+            $receptor->notify(new ComentarioCreadoNotification($comentario));
+        }
     }
 
     public function broadcastOn()

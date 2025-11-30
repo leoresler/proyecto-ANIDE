@@ -74,30 +74,31 @@ class ComentarioController extends Controller
         ]);
 
         if (!$comentario->coment_padre_id) {
-            Log::info('Disparando evento ComentarioCreado para comentario normal', ['id' => $comentario->id]);
+        Log::info('Disparando evento ComentarioCreado para comentario normal', ['id' => $comentario->id]);
+        
+        // 👇 VERIFICAR ANTES DE DISPARAR EL EVENTO
+        $publicacion = $comentario->publicacion;
+        $duenoPublicacion = $publicacion->institucion->user;
+        
+        if ($user->id !== $duenoPublicacion->id) {
             event(new ComentarioCreado($comentario));
-        } else {
-            $comentarioPadre = ComentPublicacion::find($comentario->coment_padre_id);
-
+        }
+    } else {
+        $comentarioPadre = ComentPublicacion::find($comentario->coment_padre_id);
+        
+        // 👇 VERIFICAR ANTES DE DISPARAR EL EVENTO
+        $receptorPadre = $comentarioPadre->persona?->user ?? $comentarioPadre->institucion?->user;
+        
+        if ($receptorPadre && $receptorPadre->id !== $user->id) {
             Log::info('Disparando evento RespuestaComentarioEvent para comentario hijo', [
                 'comentario_id' => $comentario->id,
                 'coment_padre_id' => $comentario->coment_padre_id,
-                'dueño_padre_persona' => $comentarioPadre->persona?->user->id,
-                'dueño_padre_institucion' => $comentarioPadre->institucion?->user->id,
             ]);
-
+            
             event(new RespuestaComentarioEvent($comentario));
-
-            if ($comentarioPadre->persona?->user) {
-                $comentarioPadre->persona->user->notify(
-                    new RespuestaComentarioNotification($comentario)
-                );
-            } elseif ($comentarioPadre->institucion?->user) {
-                $comentarioPadre->institucion->user->notify(
-                    new RespuestaComentarioNotification($comentario)
-                );
-            }
+            $receptorPadre->notify(new RespuestaComentarioNotification($comentario));
         }
+    }
         
 
         $comentario = ComentPublicacion::with([

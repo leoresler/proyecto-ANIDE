@@ -65,7 +65,13 @@ class LikeController extends Controller
                 'target_tipo' => $validated['target_tipo'],
             ]);
               
-            broadcast(new LikeCreado($like))->toOthers();
+            $publicacion = $like->publicacion;
+            $duenoPublicacion = $publicacion->institucion->user;
+            
+            // Solo hacer broadcast si NO eres el dueño
+            if ($user->id !== $duenoPublicacion->id) {
+                broadcast(new LikeCreado($like))->toOthers();
+            }
 
 
             ActividadController::registrar(
