@@ -28,6 +28,7 @@ class LikeCreadoNotification extends Notification
         return [
             'like_id' => $this->like->id,
             'publicacion_id' => $this->like->target_id,
+            'target_tipo' => $this->like->target_tipo,
             'usuario' => [
                 'id' => $usuario->id ?? null,
                 'nombre' => $usuario->nombre ?? $usuario->name ?? 'Usuario desconocido',

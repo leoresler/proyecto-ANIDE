@@ -62,6 +62,7 @@ export default function Header({ onToggleSidebar }) {
 
             setContadorRojo((prev) => prev + 1); // actualizar contador rojo
         });
+
         canal.listen(".LikeCreado", (data) => {
             setNotificaciones((prev) => [
                 {
@@ -71,6 +72,7 @@ export default function Header({ onToggleSidebar }) {
                     data: {
                         tipo: "like",
                         publicacion_id: data.like.publicacion_id,
+                        target_tipo: data.like.target_tipo,
                         usuario: data.like.usuario,
                     },
                 },
@@ -79,6 +81,7 @@ export default function Header({ onToggleSidebar }) {
 
             setContadorRojo((prev) => prev + 1);
         });
+
         canal.listen(".RespuestaComentario", (data) => {
 
             setNotificaciones((prev) => [
@@ -151,10 +154,20 @@ export default function Header({ onToggleSidebar }) {
 
         // Mensaje según tipo
         let mensaje = "";
-        if (esComentario) mensaje = "comentó tu publicación";
-        else if (esLike) mensaje = "le gusta tu publicación";
-        else if (esRespuesta) mensaje = "respondió a tu comentario";
-        else if (esPublicacion) mensaje = notif.data?.mensaje ?? "ha publicado algo";
+        if (esComentario) {
+            mensaje = "comentó tu publicación";
+        } else if (esLike) {
+            const targetTipo = notif.data?.target_tipo;
+            if (targetTipo === 'comentario') {
+                mensaje = "le gusta tu comentario";
+            } else {
+                mensaje = "le gusta tu publicación";
+            }
+        } else if (esRespuesta) {
+            mensaje = "respondió a tu comentario";
+        } else if (esPublicacion) {
+            mensaje = notif.data?.mensaje ?? "ha publicado algo";
+        }
 
         return (
             <Link

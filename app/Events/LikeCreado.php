@@ -21,16 +21,33 @@ class LikeCreado implements ShouldBroadcast
     {
         $this->like = $like;
 
-        // obtener la publicación correcta
-        $publicacion = $like->publicacion;
-
-        // obtener receptor
-        $this->receptorId = $publicacion->institucion->user->id;
-
-        $usuarioQueHizoLike = $like->persona->user ?? $like->institucion->user;
-        
-        if ($usuarioQueHizoLike && $usuarioQueHizoLike->id !== $this->receptorId) {
-            $publicacion->institucion->user->notify(new LikeCreadoNotification($like));
+        // 👇 CAMBIAR TODO ESTO
+        // Determinar el receptor según el tipo de target
+        if ($like->target_tipo === 'publicacion') {
+            $publicacion = $like->publicacion;
+            $this->receptorId = $publicacion->institucion->user->id;
+            
+            $usuarioQueHizoLike = $like->persona->user ?? $like->institucion->user;
+            
+            if ($usuarioQueHizoLike && $usuarioQueHizoLike->id !== $this->receptorId) {
+                $publicacion->institucion->user->notify(new LikeCreadoNotification($like));
+            }
+            
+        } elseif ($like->target_tipo === 'comentario') {
+            $comentario = $like->comentario;
+            $receptor = $comentario->persona?->user ?? $comentario->institucion?->user;
+            
+            if (!$receptor) {
+                return; // Si no hay receptor, no hacer nada
+            }
+            
+            $this->receptorId = $receptor->id;
+            
+            $usuarioQueHizoLike = $like->persona->user ?? $like->institucion->user;
+            
+            if ($usuarioQueHizoLike && $usuarioQueHizoLike->id !== $this->receptorId) {
+                $receptor->notify(new LikeCreadoNotification($like));
+            }
         }
     }
 
@@ -59,10 +76,11 @@ class LikeCreado implements ShouldBroadcast
             : asset('/storage/profile-photos/default-avatar.webp');
 
         return [
-            'type' => 'App\Notifications\LikeCreadoNotification', // <-- importante para que React no explote
+            'type' => 'App\Notifications\LikeCreadoNotification',
             'like' => [
                 'id' => $this->like->id,
                 'publicacion_id' => $this->like->target_id,
+                'target_tipo' => $this->like->target_tipo, // 👈 AGREGAR ESTO
                 'usuario' => [
                     'id'   => $usuario->id ?? null,
                     'name' => $usuario_nombre,

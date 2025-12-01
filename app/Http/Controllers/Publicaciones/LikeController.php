@@ -59,27 +59,37 @@ class LikeController extends Controller
             ]);
         } else {
             // Si no existe, crear (like)
-             $like = Like::create([
+            $like = Like::create([
                 $perfKey => $perfId,
                 'target_id' => $validated['target_id'],
                 'target_tipo' => $validated['target_tipo'],
             ]);
-              
-            $publicacion = $like->publicacion;
-            $duenoPublicacion = $publicacion->institucion->user;
+            
+            // 👇 CAMBIAR TODA ESTA PARTE
+            // Determinar el dueño según el tipo de target
+            $duenoUserId = null;
+            
+            if ($validated['target_tipo'] === 'publicacion') {
+                $publicacion = $like->publicacion;
+                $duenoUserId = $publicacion->institucion->user->id;
+            } elseif ($validated['target_tipo'] === 'comentario') {
+                $comentario = $like->comentario;
+                // El dueño del comentario puede ser persona o institución
+                $duenoUserId = $comentario->persona?->user->id 
+                            ?? $comentario->institucion?->user->id;
+            }
             
             // Solo hacer broadcast si NO eres el dueño
-            if ($user->id !== $duenoPublicacion->id) {
+            if ($duenoUserId && $user->id !== $duenoUserId) {
                 broadcast(new LikeCreado($like))->toOthers();
             }
-
 
             ActividadController::registrar(
                 $user->id,
                 'like',
-                'publicacion',
+                $validated['target_tipo'], // 👈 Usar el tipo correcto
                 $validated['target_id'],
-                'Te gustó una publicación'
+                'Te gustó ' . ($validated['target_tipo'] === 'publicacion' ? 'una publicación' : 'un comentario')
             );
 
             return response()->json([
