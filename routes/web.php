@@ -172,6 +172,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     Route::get('/mis-carreras', [InstitucionMaterialController::class, 'misCarreras'])
         ->name('carreras.guardadas');
+
+
+    // ver modal persona
+    Route::get('/personas/{id}', function ($id) {
+        $persona = \App\Models\PerfPersona::with('user')
+            ->where('id', $id)
+            ->first();
+
+        if (!$persona) {
+            return response()->json(['error' => 'Persona no encontrada'], 404);
+        }
+
+        return response()->json([
+            'id' => $persona->id,
+            'apellido' => $persona->apellido,
+            'fecha_nac' => $persona->fecha_nac,
+            'interests' => $persona->interests,
+            'biografia' => $persona->biografia,
+            'user' => [
+                'nombre' => $persona->user->nombre,
+                'ciudad' => $persona->user->ciudad,
+                'provincia' => $persona->user->provincia,
+                'profile_photo_url' => $persona->user->profile_photo_url,
+            ]
+        ]);
+    });
 });
 
 

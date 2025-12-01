@@ -44,7 +44,7 @@ export default function Inicio({
         >
             <Head title="Inicio" />
 
-            <div className="py-4">
+            <div className="py-4 mb-8">
                 {userType === "persona" && (
                     <AccesosDirectos instituciones={institucionesVisitadas} />
                 )}

@@ -10,6 +10,7 @@ export default function PublicacionCard({
     userType,
     auth,
     disableModal = false,
+    disableFavorite = false,
 }) {
     const [isLiked, setIsLiked] = useState(publicacion.user_has_liked);
     const [likesCount, setLikesCount] = useState(
@@ -119,7 +120,7 @@ export default function PublicacionCard({
     };
 
     const canLike = true;
-    const canFavorite = true;
+    const canFavorite = !disableFavorite;
 
     const primeraMedia =
         publicacion.media && publicacion.media.length > 0

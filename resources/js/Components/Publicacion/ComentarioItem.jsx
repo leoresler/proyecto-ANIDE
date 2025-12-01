@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, router } from "@inertiajs/react";
 import {
     Heart,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
+import PersonaProfileModal from "@/Components/ModalPersona/PersonaProfileModal";
 
 export default function ComentarioItem({
     comentario,
@@ -36,9 +37,19 @@ export default function ComentarioItem({
     const [localRespuestas, setLocalRespuestas] = useState(
         comentario.respuestas || []
     );
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
 
     const REPLIES_PREVIEW_COUNT = 1;
-    const MAX_CHARS = 200; // max de caracteres antes de mostrar "ver mas"
+    const MAX_CHARS = 200;
 
     const displayedReplies = showAllReplies
         ? localRespuestas
@@ -134,7 +145,6 @@ export default function ComentarioItem({
 
                 const nuevaRespuesta = response.data.comentario;
 
-                // Actualizar las respuestas locales
                 setLocalRespuestas([nuevaRespuesta, ...localRespuestas]);
 
                 setShowReplyForm(false);
@@ -256,10 +266,25 @@ export default function ComentarioItem({
                 (currentUserId === comentario.perf_institucion_id ||
                     currentUserId === publicacionInstitucionId)));
 
+    const esPersona = comentario.perf_persona_id && comentario.persona;
+
     return (
         <div className={`${level > 0 ? "ml-8" : ""}`}>
-            <div className="flex space-x-3">
-                {comentario.institucion ? (
+            <div className="flex gap-3">
+                {/* Avatar con modal para personas */}
+                {esPersona ? (
+                    <PersonaProfileModal
+                        personaId={comentario.persona.id}
+                        isMobile={isMobile}
+                        trigger={
+                            <img
+                                src={getAuthorPhoto()}
+                                alt={getAuthorName()}
+                                className="w-10 h-10 rounded-full flex-shrink-0 object-cover cursor-pointer"
+                            />
+                        }
+                    />
+                ) : comentario.institucion ? (
                     <Link href={`/instituciones/${comentario.institucion.id}`}>
                         <img
                             src={getAuthorPhoto()}
@@ -311,7 +336,6 @@ export default function ComentarioItem({
                                     : `${contenido.substring(0, MAX_CHARS)}...`}
                             </p>
 
-                            {/* Botón ver más / ver menos */}
                             {shouldShowExpandButton && (
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}

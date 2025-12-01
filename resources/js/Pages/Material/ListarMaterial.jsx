@@ -8,20 +8,26 @@ import {
     Search,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import LoadingSpinner from "@/Components/LoadingSpinner";
 
 export default function ListarMaterial({
     auth,
     materiales: materialesIniciales,
 }) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [materialesFiltrados, setMaterialesFiltrados] = useState(
-        materialesIniciales.data
-    );
-    const [tipoFiltro, setTipoFiltro] = useState("todos"); // todos, curso, carrera
+    const [tipoFiltro, setTipoFiltro] = useState("todos");
+
+    const [materialesFiltrados, setMaterialesFiltrados] = useState([]);
+
+    const nextPageUrl = materialesIniciales.links?.find(
+        (link) => link.label === "&raquo;"
+    )?.url;
+    const { loaderRef, isLoading } = useInfiniteScroll({ nextPageUrl });
 
     useEffect(() => {
         filtrarMateriales();
-    }, [searchTerm, tipoFiltro]);
+    }, [searchTerm, tipoFiltro, materialesIniciales.data]);
 
     const filtrarMateriales = () => {
         let filtrados = materialesIniciales.data;
@@ -150,149 +156,144 @@ export default function ListarMaterial({
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {materialesFiltrados.map((material) => (
-                                <Link
-                                    key={material.id}
-                                    href={`/material/${material.id}`}
-                                    className="bg-white dark:bg-gray-800 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
-                                >
-                                    {/* Header con color según tipo */}
-                                    <div
-                                        className={`p-4 ${
-                                            material.tipo === "curso"
-                                                ? "bg-gradient-to-r from-blue-500 to-blue-600"
-                                                : "bg-gradient-to-r from-yellow-500 to-yellow-600"
-                                        }`}
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {materialesFiltrados.map((material) => (
+                                    <Link
+                                        key={material.id}
+                                        href={`/material/${material.id}`}
+                                        className="bg-white dark:bg-gray-800 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
                                     >
-                                        <div className="flex items-center gap-2 mb-2">
-                                            {material.tipo === "curso" ? (
-                                                <BookOpen className="w-5 h-5 text-white" />
-                                            ) : (
-                                                <GraduationCap className="w-5 h-5 text-white" />
-                                            )}
-                                            <span className="text-xs font-semibold text-white uppercase">
-                                                {material.tipo}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-lg font-bold text-white line-clamp-2 group-hover:underline">
-                                            {material.nombre}
-                                        </h3>
-                                    </div>
-
-                                    {/* Contenido */}
-                                    <div className="p-4">
-                                        {/* Institución */}
-                                        {material.institucion && (
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <img
-                                                    src={
-                                                        material.foto_institucion
-                                                    }
-                                                    alt={
-                                                        material.nombre_institucion
-                                                    }
-                                                    className="w-8 h-8 rounded-full object-cover"
-                                                />
-                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-400 line-clamp-1">
-                                                    {
-                                                        material.nombre_institucion
-                                                    }
+                                        {/* Header con color según tipo */}
+                                        <div
+                                            className={`p-4 ${
+                                                material.tipo === "curso"
+                                                    ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                                                    : "bg-gradient-to-r from-yellow-500 to-yellow-600"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                {material.tipo === "curso" ? (
+                                                    <BookOpen className="w-5 h-5 text-white" />
+                                                ) : (
+                                                    <GraduationCap className="w-5 h-5 text-white" />
+                                                )}
+                                                <span className="text-xs font-semibold text-white uppercase">
+                                                    {material.tipo}
                                                 </span>
                                             </div>
-                                        )}
-
-                                        {/* Descripción */}
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4">
-                                            {material.contenido}
-                                        </p>
-
-                                        {/* Detalles */}
-                                        <div className="space-y-2 mb-4">
-                                            {material.duracion && (
-                                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                                    <Calendar className="w-4 h-4" />
-                                                    <span>
-                                                        {material.duracion}{" "}
-                                                        meses
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {material.modalidad && (
-                                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                                    <Monitor className="w-4 h-4" />
-                                                    <span>
-                                                        {material.modalidad}
-                                                    </span>
-                                                </div>
-                                            )}
+                                            <h3 className="text-lg font-bold text-white line-clamp-2 group-hover:underline">
+                                                {material.nombre}
+                                            </h3>
                                         </div>
 
-                                        {/* Categorías */}
-                                        {material.categorias &&
-                                            material.categorias.length > 0 && (
-                                                <div className="flex flex-wrap gap-1">
-                                                    {material.categorias
-                                                        .slice(0, 3)
-                                                        .map((cat, idx) => (
-                                                            <span
-                                                                key={idx}
-                                                                className="inline-block px-2 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded text-xs"
-                                                            >
-                                                                {cat}
-                                                            </span>
-                                                        ))}
-                                                    {material.categorias
-                                                        .length > 3 && (
-                                                        <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
-                                                            +
-                                                            {material.categorias
-                                                                .length - 3}
+                                        {/* Contenido */}
+                                        <div className="p-4">
+                                            {/* Institución */}
+                                            {material.institucion && (
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <img
+                                                        src={
+                                                            material.foto_institucion
+                                                        }
+                                                        alt={
+                                                            material.nombre_institucion
+                                                        }
+                                                        className="w-8 h-8 rounded-full object-cover"
+                                                    />
+                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400 line-clamp-1">
+                                                        {
+                                                            material.nombre_institucion
+                                                        }
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Descripción */}
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 mb-4">
+                                                {material.contenido}
+                                            </p>
+
+                                            {/* Detalles */}
+                                            <div className="space-y-2 mb-4">
+                                                {material.duracion && (
+                                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                                        <Calendar className="w-4 h-4" />
+                                                        <span>
+                                                            {material.duracion}{" "}
+                                                            meses
                                                         </span>
-                                                    )}
-                                                </div>
-                                            )}
-                                    </div>
+                                                    </div>
+                                                )}
+                                                {material.modalidad && (
+                                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                                        <Monitor className="w-4 h-4" />
+                                                        <span>
+                                                            {material.modalidad}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
 
-                                    {/* Footer */}
-                                    <div className="px-4 pb-4">
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                                            Publicado el{" "}
-                                            {new Date(
-                                                material.created_at
-                                            ).toLocaleDateString("es-ES")}
+                                            {/* Categorías */}
+                                            {material.categorias &&
+                                                material.categorias.length >
+                                                    0 && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {material.categorias
+                                                            .slice(0, 3)
+                                                            .map((cat, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-block px-2 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded text-xs"
+                                                                >
+                                                                    {cat}
+                                                                </span>
+                                                            ))}
+                                                        {material.categorias
+                                                            .length > 3 && (
+                                                            <span className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
+                                                                +
+                                                                {material
+                                                                    .categorias
+                                                                    .length - 3}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                         </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
 
-                    {/* Paginación */}
-                    {materialesIniciales.links &&
-                        materialesIniciales.links.length > 3 && (
-                            <div className="mt-6 flex justify-center gap-2">
-                                {materialesIniciales.links.map((link, idx) => (
-                                    <Link
-                                        key={idx}
-                                        href={link.url || "#"}
-                                        className={`px-4 py-2 rounded-lg ${
-                                            link.active
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-white text-gray-700 hover:bg-gray-100"
-                                        } ${
-                                            !link.url
-                                                ? "opacity-50 cursor-not-allowed"
-                                                : ""
-                                        }`}
-                                        disabled={!link.url}
-                                        dangerouslySetInnerHTML={{
-                                            __html: link.label,
-                                        }}
-                                    />
+                                        {/* Footer */}
+                                        <div className="px-4 pb-4">
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                Publicado el{" "}
+                                                {new Date(
+                                                    material.created_at
+                                                ).toLocaleDateString("es-ES")}
+                                            </div>
+                                        </div>
+                                    </Link>
                                 ))}
                             </div>
-                        )}
+
+                            {/* Loader para scroll infinito */}
+                            {nextPageUrl && (
+                                <div ref={loaderRef} className="mt-8">
+                                    {isLoading ? (
+                                        <LoadingSpinner />
+                                    ) : (
+                                        <div className="flex items-center gap-4 text-gray-400 dark:text-gray-500">
+                                            <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                                            <span className="text-sm">
+                                                Scroll para cargar más
+                                            </span>
+                                            <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

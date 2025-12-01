@@ -88,10 +88,10 @@ export default function BusquedaIndex({
         <AuthenticatedLayout user={auth.user}>
             <Head title={`Buscar: ${query}`} />
 
-            <div className="py-8 bg-white min-h-screen">
+            <div className="py-4 bg-white dark:bg-gray-800 min-h-screen mb-8 border dark:border-gray-700 rounded-lg">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Encabezado */}
-                    <div className="mb-8 bg-white border-b-2 p-6">
+                    <div className="mb-8 bg-white dark:bg-gray-700 border-b-2 dark:border-gray-500 p-6 rounded-lg">
                         <div className="flex items-center gap-3 mb-2">
                             <svg
                                 className="w-6 h-6 text-blue-600 flex-shrink-0"
@@ -106,11 +106,11 @@ export default function BusquedaIndex({
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                                 />
                             </svg>
-                            <h1 className="text-2xl font-bold text-gray-800">
+                            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                                 Resultados de búsqueda
                             </h1>
                         </div>
-                        <p className="text-gray-600 ml-9">
+                        <p className="text-gray-600 dark:text-gray-400 ml-9">
                             Buscando:{" "}
                             <span className="font-semibold text-blue-600">
                                 "{query}"
@@ -134,7 +134,7 @@ export default function BusquedaIndex({
 
                     {/* Resultados */}
                     {totalResultados === 0 ? (
-                        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+                        <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm p-12 text-center">
                             <div className="max-w-md mx-auto">
                                 <svg
                                     className="mx-auto h-16 w-16 text-gray-300"
@@ -149,20 +149,20 @@ export default function BusquedaIndex({
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                                     />
                                 </svg>
-                                <h3 className="mt-4 text-xl font-semibold text-gray-900">
+                                <h3 className="mt-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
                                     No se encontraron resultados
                                 </h3>
-                                <p className="mt-2 text-gray-600">
+                                <p className="mt-2 text-gray-600 dark:text-gray-400">
                                     No pudimos encontrar nada para "{query}"
                                 </p>
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     Intentá con otros términos de búsqueda o
                                     revisá la ortografía
                                 </p>
                                 <div className="mt-6 flex gap-3 justify-center">
                                     <Link
                                         href="/inicio"
-                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                                        className="inline-flex items-center px-4 py-2 bg-edu-dark text-white rounded-lg hover:bg-gray-800 font-medium transition-colors"
                                     >
                                         <svg
                                             className="w-5 h-5 mr-2"
@@ -203,9 +203,9 @@ export default function BusquedaIndex({
                                                 />
                                             </svg>
                                         </div>
-                                        <h2 className="text-xl font-bold text-gray-800">
+                                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                                             Publicaciones
-                                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                                                 ({publicacionesData.length})
                                             </span>
                                         </h2>
@@ -267,7 +267,7 @@ export default function BusquedaIndex({
                             {institucionesData.length > 0 && (
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                             <svg
                                                 className="w-5 h-5 text-blue-600"
                                                 fill="none"
@@ -282,9 +282,9 @@ export default function BusquedaIndex({
                                                 />
                                             </svg>
                                         </div>
-                                        <h2 className="text-xl font-bold text-gray-800">
+                                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                                             Instituciones
-                                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                                                 ({institucionesData.length})
                                             </span>
                                         </h2>
@@ -295,7 +295,7 @@ export default function BusquedaIndex({
                                                 <Link
                                                     key={institucion.id}
                                                     href={`/instituciones/${institucion.id}`}
-                                                    className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 hover:border-gray-400 group"
+                                                    className="block bg-white dark:bg-edu-dark rounded-lg shadow-sm hover:shadow-md transition-all p-5 border border-gray-100 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-700 group"
                                                 >
                                                     <div className="flex items-center gap-4">
                                                         {institucion.foto_perfil ? (
@@ -328,13 +328,13 @@ export default function BusquedaIndex({
                                                             </div>
                                                         )}
                                                         <div className="flex-1 min-w-0">
-                                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-edu-dark transition-colors">
+                                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-200 group-hover:text-edu-dark dark:group-hover:text-gray-100 transition-colors">
                                                                 {
                                                                     institucion.nombre
                                                                 }
                                                             </h3>
                                                             {institucion.descripcion && (
-                                                                <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                                                                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 line-clamp-2">
                                                                     {
                                                                         institucion.descripcion
                                                                     }

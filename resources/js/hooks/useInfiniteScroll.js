@@ -4,23 +4,30 @@ import { router } from "@inertiajs/react";
 export function useInfiniteScroll({ nextPageUrl, onLoadMore }) {
     const [isLoading, setIsLoading] = useState(false);
     const loaderRef = useRef(null);
+    const isLoadingRef = useRef(false);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 const target = entries[0];
-                if (target.isIntersecting && nextPageUrl && !isLoading) {
+                if (
+                    target.isIntersecting &&
+                    nextPageUrl &&
+                    !isLoadingRef.current
+                ) {
+                    isLoadingRef.current = true;
                     setIsLoading(true);
 
                     router.visit(nextPageUrl, {
                         preserveScroll: true,
                         preserveState: true,
-                        only: ["publicaciones", "favoritos", "instituciones"],
                         onSuccess: () => {
+                            isLoadingRef.current = false;
                             setIsLoading(false);
                             if (onLoadMore) onLoadMore();
                         },
                         onError: () => {
+                            isLoadingRef.current = false;
                             setIsLoading(false);
                         },
                     });
@@ -42,7 +49,7 @@ export function useInfiniteScroll({ nextPageUrl, onLoadMore }) {
                 observer.unobserve(loaderRef.current);
             }
         };
-    }, [nextPageUrl, isLoading]);
+    }, [nextPageUrl, onLoadMore]);
 
     return { loaderRef, isLoading };
 }

@@ -5,12 +5,14 @@ import axios from "axios";
 import "../../echo.js";
 import { throttle } from 'lodash';
 import { router } from '@inertiajs/react';
+import PersonaProfileModal from "@/Components/ModalPersona/PersonaProfileModal";
 
 
 export default function ChatDetalle({ chat, mensajes, auth }) {
     const [contenido, setContenido] = useState("");
     const [mensajesState, setMensajes] = useState(mensajes || []);
     const [confirmarBorrado, setConfirmarBorrado] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     const [usuarioEscribiendo, setUsuarioEscribiendo] = useState(null);
     const timeoutRef = useRef(null);
@@ -19,23 +21,40 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
     const mountedRef = useRef(false);
     const userId = auth.user.id;
 
+    // Detectar mobile
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+
     // Siempre persona ↔ institución
     const personaUser = chat.persona?.user || null;
     const institucionUser = chat.institucion?.user || null;
 
     let otraParte = null;
+    let otraParteEsPersona = false;
+    let otraPartePersonaId = null;
 
     // Si soy la persona → la otra parte es la institución
     if (personaUser && personaUser.id === userId) {
         otraParte = institucionUser;
+        otraParteEsPersona = false;
     }
     // Si soy la institución → la otra parte es la persona
     else if (institucionUser && institucionUser.id === userId) {
         otraParte = personaUser;
+        otraParteEsPersona = true;
+        otraPartePersonaId = chat.persona?.id;
     }
     // Caso fallback (extra seguridad)
     else {
         otraParte = institucionUser || personaUser;
+        otraParteEsPersona = !!personaUser;
+        otraPartePersonaId = chat.persona?.id;
     }
 
 
@@ -233,14 +252,28 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
             user={auth.user}
             header={
                 <div className="flex items-center gap-3">
-                    {otraParte?.profile_photo_url && (
-                        <img
-                            src={otraParte.profile_photo_url}
-                            alt={otraParte.nombre}
-                            className="w-8 h-8 rounded-full object-cover"
+                    {otraParteEsPersona && otraPartePersonaId ? (
+                        <PersonaProfileModal
+                            personaId={otraPartePersonaId}
+                            isMobile={isMobile}
+                            trigger={
+                                <img
+                                    src={otraParte?.profile_photo_url || "/images/default-avatar.webp"}
+                                    alt={otraParte?.nombre || 'Usuario'}
+                                    className="w-10 h-10 rounded-full object-cover cursor-pointer"
+                                />
+                            }
                         />
+                    ) : (
+                        otraParte?.profile_photo_url && (
+                            <img
+                                src={otraParte.profile_photo_url}
+                                alt={otraParte.nombre}
+                                className="w-10 h-10 rounded-full object-cover"
+                            />
+                        )
                     )}
-                    <h2 className="font-semibold text-xl text-gray-800 leading-tight">
+                    <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                         Chat con {otraParte?.nombre || 'Usuario desconocido'}
                     </h2>
                 </div>
@@ -248,9 +281,9 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
         >
             <Head title={`Chat con ${otraParte?.nombre || 'Usuario desconocido'}`} />
 
-            <div className="max-w-4xl mx-auto py-8 px-4 flex flex-col h-[calc(100vh-16rem)]">
+            <div className="max-w-4xl mx-auto py-4 px-4 flex flex-col h-[calc(100vh-16rem)]">
                 {/* Mensajes */}
-                <div className="flex-1 overflow-y-auto border rounded p-4 space-y-2 bg-gray-50">
+                <div className="flex-1 overflow-y-auto border border-gray-300 rounded-lg p-4 space-y-2 bg-white dark:bg-gray-800 dark:border-gray-700">
                     {mensajesState.length === 0 ? (
                         <p className="text-gray-500 text-center">No hay mensajes aún</p>
                     ) : (
@@ -280,9 +313,9 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
                                             {fechaFormateada}
                                         </div>
                                     )}
-                                    <div className={`flex flex-col max-w-xs p-2 rounded mb-2 ${esEmisor ? 'bg-blue-500 text-white ml-auto' : 'bg-gray-200 text-gray-800'}`}>
+                                    <div className={`flex flex-col max-w-xs p-2 rounded-lg mb-2 ${esEmisor ? 'bg-gray-500 text-white ml-auto' : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
                                         <div>{mensaje.contenido}</div>
-                                        <div className={`text-xs mt-1 ${esEmisor ? 'text-right text-blue-100' : 'text-left text-gray-500'}`}>
+                                        <div className={`text-xs mt-1 ${esEmisor ? 'text-right text-blue-100' : 'text-left text-gray-500 dark:text-gray-400'}`}>
                                             {hora}
                                         </div>
                                     </div>
@@ -295,7 +328,7 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
 
                 {/* Indicador de "escribiendo..." */}
                 {usuarioEscribiendo && (
-                    <p className="text-sm text-gray-500 italic mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic mt-1">
                         {usuarioEscribiendo} está escribiendo...
                     </p>
                 )}
@@ -308,18 +341,18 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
                         onChange={(e) => setContenido(e.target.value)}
                         onInput={handleTyping}
                         placeholder="Escribí un mensaje..."
-                        className="flex-1 border rounded px-3 py-2 focus:outline-none"
+                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white"
                     />
                     <button
                         type="submit"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        className="bg-edu-dark text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
                     >
                         Enviar
                     </button>
                 </form>
                 <button
                     onClick={() => setConfirmarBorrado(true)}
-                    className="text-sm text-gray-500 hover:text-gray-700"
+                    className="text-sm mt-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
                 >
                     Borrar chat
                 </button>
