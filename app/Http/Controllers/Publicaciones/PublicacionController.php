@@ -78,6 +78,25 @@ class PublicacionController extends Controller
             $index++;
         }
 
+        if ($publicacion->publicado) {
+            // Cargar la relación de la institución
+            $publicacion->load('institucion');
+            
+            // Obtener usuarios que guardaron esta institución
+            $usuariosInteresados = $publicacion->institucion->guardadaPorUsuarios;
+            
+            // Enviar notificación a cada usuario
+            foreach ($usuariosInteresados as $ubicacionGuardada) {
+                $usuario = $ubicacionGuardada->user;
+                if ($usuario) {
+                    $usuario->notify(new \App\Notifications\UbicacionGuardadaNotification($publicacion));
+                }
+            }
+            
+            // Disparar evento de broadcast
+            event(new \App\Events\PublicacionCreada($publicacion));
+        }
+
         return redirect()->route('publicaciones.misPublicaciones')
             ->with('success', 'Publicación creada exitosamente');
     }

@@ -7,6 +7,7 @@ use App\Models\Residencia;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Log;
+use App\Models\UbicacionGuardada;
 
 class MapaController extends Controller
 {
@@ -15,6 +16,7 @@ class MapaController extends Controller
      */
     public function index()
     {
+         $user = auth()->user();
         // Obtener todas las instituciones verificadas con sus residencias
         $instituciones = PerfInstitucion::with(['user', 'residencias' => function($query) {
                 // Asegurarse de cargar solo residencias que no estén eliminadas
@@ -31,6 +33,7 @@ class MapaController extends Controller
                 
                 return [
                     'id' => $institucion->id,
+                    'user_id' => $institucion->user_id,
                     'nombre' => $institucion->nombre,
                     'tipo_institucion' => $institucion->tipo_institucion,
                     'direccion' => $institucion->direccion,
@@ -72,6 +75,14 @@ class MapaController extends Controller
         $totalResidencias = Residencia::whereHas('institucion', function($q) {
             $q->where('verificado', true);
         })->whereNotNull('latitud')->whereNotNull('longitud')->count();
+
+        $ubicacionesGuardadas = [];
+        $ubicacionesGuardadas = [];
+        if ($user && $user->tipo_usuario === 'persona') {
+            $ubicacionesGuardadas = \App\Models\UbicacionGuardada::where('persona_id', $user->persona->id)
+                ->get(['institucion_id'])
+                ->toArray();
+        }
         
         Log::info('Total instituciones en mapa: ' . $instituciones->count());
         Log::info('Total residencias en BD: ' . $totalResidencias);
@@ -79,6 +90,7 @@ class MapaController extends Controller
         return Inertia::render('Mapa/Index', [
             'instituciones' => $instituciones,
             'tiposInstitucion' => $tiposInstitucion,
+            'ubicacionesGuardadas' => $ubicacionesGuardadas,
         ]);
     }
 

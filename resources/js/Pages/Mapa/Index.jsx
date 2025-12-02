@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
         "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
+export default function MapaIndex({ auth, instituciones, tiposInstitucion, ubicacionesGuardadas = [] }) {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersLayer = useRef(null);
@@ -37,6 +37,13 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
         areaEstudio: "",
         rangoDistancia: 50,
     });
+
+    const [guardadas, setGuardadas] = useState(
+        ubicacionesGuardadas.reduce((acc, ug) => {
+            acc[ug.institucion_id] = true;
+            return acc;
+        }, {})
+    );
 
     const [busqueda, setBusqueda] = useState("");
     const [resultadosBusqueda, setResultadosBusqueda] = useState([]);
@@ -250,9 +257,34 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 }
             });
         }
-    }, [institucionesFiltradas]);
+    }, [institucionesFiltradas, guardadas]);
+
+    const toggleUbicacion = async (institucionId) => {
+        try {
+            const res = await axios.post(route("ubicaciones.toggle"), {
+                institucion_id: institucionId,
+            });
+            
+            setGuardadas(prev => ({
+                ...prev,
+                [institucionId]: res.data.guardada
+            }));
+            
+            toast.success(
+                res.data.guardada 
+                    ? "Ubicación guardada" 
+                    : "Ubicación eliminada"
+            );
+        } catch (err) {
+            console.error(err);
+            toast.error("Error al guardar ubicación");
+        }
+    };
 
     const crearPopupInstitucion = (institucion) => {
+        const estaGuardada = guardadas[institucion.id] || false;
+        const esPropia = auth.user?.id === institucion.user_id;
+        
         return `
             <div style="font-family: system-ui; max-width: 350px;">
                 ${
@@ -261,16 +293,16 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                         : ""
                 }
 
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-                <h3 style="margin:0; font-size:18px; font-weight:600; color:#1f2937;">
-                    ${institucion.nombre}
-                </h3>
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <h3 style="margin:0; font-size:18px; font-weight:600; color:#1f2937;">
+                        ${institucion.nombre}
+                    </h3>
 
-                <a href="/instituciones/${institucion.id}"
-                   style="color:#2563eb; margin-top: 2px; text-decoration:underline; font-size:14px; font-weight:500; white-space:nowrap;">
-                    Perfil →
-                </a>
-            </div>
+                    <a href="/instituciones/${institucion.id}"
+                    style="color:#2563eb; margin-top: 2px; text-decoration:underline; font-size:14px; font-weight:500; white-space:nowrap;">
+                        Perfil →
+                    </a>
+                </div>
                 
                 <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
                     <img src="/svg/mapa/school-sharp.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
@@ -293,7 +325,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 ${
                     institucion.telefono
                         ? `
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px;">
                     <img src="/svg/mapa/call.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
                     <p style="margin: 0; font-size: 14px; color: #6b7280;">${institucion.telefono}</p>
                 </div>
@@ -302,20 +334,67 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 }
                 
                 ${
+                    !esPropia
+                        ? `
+                <button 
+                    onclick="window.toggleUbicacionMapa(${institucion.id})"
+                    style="
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        background: ${estaGuardada ? '#f3f4f6' : '#1f2937'};
+                        color: ${estaGuardada ? '#1f2937' : 'white'};
+                        font-weight: 600;
+                        padding: 10px 16px;
+                        border-radius: 8px;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 14px;
+                        transition: all 0.2s;
+                        margin-bottom: 12px;
+                    "
+                    onmouseover="this.style.background='${estaGuardada ? '#e5e7eb' : '#000000'}'"
+                    onmouseout="this.style.background='${estaGuardada ? '#f3f4f6' : '#1f2937'}'"
+                >
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    ${estaGuardada ? 'Ubicación guardada' : 'Guardar ubicación'}
+                </button>
+                `
+                        : ""
+                }
+                
+                ${
                     institucion.descripcion
                         ? `<p style="margin: 12px 0 8px 0; font-size: 14px; color: #374151; line-height: 1.5;">${institucion.descripcion.substring(
-                              0,
-                              100
-                          )}${
-                              institucion.descripcion.length > 100 ? "..." : ""
-                          }</p>`
+                            0,
+                            100
+                        )}${
+                            institucion.descripcion.length > 100 ? "..." : ""
+                        }</p>`
                         : ""
                 }
             </div>
         `;
     };
 
+    useEffect(() => {
+        // Exponer la función al scope global para que el popup pueda llamarla
+        window.toggleUbicacionMapa = toggleUbicacion;
+        
+        return () => {
+            delete window.toggleUbicacionMapa;
+        };
+    }, [guardadas]);
+
     const crearPopupResidencia = (residencia, institucion) => {
+        const estaGuardada = guardadas[institucion.id] || false;
+        const esPropia = auth.user?.id === institucion.user_id;
+
         return `
             <div style="font-family: system-ui; max-width: 320px;">
                 ${
@@ -324,21 +403,21 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                         : ""
                 }
 
-            <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">
-                ${residencia.nombre}
-            </h3>
+                <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #1f2937;">
+                    ${residencia.nombre}
+                </h3>
 
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
-                <img src="/svg/mapa/school-sharp.svg" style="width:16px; height:16px;" />
-                <span style="font-size:13px; color:#7c3aed; font-weight:500;">
-                    ${institucion.nombre}
-                </span>
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+                    <img src="/svg/mapa/school-sharp.svg" style="width:16px; height:16px;" />
+                    <span style="font-size:13px; color:#7c3aed; font-weight:500;">
+                        ${institucion.nombre}
+                    </span>
 
-                <a href="/instituciones/${institucion.id}"
-                   style=" color:#2563eb; text-decoration:underline; font-size:13px; font-weight:500; white-space:nowrap;">
-                    Perfil →
-                </a>
-            </div>
+                    <a href="/instituciones/${institucion.id}"
+                    style=" color:#2563eb; text-decoration:underline; font-size:13px; font-weight:500; white-space:nowrap;">
+                        Perfil →
+                    </a>
+                </div>
                 
                 ${
                     residencia.direccion
@@ -365,7 +444,7 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 ${
                     residencia.capacidad
                         ? `
-                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px;">
                     <img src="/svg/mapa/accessibility-sharp.svg" style="width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;" />
                     <p style="margin: 0; font-size: 14px; color: #6b7280;">Capacidad para ${residencia.capacidad} personas</p>
                 </div>
@@ -374,16 +453,46 @@ export default function MapaIndex({ auth, instituciones, tiposInstitucion }) {
                 }
                 
                 ${
+                    !esPropia
+                        ? `
+                <button 
+                    onclick="window.toggleUbicacionMapa(${institucion.id})"
+                    style="
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 8px;
+                        background: ${estaGuardada ? '#f3f4f6' : '#1f2937'};
+                        color: ${estaGuardada ? '#1f2937' : 'white'};
+                        font-weight: 600;
+                        padding: 10px 16px;
+                        border-radius: 8px;
+                        border: none;
+                        cursor: pointer;
+                        font-size: 14px;
+                        transition: all 0.2s;
+                        margin-bottom: 12px;
+                    "
+                    onmouseover="this.style.background='${estaGuardada ? '#e5e7eb' : '#000000'}'"
+                    onmouseout="this.style.background='${estaGuardada ? '#f3f4f6' : '#1f2937'}'"
+                >
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    ${estaGuardada ? 'Ubicación guardada' : 'Guardar ubicación'}
+                </button>
+                `
+                        : ""
+                }
+                
+                ${
                     residencia.info_adicional
-                        ? `<p style="margin: 12px 0 0 0; font-size: 14px; color: #374151; line-height: 1.5;">${
-                              residencia.info_adicional
-                          }
+                        ? `<p style="margin: 12px 0 0 0; font-size: 14px; color: #374151; line-height: 1.5;">
                             ${
                                 residencia.info_adicional.length > 100
-                                    ? residencia.info_adicional.substring(
-                                          0,
-                                          100
-                                      ) + "..."
+                                    ? residencia.info_adicional.substring(0, 100) + "..."
                                     : residencia.info_adicional
                             }
                         </p>`
