@@ -158,7 +158,6 @@ export default function Edit({ auth, residencias = [] }) {
                         >
                             {esInstitucion ? (
                                 <EditarPerfilInstitucion
-                                    auth={auth}
                                     className="max-w-xl"
                                     onCancel={() => setSeccionAbierta(null)}
                                 />

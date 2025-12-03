@@ -389,39 +389,61 @@ class ProfileController extends Controller
     }
 
     public function updateInstitucion(Request $request)
-    {
-        $user = $request->user();
+{
+    $user = $request->user();
 
-        // Asegurar que el usuario sea de tipo institución
-        if ($user->tipo_usuario !== 'institucion') {
-            return back()->withErrors(['general' => 'Solo las instituciones pueden modificar estos datos.']);
-        }
-
-        $validated = $request->validate([
-            'tipo_institucion' => 'required|string|min:3|max:100',
-            'direccion' => 'required|string|min:5|max:255',
-            'url_sitio_web' => 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/',
-            'descripcion' => 'nullable|string|max:1000',
-            'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
-        ], [
-            'tipo_institucion.required' => 'El tipo de institución es obligatorio.',
-            'direccion.required' => 'La dirección es obligatoria.',
-            'url_sitio_web.url' => 'Ingresá una URL válida.',
-            'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://.',
-            'descripcion.max' => 'La descripción no puede exceder 1000 caracteres.',
-            'ano_fundacion.integer' => 'El año de fundación debe ser un número.',
-            'ano_fundacion.min' => 'El año de fundación no puede ser anterior a 1800.',
-            'ano_fundacion.max' => 'El año de fundación no puede ser futuro.',
-        ]);
-
-        // Buscar el perfil existente
-        $institucion = PerfInstitucion::where('user_id', $user->id)->firstOrFail();
-
-        // Actualizar solo los campos editables
-        $institucion->update($validated);
-
-        return back()->with('status', 'Perfil institucional actualizado correctamente.');
+    // Asegurar que el usuario sea de tipo institución
+    if ($user->tipo_usuario !== 'institucion') {
+        return back()->withErrors(['general' => 'Solo las instituciones pueden modificar estos datos.']);
     }
+
+    $validated = $request->validate([
+        'tipo_institucion' => 'required|string|min:3|max:100',
+        'direccion' => 'required|string|min:5|max:255',
+        'ciudad' => 'required|string|min:2|max:100',
+        'latitud' => 'required|numeric|between:-90,90',
+        'longitud' => 'required|numeric|between:-180,180',
+        'url_sitio_web' => 'nullable|url|max:255|regex:/^https?:\/\/.+\..+/',
+        'descripcion' => 'nullable|string|max:1000',
+        'ano_fundacion' => 'nullable|integer|min:1800|max:' . date('Y'),
+    ], [
+        'tipo_institucion.required' => 'El tipo de institución es obligatorio.',
+        'direccion.required' => 'La dirección es obligatoria.',
+        'ciudad.required' => 'La ciudad es obligatoria.',
+        'latitud.required' => 'Debes validar la dirección primero.',
+        'longitud.required' => 'Debes validar la dirección primero.',
+        'latitud.between' => 'Las coordenadas de latitud no son válidas.',
+        'longitud.between' => 'Las coordenadas de longitud no son válidas.',
+        'url_sitio_web.url' => 'Ingresá una URL válida.',
+        'url_sitio_web.regex' => 'La URL debe comenzar con http:// o https://.',
+        'descripcion.max' => 'La descripción no puede exceder 1000 caracteres.',
+        'ano_fundacion.integer' => 'El año de fundación debe ser un número.',
+        'ano_fundacion.min' => 'El año de fundación no puede ser anterior a 1800.',
+        'ano_fundacion.max' => 'El año de fundación no puede ser futuro.',
+    ]);
+
+    // Buscar el perfil existente
+    $institucion = PerfInstitucion::where('user_id', $user->id)->firstOrFail();
+
+    // Actualizar todos los campos
+    $institucion->update([
+        'tipo_institucion' => $validated['tipo_institucion'],
+        'direccion' => $validated['direccion'],
+        'ciudad' => $validated['ciudad'],
+        'latitud' => $validated['latitud'],
+        'longitud' => $validated['longitud'],
+        'url_sitio_web' => $validated['url_sitio_web'] ?? null,
+        'descripcion' => $validated['descripcion'] ?? null,
+        'ano_fundacion' => $validated['ano_fundacion'] ?? null,
+    ]);
+
+    // También actualizar la ciudad en la tabla users
+    $user->update([
+        'ciudad' => $validated['ciudad'],
+    ]);
+
+    return back()->with('status', 'Perfil institucional actualizado correctamente.');
+}
 
     public function updatePersona(Request $request)
     {
