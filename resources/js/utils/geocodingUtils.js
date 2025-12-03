@@ -2,7 +2,7 @@ import toast from "react-hot-toast";
 
 /**
  * Convierte una dirección en coordenadas usando Nominatim (OpenStreetMap)
- * Mejorado para soportar todas las ciudades de Neuquén con fallback a ciudad
+ * Mejorado para obtener coordenadas más precisas en Neuquén
  */
 export const geocodeDireccion = async (direccion, ciudad, provincia) => {
     try {
@@ -16,51 +16,48 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
             .replace(/^(av\.|avenida|av|calle|c\.|c)\s*/gi, "")
             .trim();
 
-        // Crear múltiples estrategias de búsqueda progresivamente más amplias
+        // Crear estrategias de búsqueda ordenadas por precisión
         const estrategiasBusqueda = [
-            // Estrategia 1: Búsqueda muy específica con ciudad y provincia
+            // Estrategia 1: Más específica - dirección completa con todos los datos
             {
                 query: `${direccion}, ${ciudadNormalizada}, Neuquén, Argentina`,
                 peso: 10,
+                esEspecifica: true,
             },
-            // Estrategia 2: Sin "Argentina" para resultados locales
-            {
-                query: `${direccion}, ${ciudadNormalizada}, Neuquén`,
-                peso: 9,
-            },
-            // Estrategia 3: Solo dirección y ciudad (para ciudades pequeñas)
-            {
-                query: `${direccion}, ${ciudadNormalizada}, Argentina`,
-                peso: 8,
-            },
-            // Estrategia 4: Dirección simplificada (sin "Av.", "Calle", etc)
+            // Estrategia 2: Dirección simplificada (sin prefijos como "Av.", "Calle")
             {
                 query: `${direccionSimplificada}, ${ciudadNormalizada}, Neuquén, Argentina`,
-                peso: 9,
+                peso: 10,
+                esEspecifica: true,
             },
-            // Estrategia 5: Búsqueda invertida (ciudad primero)
-            {
-                query: `${ciudadNormalizada}, ${direccion}, Neuquén, Argentina`,
-                peso: 7,
-            },
-            // Estrategia 6: Solo ciudad y provincia (como fallback)
-            {
-                query: `${ciudadNormalizada}, Neuquén, Argentina`,
-                peso: 5,
-            },
-            // Estrategia 7: Dirección con código postal (si es Neuquén Capital)
-            ...(ciudadNormalizada.toLowerCase() === "neuquén"
+            // Estrategia 3: Con código postal (solo para Neuquén Capital)
+            ...(ciudadNormalizada.toLowerCase() === "neuquén" ||
+            ciudadNormalizada.toLowerCase() === "neuquen"
                 ? [
                       {
-                          query: `${direccion}, 8300, Neuquén, Argentina`,
-                          peso: 9,
+                          query: `${direccion}, ${ciudadNormalizada}, 8300, Argentina`,
+                          peso: 10,
+                          esEspecifica: true,
                       },
                   ]
                 : []),
+            // Estrategia 4: Solo ciudad y provincia (sin Argentina)
+            {
+                query: `${direccion}, ${ciudadNormalizada}, Neuquén`,
+                peso: 9,
+                esEspecifica: true,
+            },
+            // Estrategia 5: Solo dirección y ciudad
+            {
+                query: `${direccion}, ${ciudadNormalizada}`,
+                peso: 8,
+                esEspecifica: true,
+            },
         ];
 
         let mejorResultado = null;
         let mejorPuntuacion = 0;
+        let resultadosEvaluados = [];
 
         // Probar cada estrategia
         for (const estrategia of estrategiasBusqueda) {
@@ -69,11 +66,11 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                     `https://nominatim.openstreetmap.org/search?` +
                         `q=${encodeURIComponent(estrategia.query)}` +
                         `&format=json` +
-                        `&limit=20` + // Aumentamos aún más para tener más opciones
+                        `&limit=10` +
                         `&countrycodes=ar` +
                         `&addressdetails=1` +
-                        `&bounded=0` + // No limitamos a un área específica
-                        `&dedupe=0`, // No eliminar duplicados para tener más resultados
+                        `&bounded=0` +
+                        `&dedupe=1`, // Activar deduplicación para evitar resultados repetidos
                     {
                         headers: {
                             Accept: "application/json",
@@ -94,9 +91,16 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                         const puntuacion = evaluarResultado(
                             result,
                             direccion,
+                            direccionSimplificada,
                             ciudadNormalizada,
                             estrategia.peso
                         );
+
+                        resultadosEvaluados.push({
+                            result,
+                            puntuacion,
+                            estrategia: estrategia.query,
+                        });
 
                         if (puntuacion > mejorPuntuacion) {
                             mejorPuntuacion = puntuacion;
@@ -105,8 +109,8 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                     }
                 }
 
-                // Si encontramos un resultado excelente, no seguir buscando
-                if (mejorPuntuacion >= 18) {
+                // Si encontramos un resultado excelente (con número de calle exacto), no seguir buscando
+                if (mejorPuntuacion >= 50) {
                     break;
                 }
 
@@ -121,9 +125,127 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
             }
         }
 
+        // Log para debugging (puedes comentar en producción)
+        console.log("=== RESULTADOS DE GEOCODIFICACIÓN ===");
+        console.log("Dirección buscada:", direccion);
+        console.log("Ciudad:", ciudad);
+        console.log("\nTop 5 resultados evaluados:");
+        resultadosEvaluados
+            .sort((a, b) => b.puntuacion - a.puntuacion)
+            .slice(0, 5)
+            .forEach((r, i) => {
+                console.log(`\n${i + 1}. Puntuación: ${r.puntuacion.toFixed(2)}`);
+                console.log(`   Dirección: ${r.result.display_name}`);
+                console.log(`   Número: ${r.result.address?.house_number || "Sin número"}`);
+                console.log(`   Calle: ${r.result.address?.road || "Sin calle"}`);
+                console.log(`   Coordenadas: ${r.result.lat}, ${r.result.lon}`);
+                console.log(`   Estrategia: ${r.estrategia}`);
+            });
+        console.log("\n=== MEJOR RESULTADO SELECCIONADO ===");
+        console.log("Mejor resultado:", mejorResultado);
+        console.log("Mejor puntuación:", mejorPuntuacion);
+        
+        // DEBUG: Verificar si se debe activar interpolación
+        const numeroEnDireccion = direccion.match(/\d+/);
+        console.log(`\n🔍 DEBUG Interpolación:`);
+        console.log(`   - Hay número en dirección? ${numeroEnDireccion ? 'SÍ (' + numeroEnDireccion[0] + ')' : 'NO'}`);
+        console.log(`   - Puntuación < 50? ${mejorPuntuacion < 50 ? 'SÍ (' + mejorPuntuacion + ')' : 'NO (' + mejorPuntuacion + ')'}`);
+        console.log(`   - ¿Número exacto encontrado? ${mejorResultado?.address?.house_number === numeroEnDireccion?.[0] ? 'SÍ ✅' : 'NO ❌'}`);
+        console.log(`   - ¿Debe interpolar? ${numeroEnDireccion && mejorPuntuacion < 50 && mejorResultado?.address?.house_number !== numeroEnDireccion?.[0] ? 'SÍ ✅' : 'NO ❌'}`);
+
+        // NUEVO: Si no encontramos el número exacto, intentar interpolar
+        if (numeroEnDireccion && mejorPuntuacion < 50 && mejorResultado?.address?.house_number !== numeroEnDireccion[0]) {
+            console.log("\n🔍 Activando sistema de interpolación...");
+            
+            const numeroBuscado = parseInt(numeroEnDireccion[0]);
+            console.log(`   Número buscado: ${numeroBuscado}`);
+            
+            // Extraer la calle de la dirección buscada (mejorado)
+            // Remover prefijos comunes y el número
+            let calleBuscada = direccion
+                .replace(/^(centro este|centro oeste|centro|área|barrio)[,\s]*/gi, '') // Remover nombres de zona
+                .split(/\d/)[0] // Separar por número
+                .replace(/^(av\.|avenida|av|calle|c\.|c)\s*/gi, '') // Remover prefijos
+                .replace(/[,\s]+$/, '') // Remover comas y espacios finales
+                .trim();
+            
+            const calleBuscadaNormalizada = normalizarTexto(calleBuscada);
+            
+            console.log(`   Dirección completa: "${direccion}"`);
+            console.log(`   Calle extraída: "${calleBuscada}"`);
+            console.log(`   Calle normalizada: "${calleBuscadaNormalizada}"`);
+            
+            const resultadosConNumero = resultadosEvaluados
+                .filter(r => {
+                    if (!r.result.address?.house_number || !r.result.address?.road) {
+                        return false;
+                    }
+                    
+                    const calleResultado = normalizarTexto(r.result.address.road);
+                    const numeroResultado = parseInt(r.result.address.house_number);
+                    
+                    console.log(`   Comparando: "${calleResultado}" con "${calleBuscadaNormalizada}"`);
+                    
+                    // Verificar que sea la misma calle (más flexible)
+                    const mismaCalle = 
+                        calleResultado.includes(calleBuscadaNormalizada) || 
+                        calleBuscadaNormalizada.includes(calleResultado) ||
+                        calleResultado === calleBuscadaNormalizada;
+                    
+                    // Verificar que esté dentro de un rango razonable
+                    const dentroRango = Math.abs(numeroResultado - numeroBuscado) < 2000;
+                    
+                    if (mismaCalle && dentroRango) {
+                        console.log(`   ✓ Match: ${r.result.address.road} ${numeroResultado}`);
+                    }
+                    
+                    return mismaCalle && dentroRango;
+                })
+                .map(r => ({
+                    ...r,
+                    numero: parseInt(r.result.address.house_number),
+                }));
+
+            console.log(`   \n📊 Resultados con número en la misma calle: ${resultadosConNumero.length}`);
+            
+            if (resultadosConNumero.length > 0) {
+                const numerosUnicos = [...new Set(resultadosConNumero.map(r => r.numero))].sort((a,b) => a-b);
+                console.log(`   Números únicos encontrados: [${numerosUnicos.join(', ')}]`);
+            }
+
+            if (resultadosConNumero.length >= 2) {
+                const coordenadas = interpolarDireccion(numeroBuscado, resultadosConNumero);
+                
+                if (coordenadas) {
+                    console.log(`✅ Interpolación exitosa:`);
+                    console.log(`   Coordenadas: ${coordenadas.lat}, ${coordenadas.lng}`);
+                    console.log(`   Basado en números: ${coordenadas.numeroMenor} ↔ ${coordenadas.numeroMayor}`);
+                    console.log("=======================================\n");
+                    
+                    return {
+                        success: true,
+                        lat: coordenadas.lat,
+                        lng: coordenadas.lng,
+                        displayName: `${direccion}, ${ciudad}, Neuquén (interpolado)`,
+                        boundingBox: mejorResultado?.boundingbox,
+                        ciudad: ciudadNormalizada,
+                        esAproximado: true,
+                        esInterpolado: true,
+                        puntuacion: mejorPuntuacion,
+                    };
+                } else {
+                    console.log("❌ No se pudo interpolar");
+                }
+            } else {
+                console.log("❌ No hay suficientes puntos para interpolar");
+            }
+        }
+        
+        console.log("=======================================\n");
+
         // FALLBACK: Si no encontramos la dirección exacta o la puntuación es baja,
         // buscar solo la ciudad como ubicación aproximada
-        if (!mejorResultado || mejorPuntuacion < 10) {
+        if (!mejorResultado || mejorPuntuacion < 20) {
             console.log("Intentando fallback: buscar solo ciudad");
 
             try {
@@ -133,7 +255,7 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                             ciudadNormalizada + ", Neuquén, Argentina"
                         )}` +
                         `&format=json` +
-                        `&limit=10` +
+                        `&limit=5` +
                         `&countrycodes=ar` +
                         `&addressdetails=1`,
                     {
@@ -160,13 +282,20 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                                 .normalize("NFD")
                                 .replace(/[\u0300-\u036f]/g, "");
 
-                            if (
+                            // Verificar que sea realmente la ciudad que buscamos
+                            const address = result.address || {};
+                            const esCiudadCorrecta =
                                 displayNameNormalizado.includes(
                                     ciudadLowerNormalizado
                                 ) &&
                                 (displayName.includes("neuquén") ||
-                                    displayName.includes("neuquen"))
-                            ) {
+                                    displayName.includes("neuquen")) &&
+                                (result.type === "city" ||
+                                    result.type === "town" ||
+                                    result.type === "village" ||
+                                    result.type === "administrative");
+
+                            if (esCiudadCorrecta) {
                                 const coords = {
                                     lat: parseFloat(result.lat),
                                     lng: parseFloat(result.lon),
@@ -179,18 +308,6 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                                         false
                                     )
                                 ) {
-                                    // Mostrar advertencia de que es aproximado
-                                    toast.warning(
-                                        `⚠️ No se encontró la dirección exacta.\n\nSe usará el centro de ${ciudad} como ubicación aproximada.\n\nPuedes ajustar la ubicación más tarde desde tu perfil.`,
-                                        {
-                                            duration: 7000,
-                                            style: {
-                                                maxWidth: "400px",
-                                                whiteSpace: "pre-line",
-                                            },
-                                        }
-                                    );
-
                                     return {
                                         success: true,
                                         lat: coords.lat,
@@ -198,8 +315,8 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                                         displayName: result.display_name,
                                         boundingBox: result.boundingbox,
                                         ciudad: extraerCiudad(result),
-                                        esAproximado: true, // Flag para indicar que es aproximado
-                                        direccionOriginal: direccion, // Guardar la dirección original
+                                        esAproximado: true,
+                                        direccionOriginal: direccion,
                                     };
                                 }
                             }
@@ -209,6 +326,18 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
             } catch (error) {
                 console.error("Error en fallback de ciudad:", error);
             }
+
+            // Si llegamos aquí y no encontramos nada, retornar error
+            return {
+                success: false,
+                error: `No se pudo encontrar la dirección "${direccion}" en ${ciudad}, Neuquén.
+                
+Consejos:
+• Verifica que la ciudad sea correcta
+• Usa el formato: "Nombre de calle + Número" (Ej: "Avenida Argentina 1400")
+• Prueba con diferentes formatos: "Buenos Aires 1400" o "Av. Buenos Aires 1400"
+• Si la dirección es muy nueva, intenta sin número o con el nombre de una calle cercana`,
+            };
         }
 
         if (mejorResultado) {
@@ -225,6 +354,11 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                 };
             }
 
+            // Determinar si es una dirección exacta o aproximada
+            const esExacta = mejorResultado.address?.house_number && 
+                           mejorResultado.address.house_number === direccion.match(/\d+/)?.[0] &&
+                           mejorPuntuacion >= 50;
+
             return {
                 success: true,
                 lat: coords.lat,
@@ -232,21 +366,15 @@ export const geocodeDireccion = async (direccion, ciudad, provincia) => {
                 displayName: mejorResultado.display_name,
                 boundingBox: mejorResultado.boundingbox,
                 ciudad: extraerCiudad(mejorResultado),
-                esAproximado: false,
-            };
-        } else {
-            return {
-                success: false,
-                error: `No se pudo encontrar ni la dirección "${direccion}" ni la ciudad "${ciudad}" en Neuquén.
-                
-Consejos:
-• Verifica que la ciudad sea correcta
-• Usa el formato: "Nombre de calle + Número" (Ej: "Avenida Argentina 1400")
-• Para calles sin número, intenta solo el nombre de la calle
-• Prueba abreviaturas: "Av." en vez de "Avenida", "Gral." en vez de "General"
-• Si la dirección es muy nueva, el sistema usará una ubicación aproximada`,
+                esAproximado: !esExacta,
+                puntuacion: mejorPuntuacion, // Para debugging
             };
         }
+
+        return {
+            success: false,
+            error: `No se pudo encontrar la dirección. Intenta con un formato diferente.`,
+        };
     } catch (error) {
         console.error("Error en geocodificación:", error);
         return {
@@ -257,11 +385,132 @@ Consejos:
 };
 
 /**
+ * Interpola coordenadas para un número de calle basándose en números cercanos conocidos
+ */
+const interpolarDireccion = (numeroBuscado, resultados) => {
+    try {
+        console.log(`   🧮 Iniciando interpolación para número ${numeroBuscado}`);
+        
+        // Ordenar resultados por número de casa
+        const ordenados = resultados
+            .map(r => ({
+                numero: parseInt(r.result.address.house_number),
+                lat: parseFloat(r.result.lat),
+                lng: parseFloat(r.result.lon),
+            }))
+            .sort((a, b) => a.numero - b.numero);
+
+        console.log(`   Números ordenados: ${ordenados.map(o => o.numero).join(', ')}`);
+
+        // Encontrar el número menor más cercano (antes del buscado)
+        const numerosMenores = ordenados.filter(r => r.numero < numeroBuscado);
+        const numerosMayores = ordenados.filter(r => r.numero > numeroBuscado);
+
+        console.log(`   Menores que ${numeroBuscado}: ${numerosMenores.map(n => n.numero).join(', ') || 'ninguno'}`);
+        console.log(`   Mayores que ${numeroBuscado}: ${numerosMayores.map(n => n.numero).join(', ') || 'ninguno'}`);
+
+        if (numerosMenores.length === 0 && numerosMayores.length === 0) {
+            console.log("   ❌ No hay números para comparar");
+            return null;
+        }
+
+        // Si solo hay números mayores, usar extrapolación
+        if (numerosMenores.length === 0 && numerosMayores.length >= 2) {
+            console.log("   📍 Extrapolando hacia números menores");
+            const [p1, p2] = numerosMayores.slice(0, 2);
+            return extrapolar(numeroBuscado, p1, p2, "menor");
+        }
+
+        // Si solo hay números menores, usar extrapolación
+        if (numerosMayores.length === 0 && numerosMenores.length >= 2) {
+            console.log("   📍 Extrapolando hacia números mayores");
+            const [p1, p2] = numerosMenores.slice(-2);
+            return extrapolar(numeroBuscado, p1, p2, "mayor");
+        }
+
+        // Si hay ambos, usar interpolación
+        if (numerosMenores.length > 0 && numerosMayores.length > 0) {
+            console.log("   📍 Interpolando entre números conocidos");
+            const puntoMenor = numerosMenores[numerosMenores.length - 1];
+            const puntoMayor = numerosMayores[0];
+
+            // Calcular la proporción
+            const rangoNumeros = puntoMayor.numero - puntoMenor.numero;
+            const diferenciaBuscado = numeroBuscado - puntoMenor.numero;
+            const proporcion = diferenciaBuscado / rangoNumeros;
+
+            console.log(`   Interpolando ${(proporcion * 100).toFixed(1)}% entre ${puntoMenor.numero} y ${puntoMayor.numero}`);
+
+            // Interpolar coordenadas
+            const latInterpolada = puntoMenor.lat + (puntoMayor.lat - puntoMenor.lat) * proporcion;
+            const lngInterpolada = puntoMenor.lng + (puntoMayor.lng - puntoMenor.lng) * proporcion;
+
+            return {
+                lat: latInterpolada,
+                lng: lngInterpolada,
+                numeroMenor: puntoMenor.numero,
+                numeroMayor: puntoMayor.numero,
+            };
+        }
+
+        console.log("   ❌ No se pudo determinar método de interpolación");
+        return null;
+    } catch (error) {
+        console.error("   ❌ Error en interpolación:", error);
+        return null;
+    }
+};
+
+/**
+ * Extrapola coordenadas cuando solo hay números mayores o menores
+ */
+const extrapolar = (numeroBuscado, p1, p2, direccion) => {
+    try {
+        // Calcular el vector de dirección entre p1 y p2
+        const rangoNumeros = Math.abs(p2.numero - p1.numero);
+        const vectorLat = (p2.lat - p1.lat) / rangoNumeros;
+        const vectorLng = (p2.lng - p1.lng) / rangoNumeros;
+
+        // Calcular distancia del número buscado al punto más cercano
+        const puntoBase = direccion === "menor" ? p1 : p2;
+        const distancia = Math.abs(numeroBuscado - puntoBase.numero);
+
+        // Extrapolar
+        const factorDireccion = direccion === "menor" ? -1 : 1;
+        const latExtrapolada = puntoBase.lat + (vectorLat * distancia * factorDireccion);
+        const lngExtrapolada = puntoBase.lng + (vectorLng * distancia * factorDireccion);
+
+        console.log(`   Extrapolando ${direccion} del número ${puntoBase.numero}`);
+
+        return {
+            lat: latExtrapolada,
+            lng: lngExtrapolada,
+            numeroMenor: direccion === "menor" ? numeroBuscado : p1.numero,
+            numeroMayor: direccion === "mayor" ? numeroBuscado : p2.numero,
+        };
+    } catch (error) {
+        console.error("Error en extrapolación:", error);
+        return null;
+    }
+};
+
+/**
+ * Normaliza texto (sin tildes, minúsculas)
+ */
+const normalizarTexto = (texto) =>
+    texto
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+/**
  * Evalúa la calidad de un resultado de geocodificación
+ * Sistema de puntuación mejorado para priorizar resultados precisos
  */
 const evaluarResultado = (
     result,
-    direccionBuscada,
+    direccionOriginal,
+    direccionSimplificada,
     ciudadBuscada,
     pesoEstrategia
 ) => {
@@ -269,101 +518,153 @@ const evaluarResultado = (
     const address = result.address || {};
     let puntuacion = pesoEstrategia;
 
-    // Verificar que contenga "neuquen" (provincia)
-    if (displayName.includes("neuquén") || displayName.includes("neuquen")) {
-        puntuacion += 10;
-    } else {
-        // Dar una oportunidad si está en los límites geográficos
-        const lat = parseFloat(result.lat);
-        const lng = parseFloat(result.lon);
-        if (validarCoordenadasNeuquen(lat, lng, false)) {
-            puntuacion += 8; // Menos puntos pero no descartamos
-        } else {
-            return 0; // Si no está en Neuquén, se descarta
-        }
+    const ciudadNormalizada = normalizarTexto(ciudadBuscada);
+    const displayNameNormalizado = normalizarTexto(displayName);
+
+    // 1. Verificar coordenadas dentro de Neuquén (CRÍTICO)
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    if (!validarCoordenadasNeuquen(lat, lng, false)) {
+        return 0; // Descartar completamente si no está en Neuquén
     }
+    puntuacion += 10; // Bonus por estar en Neuquén
 
-    // Verificar que contenga la ciudad buscada (normalizado y sin tildes)
-    const ciudadLower = ciudadBuscada
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-    const displayNameNormalizado = displayName
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-    if (displayNameNormalizado.includes(ciudadLower)) {
-        puntuacion += 10;
-    }
-
-    // Verificar coincidencias en la direccion
-    const ciudad = (
-        address.city ||
-        address.town ||
-        address.village ||
-        address.municipality ||
-        address.county ||
-        ""
-    )
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-    if (ciudad === ciudadLower || ciudad.includes(ciudadLower)) {
+    // 2. Verificar que contenga "Neuquén" en el display_name
+    if (displayNameNormalizado.includes("neuquen")) {
         puntuacion += 8;
     }
 
-    // Bonus por tener número de calle
-    if (address.house_number) {
-        puntuacion += 4;
+    // 3. Verificar ciudad (MUY IMPORTANTE)
+    const ciudadResultado = normalizarTexto(
+        address.city ||
+            address.town ||
+            address.village ||
+            address.municipality ||
+            ""
+    );
+
+    if (ciudadResultado === ciudadNormalizada) {
+        puntuacion += 15; // Coincidencia exacta de ciudad
+    } else if (ciudadResultado.includes(ciudadNormalizada)) {
+        puntuacion += 12; // Coincidencia parcial
+    } else if (displayNameNormalizado.includes(ciudadNormalizada)) {
+        puntuacion += 8; // Al menos aparece en el display name
+    } else {
+        puntuacion -= 10; // Penalizar si no coincide la ciudad
     }
 
-    // Verificar que la calle coincida (más flexible)
-    const calleBuscada = direccionBuscada
-        .toLowerCase()
-        .replace(/^(av\.|avenida|av|calle|c\.|c)\s*/gi, "")
-        .split(/\d/)[0]
-        .trim();
-    const calleResultado = (address.road || "").toLowerCase();
+    // 4. Verificar número de casa (MUY IMPORTANTE para precisión)
+    const numeroEnDireccion = direccionOriginal.match(/\d+/);
+    
+    if (numeroEnDireccion) {
+        const numeroIngresado = parseInt(numeroEnDireccion[0]);
+        
+        if (address.house_number) {
+            const numeroResultado = parseInt(address.house_number);
+            
+            if (numeroResultado === numeroIngresado) {
+                puntuacion += 30; // Coincidencia EXACTA de número - máxima prioridad
+            } else {
+                // Calcular diferencia
+                const diff = Math.abs(numeroResultado - numeroIngresado);
+                
+                if (diff <= 10) {
+                    puntuacion += 15; // Muy cercano (dentro de 10 números)
+                } else if (diff <= 50) {
+                    puntuacion += 5; // Cercano (dentro de 50)
+                } else if (diff <= 100) {
+                    puntuacion += 2; // Mismo bloque
+                } else {
+                    // Si la diferencia es grande, PENALIZAR FUERTEMENTE
+                    puntuacion -= 15; // Penalización por número incorrecto
+                }
+            }
+        } else {
+            // Penalizar si buscamos un número específico pero no lo encontró
+            puntuacion -= 10;
+        }
+    } else {
+        // No se especificó número en la búsqueda
+        if (address.house_number) {
+            puntuacion += 5; // Bonus menor si tiene número aunque no lo pedimos
+        }
+    }
+
+    // 5. Verificar coincidencia de calle
+    const calleResultado = normalizarTexto(address.road || "");
+    const calleBuscada = normalizarTexto(
+        direccionSimplificada.split(/\d/)[0].trim()
+    );
 
     if (calleResultado && calleBuscada) {
-        // Coincidencia exacta
-        if (calleResultado.includes(calleBuscada)) {
-            puntuacion += 8;
-        }
-        // Coincidencia parcial (primeras palabras)
-        else if (calleBuscada.length > 5) {
+        if (calleResultado === calleBuscada) {
+            puntuacion += 15; // Coincidencia exacta
+        } else if (calleResultado.includes(calleBuscada)) {
+            puntuacion += 12; // Contiene la calle
+        } else if (calleBuscada.includes(calleResultado)) {
+            puntuacion += 10; // La calle buscada contiene el resultado
+        } else {
+            // Verificar coincidencia de palabras clave
             const palabrasCalle = calleBuscada.split(" ");
-            const primerasPalabras = palabrasCalle.slice(0, 2).join(" ");
-            if (calleResultado.includes(primerasPalabras)) {
-                puntuacion += 5;
+            const palabrasResultado = calleResultado.split(" ");
+            let palabrasCoincidentes = 0;
+
+            palabrasCalle.forEach((palabra) => {
+                if (palabra.length > 3 && palabrasResultado.some((p) => p.includes(palabra))) {
+                    palabrasCoincidentes++;
+                }
+            });
+
+            if (palabrasCoincidentes > 0) {
+                puntuacion += palabrasCoincidentes * 3;
+            } else {
+                puntuacion -= 8; // Penalizar si la calle no coincide
             }
         }
     }
 
-    // Preferir tipos específicos de lugares
-    const tiposPreferidos = [
-        "building",
-        "house",
-        "residential",
-        "university",
-        "school",
-        "college",
-        "amenity",
-        "highway",
-    ];
-    if (tiposPreferidos.includes(result.type)) {
-        puntuacion += 3;
+    // 6. Preferir tipos específicos de lugares
+    const tiposPreferidos = {
+        building: 5,
+        house: 6,
+        residential: 4,
+        university: 5,
+        school: 5,
+        college: 5,
+        amenity: 3,
+        highway: 2,
+        road: 3,
+    };
+
+    if (tiposPreferidos[result.type]) {
+        puntuacion += tiposPreferidos[result.type];
     }
 
-    // Bonus si el resultado está dentro de Neuquén geográficamente
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    if (validarCoordenadasNeuquen(lat, lng, false)) {
-        puntuacion += 5;
+    // 7. Preferir resultados con más detalles en address
+    const detallesAddress = [
+        address.house_number,
+        address.road,
+        address.suburb,
+        address.postcode,
+    ].filter(Boolean).length;
+
+    puntuacion += detallesAddress * 2;
+
+    // 8. Penalizar si el resultado es muy genérico
+    if (
+        result.type === "administrative" ||
+        result.type === "state" ||
+        result.type === "province"
+    ) {
+        puntuacion -= 8;
     }
 
-    return puntuacion;
+    // 9. Bonus por importancia del resultado (importance en Nominatim)
+    if (result.importance) {
+        puntuacion += result.importance * 2;
+    }
+
+    return Math.max(0, puntuacion); // No permitir puntuaciones negativas
 };
 
 /**
