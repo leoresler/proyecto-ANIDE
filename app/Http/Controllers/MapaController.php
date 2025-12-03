@@ -76,12 +76,18 @@ class MapaController extends Controller
             $q->where('verificado', true);
         })->whereNotNull('latitud')->whereNotNull('longitud')->count();
 
+        
         $ubicacionesGuardadas = [];
-        $ubicacionesGuardadas = [];
-        if ($user && $user->tipo_usuario === 'persona') {
-            $ubicacionesGuardadas = \App\Models\UbicacionGuardada::where('persona_id', $user->persona->id)
-                ->get(['institucion_id'])
-                ->toArray();
+        if ($user) {
+            if ($user->tipo_usuario === 'persona') {
+                $ubicacionesGuardadas = UbicacionGuardada::where('persona_id', $user->persona->id)
+                    ->get(['institucion_id'])
+                    ->toArray();
+            } else { // tipo_usuario === 'institucion'
+                $ubicacionesGuardadas = UbicacionGuardada::where('guardador_institucion_id', $user->institucion->id)
+                    ->get(['institucion_id'])
+                    ->toArray();
+            }
         }
         
         Log::info('Total instituciones en mapa: ' . $instituciones->count());

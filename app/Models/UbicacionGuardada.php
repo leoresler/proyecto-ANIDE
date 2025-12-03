@@ -9,6 +9,7 @@ class UbicacionGuardada extends Model
     protected $table = 'ubicaciones_guardadas';
     protected $fillable = [
         'persona_id',
+        'guardador_institucion_id',
         'institucion_id'
     ];
 
@@ -18,5 +19,9 @@ class UbicacionGuardada extends Model
 
     public function persona() {
         return $this->belongsTo(PerfPersona::class, 'persona_id');
+    }
+
+    public function guardadorInstitucion() {
+        return $this->belongsTo(PerfInstitucion::class, 'guardador_institucion_id');
     }
 }

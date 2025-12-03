@@ -12,12 +12,25 @@ export default function PersonaProfileModal({
     const [loading, setLoading] = useState(false);
     const [position, setPosition] = useState({ top: 0, left: 0 });
     const [showFullBio, setShowFullBio] = useState(false);
+    const [isHoveringTrigger, setIsHoveringTrigger] = useState(false);
+    const [isHoveringModal, setIsHoveringModal] = useState(false);
 
     useEffect(() => {
         if (showModal && !persona && personaId) {
             fetchPersonaData();
         }
     }, [showModal, personaId]);
+
+    // Controlar la visibilidad del modal basado en hover
+    useEffect(() => {
+        if (isMobile) return;
+        
+        if (isHoveringTrigger || isHoveringModal) {
+            setShowModal(true);
+        } else {
+            setShowModal(false);
+        }
+    }, [isHoveringTrigger, isHoveringModal, isMobile]);
 
     const fetchPersonaData = async () => {
         setLoading(true);
@@ -53,12 +66,12 @@ export default function PersonaProfileModal({
         }
 
         setPosition({ top, left });
-        setShowModal(true);
+        setIsHoveringTrigger(true);
     };
 
     const handleMouseLeave = () => {
         if (isMobile) return;
-        setShowModal(false);
+        setIsHoveringTrigger(false);
     };
 
     const handleClick = (e) => {
@@ -131,7 +144,7 @@ export default function PersonaProfileModal({
                                     : "fixed hidden md:block"
                             }
                             bg-white dark:bg-gray-800 shadow-2xl z-50 
-                            ${isMobile ? "max-h-[80vh]" : "w-80 rounded-2xl"}
+                            ${isMobile ? "max-h-[80vh]" : "w-80 rounded-2xl max-h-[500px]"}
                             overflow-hidden
                         `}
                         style={
@@ -142,8 +155,8 @@ export default function PersonaProfileModal({
                                   }
                                 : {}
                         }
-                        onMouseEnter={() => !isMobile && setShowModal(true)}
-                        onMouseLeave={() => !isMobile && setShowModal(false)}
+                        onMouseEnter={() => !isMobile && setIsHoveringModal(true)}
+                        onMouseLeave={() => !isMobile && setIsHoveringModal(false)}
                     >
                         {/* Header mobile */}
                         {isMobile && (
@@ -164,7 +177,7 @@ export default function PersonaProfileModal({
                             className={`overflow-y-auto ${
                                 isMobile
                                     ? "px-4 pb-4 max-h-[calc(80vh-60px)] mx-auto"
-                                    : "p-5"
+                                    : "p-5 max-h-[500px]"
                             }`}
                         >
                             {loading ? (
@@ -240,14 +253,16 @@ export default function PersonaProfileModal({
                                                     Biografía
                                                 </p>
 
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                                                    {showFullBio
-                                                        ? persona.biografia
-                                                        : truncateText(
-                                                              persona.biografia,
-                                                              140
-                                                          )}
-                                                </p>
+                                                <div className={`${showFullBio ? 'max-h-48 overflow-y-auto pr-2' : ''}`}>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                                        {showFullBio
+                                                            ? persona.biografia
+                                                            : truncateText(
+                                                                  persona.biografia,
+                                                                  140
+                                                              )}
+                                                    </p>
+                                                </div>
 
                                                 {persona.biografia.length >
                                                     140 && (

@@ -265,9 +265,9 @@ Route::post('/notificaciones/marcar-leidas', [NotificacionController::class, 'ma
         ->middleware(['auth'])
         ->name('ubicaciones.index');
 
-    Route::get('/ubicaciones', [UbicacionController::class, 'index'])->name('ubicaciones.show');
+    // Route::get('/ubicaciones', [UbicacionController::class, 'index'])->name('ubicaciones.show');
 
-    Route::post('/api/ubicaciones/toggle', [UbicacionController::class, 'toggleApi']);
+    // Route::post('/api/ubicaciones/toggle', [UbicacionController::class, 'toggleApi']);
 
 
 

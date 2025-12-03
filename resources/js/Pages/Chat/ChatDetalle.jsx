@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import axios from "axios";
 import "../../echo.js";
 import { throttle } from 'lodash';
@@ -265,13 +265,17 @@ export default function ChatDetalle({ chat, mensajes, auth }) {
                             }
                         />
                     ) : (
-                        otraParte?.profile_photo_url && (
+                        otraParte && (
+                        <Link
+                            href={`/instituciones/${chat.institucion?.id}`}
+                        >
                             <img
-                                src={otraParte.profile_photo_url}
-                                alt={otraParte.nombre}
-                                className="w-10 h-10 rounded-full object-cover"
+                                src={otraParte.profile_photo_url || "/images/default-avatar.webp"}
+                                alt={otraParte.nombre || 'Usuario'}
+                                className="w-10 h-10 rounded-full object-cover cursor-pointer"
                             />
-                        )
+                        </Link>
+                    )
                     )}
                     <h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
                         Chat con {otraParte?.nombre || 'Usuario desconocido'}

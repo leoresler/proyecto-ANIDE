@@ -10,52 +10,83 @@ use Inertia\Inertia;
 
 class UbicacionController extends Controller
 {
-    // Backend
-    // UbicacionesController.php
     public function toggle(Request $request)
     {
         $user = auth()->user();
-        $persona = PerfPersona::where('user_id', $user->id)->firstOrFail();
         $institucionId = $request->institucion_id;
 
-        $ubicacion = UbicacionGuardada::where('persona_id', $persona->id)
-            ->where('institucion_id', $institucionId)
-            ->first();
+        // 👇 CAMBIAR TODA ESTA LÓGICA
+        if ($user->tipo_usuario === 'persona') {
+            $persona = PerfPersona::where('user_id', $user->id)->firstOrFail();
 
-        if ($ubicacion) {
-            $ubicacion->delete();
-            $guardada = false;
-        } else {
-            UbicacionGuardada::create([
-                'persona_id' => $persona->id,
-                'institucion_id' => $institucionId,
-            ]);
-            $guardada = true;
+            $ubicacion = UbicacionGuardada::where('persona_id', $persona->id)
+                ->where('institucion_id', $institucionId)
+                ->first();
+
+            if ($ubicacion) {
+                $ubicacion->delete();
+                $guardada = false;
+            } else {
+                UbicacionGuardada::create([
+                    'persona_id' => $persona->id,
+                    'institucion_id' => $institucionId,
+                ]);
+                $guardada = true;
+            }
+        } else { // tipo_usuario === 'institucion'
+            $institucion = PerfInstitucion::where('user_id', $user->id)->firstOrFail();
+
+            $ubicacion = UbicacionGuardada::where('guardador_institucion_id', $institucion->id)
+                ->where('institucion_id', $institucionId)
+                ->first();
+
+            if ($ubicacion) {
+                $ubicacion->delete();
+                $guardada = false;
+            } else {
+                UbicacionGuardada::create([
+                    'guardador_institucion_id' => $institucion->id,
+                    'institucion_id' => $institucionId,
+                ]);
+                $guardada = true;
+            }
         }
 
         return response()->json(['guardada' => $guardada]);
     }
 
-
-
-
     public function index()
     {
         $user = auth()->user();
-        $persona = PerfPersona::where('user_id', $user->id)->first();
 
-        if (!$persona) {
-            abort(403, "Solo los usuarios tipo persona pueden ver ubicaciones guardadas.");
+        // 👇 CAMBIAR ESTA LÓGICA
+        if ($user->tipo_usuario === 'persona') {
+            $persona = PerfPersona::where('user_id', $user->id)->first();
+
+            if (!$persona) {
+                abort(403, "No se encontró el perfil de persona.");
+            }
+
+            $ubicaciones = UbicacionGuardada::where('persona_id', $persona->id)
+                ->with(['institucion.user'])
+                ->paginate(10);
+
+        } else { // tipo_usuario === 'institucion'
+            $institucion = PerfInstitucion::where('user_id', $user->id)->first();
+
+            if (!$institucion) {
+                abort(403, "No se encontró el perfil de institución.");
+            }
+
+            $ubicaciones = UbicacionGuardada::where('guardador_institucion_id', $institucion->id)
+                ->with(['institucion.user'])
+                ->paginate(10);
         }
-
-        $ubicaciones = UbicacionGuardada::where('persona_id', $persona->id)
-            ->with(['institucion.user'])
-            ->paginate(10);
 
         return Inertia::render('Ubicaciones/Show', [
             'auth' => ['user' => $user],
             'ubicaciones' => $ubicaciones,
-            'userType' => 'persona',
+            'userType' => $user->tipo_usuario,
         ]);
     }
 }
