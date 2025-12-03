@@ -30,6 +30,24 @@ export default function Ubicaciones({ auth, ubicaciones }) {
         }
     };
 
+    const getNombreInstitucion = (institucion) => {
+        // Manejar tanto el caso de persona como de institución
+        return institucion?.nombre || 
+               institucion?.user?.nombre || 
+               "Institución sin nombre";
+    };
+
+    const getFotoInstitucion = (institucion) => {
+        // Priorizar foto_perfil (instituciones) sobre profile_photo_url (usuarios)
+        if (institucion?.foto_perfil) {
+            return `/storage/${institucion.foto_perfil}`;
+        }
+        if (institucion?.user?.profile_photo_url) {
+            return institucion.user.profile_photo_url;
+        }
+        return "/profile-photos/default-avatar.webp";
+    };
+
     return (
         <AuthenticatedLayout user={auth.user}>
             <Head title="Ubicaciones Guardadas" />

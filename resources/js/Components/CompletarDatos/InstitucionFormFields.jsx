@@ -60,10 +60,9 @@ export default function InstitucionFormFields({
                 >
                     <option value="">Seleccionar tipo...</option>
                     <option value="Universidad">Universidad</option>
-                    <option value="Instituto Universitario">
-                        Instituto Universitario
+                    <option value="Instituto Terciario">
+                        Instituto Terciario
                     </option>
-                    <option value="Terciario">Terciario</option>
                     <option value="Establecimiento de educación superior">
                         Establecimiento de educación superior
                     </option>

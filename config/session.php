@@ -156,11 +156,11 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN'),
+    // 'domain' => env('SESSION_DOMAIN'),
 
     /* para ver web en movil */
-    // 'domain' => null,
-    // 'same_site' => 'lax',
+     'domain' => null,
+     'same_site' => 'lax',
 
 
     /*

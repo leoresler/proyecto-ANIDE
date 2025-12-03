@@ -37,16 +37,26 @@ class InstitucionController extends Controller
         VisitaInstitucion::registrarVisita($user->id, $institucion->id);
     }
 
-    // Verificar si la institución está guardada por la persona
-    if ($user && $user->tipo_usuario === 'persona') {
-        $persona = PerfPersona::where('user_id', $user->id)->first();
-
-        if ($persona) {
-            $guardada = UbicacionGuardada::where('persona_id', $persona->id)
-                ->where('institucion_id', $institucion->id)
-                ->exists();
+    // Verificar si la institución está guardada
+    if ($user) {
+            if ($user->tipo_usuario === 'persona') {
+                $persona = PerfPersona::where('user_id', $user->id)->first();
+                
+                if ($persona) {
+                    $guardada = UbicacionGuardada::where('persona_id', $persona->id)
+                        ->where('institucion_id', $institucion->id)
+                        ->exists();
+                }
+            } elseif ($user->tipo_usuario === 'institucion') {
+                $institucionGuardador = PerfInstitucion::where('user_id', $user->id)->first();
+                
+                if ($institucionGuardador) {
+                    $guardada = UbicacionGuardada::where('guardador_institucion_id', $institucionGuardador->id)
+                        ->where('institucion_id', $institucion->id)
+                        ->exists();
+                }
+            }
         }
-    }
 
     // Paginar publicaciones
     $publicaciones = Publicacion::where('perf_institucion_id', $id)
