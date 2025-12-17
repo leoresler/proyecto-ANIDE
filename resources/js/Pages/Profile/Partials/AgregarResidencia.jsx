@@ -102,7 +102,7 @@ export default function AgregarResidencia({
             }
 
             // Validar tipo de archivo
-            const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+            const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
             if (!validTypes.includes(file.type)) {
                 toast.error("Solo se permiten archivos JPG, PNG");
                 e.target.value = "";

@@ -21,9 +21,9 @@ export default function EditarPerfilInstitucion({ className = "", onCancel }) {
 
     const { data, setData, patch, processing, errors, recentlySuccessful } =
         useForm({
-            tipo_institucion: institucion.tipo_institucion || "",
+            tipo_institucion: institucion.tipo_usuario || "",
             direccion: institucion.direccion || "",
-            ciudad: institucion.ciudad || "Neuquén Capital",
+            ciudad: institucion.user.ciudad || "Neuquén Capital",
             latitud: institucion.latitud ? parseFloat(institucion.latitud) : null,
             longitud: institucion.longitud ? parseFloat(institucion.longitud) : null,
             url_sitio_web: institucion.url_sitio_web || "",

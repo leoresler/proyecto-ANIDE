@@ -432,9 +432,12 @@ class ProfileController extends Controller
         'ciudad' => $validated['ciudad'],
         'latitud' => $validated['latitud'],
         'longitud' => $validated['longitud'],
-        'url_sitio_web' => $validated['url_sitio_web'] ?? null,
-        'descripcion' => $validated['descripcion'] ?? null,
-        'ano_fundacion' => $validated['ano_fundacion'] ?? null,
+        'url_sitio_web' => $request->filled('url_sitio_web') ? $validated['url_sitio_web'] : null,
+
+        'descripcion' => $request->filled('descripcion') ? $validated['descripcion'] : null,
+
+        'ano_fundacion' => $request->filled('ano_fundacion') ? $validated['ano_fundacion'] : null,
+
     ]);
 
     // También actualizar la ciudad en la tabla users
